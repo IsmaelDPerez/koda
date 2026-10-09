@@ -80,10 +80,7 @@ async function inicializarKODA() {
             contModal.innerHTML = await modRes.text();
         }
 
-        // 2b. Cargar los datos reales desde Google Sheets (si está conectado)
-        await kodaNubeCargar();
-
-        // 3. Posicionar el Slider Apple (Píldora) de forma segura
+        // 3. Posicionar el Slider Apple (Píldora): ahora ANTES de esperar a Google Sheets, para que se vea de inmediato
         const ruta = window.location.pathname.toLowerCase();
         let btnActivo = document.getElementById('nav-btn-dashboard'); // Por defecto
         
@@ -116,6 +113,9 @@ async function inicializarKODA() {
                 }
             }, 50);
         }
+
+        // 2b. Cargar los datos reales desde Google Sheets (si está conectado)
+        await kodaNubeCargar();
 
         // 4. Llenar dinámicamente selectores si existen
         const selectSobre = document.getElementById('filtro-sobre');
