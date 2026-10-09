@@ -103,6 +103,7 @@
             <div class="hero">
                 <div class="lbl">Available balance</div>
                 <div class="big" id="h-total">$0</div>
+                <div class="lbl" id="h-detalle" style="margin-top:6px;font-size:12px"></div>
                 <div class="row2">
                     <div class="chip"><span class="lbl">Spent this month</span><b id="h-gasto">$0</b></div>
                     <div class="chip"><span class="lbl">Income this month</span><b id="h-ingreso">$0</b></div>
@@ -195,6 +196,20 @@ function ir(v) {
     scrollTo(0, 0);
 }
 
+function kodaLiquidez(cuentas, sobres, pendientes, compromisos) {
+    const si = v => v === true || v === 'TRUE' || v === 'true';
+    const marcadas = cuentas.filter(c => si(c.liquida));
+    const base = marcadas.reduce((a, c) => a + (Number(c.saldo) || 0), 0);
+    const enSobres = sobres.reduce((a, s) => a + Math.max(0, Number(s.monto) || 0), 0);
+    const porPagar = pendientes.filter(i => !si(i.pagado)).filter(i => {
+        if (i.tipoOrigen === 'fijo' || i.tipoOrigen === 'deuda') {
+            const c = compromisos.find(x => x.id == i.refId && x.tipo === i.tipoOrigen);
+            if (c && (c.afectaDisponible === false || c.afectaDisponible === 'FALSE' || c.afectaDisponible === 'false')) return false;
+        }
+        return true;
+    }).reduce((a, i) => a + (Number(i.monto) || 0), 0);
+    return { hayMarcadas: marcadas.length > 0, nombres: marcadas.map(c => c.apodo), base, enSobres, porPagar, libre: base - enSobres - porPagar };
+}
 function cacheD() { try { localStorage.setItem('koda_movil_cache', JSON.stringify({ t: Date.now(), D })); } catch (e) {} }
 
 /* ---- Cola de pendientes: lo anotado sin señal se guarda en el teléfono y se envía solo ---- */
@@ -277,8 +292,10 @@ function pintar() {
     const cu = P.cu, hi = P.hi, so = P.so, me = D.metas || [], co = D.compromisos || [], ck = D.checkpay || [];
     $('h-cola').classList.toggle('on', P.n + P.nFallo > 0);
     $('h-cola-txt').innerHTML = P.n ? `<b>${P.n}</b> waiting to send. They go out when you have a connection.` + (P.nFallo ? ` ${P.nFallo} could not be sent (see Activity).` : '') : `<b>${P.nFallo}</b> could not be sent (see Activity).`;
-    const total = cu.reduce((a, c) => a + (Number(c.saldo) || 0), 0);   // igual que la web: la deuda de la tarjeta se resta
-    $('h-total').textContent = money(total);
+    // Available balance = liquidez, igual que la web (cuentas marcadas - sobres - lo que falta por pagar)
+    const L = kodaLiquidez(cu, so, ck, co);
+    $('h-total').textContent = money(L.hayMarcadas ? L.libre : cu.reduce((a, c) => a + (Number(c.saldo) || 0), 0));
+    $('h-detalle').textContent = L.hayMarcadas ? `${money(L.base)} in ${L.nombres.join(', ')}` + (L.enSobres ? ` · ${money(L.enSobres)} in envelopes` : '') + (L.porPagar ? ` · ${money(L.porPagar)} to pay` : '') : (cu.length ? 'Choose your spending account in KODA on your computer.' : '');
     const mes = new Date().toISOString().slice(0, 7);
     const delMes = hi.filter(m => String(m.fechaStr || '').slice(0, 7) === mes);
     $('h-gasto').textContent = money(delMes.filter(m => m.tipo === 'Gasto').reduce((a, m) => a + (Number(m.monto) || 0), 0));

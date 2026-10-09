@@ -1375,6 +1375,24 @@ function renderizarMetasFondeo() {
 }
 
 // ----- Contabilidad -----
+// Liquidez: lo que de verdad se puede gastar el resto de la quincena.
+// = saldo de las cuentas marcadas "Counts as spending money"
+//   - lo que está guardado en sobres
+//   - lo que falta por pagar en Check Pay (salvo obligaciones con "Affects net available" apagado)
+function kodaLiquidez(cuentas = cuentasDB, sobres = sobresDB, pendientes = checkpayDB, compromisos = compromisosDB) {
+    const marcadas = cuentas.filter(c => c.liquida === true || c.liquida === 'TRUE' || c.liquida === 'true');
+    const base = marcadas.reduce((a, c) => a + (Number(c.saldo) || 0), 0);
+    const enSobres = sobres.reduce((a, s) => a + Math.max(0, Number(s.monto) || 0), 0);
+    const porPagar = pendientes.filter(i => !i.pagado && !(i.pagado === 'TRUE' || i.pagado === 'true')).filter(i => {
+        if (i.tipoOrigen === 'fijo' || i.tipoOrigen === 'deuda') {
+            const c = compromisos.find(x => x.id == i.refId && x.tipo === i.tipoOrigen);
+            if (c && (c.afectaDisponible === false || c.afectaDisponible === 'FALSE' || c.afectaDisponible === 'false')) return false;
+        }
+        return true;
+    }).reduce((a, i) => a + (Number(i.monto) || 0), 0);
+    return { hayMarcadas: marcadas.length > 0, nombres: marcadas.map(c => c.apodo), base, enSobres, porPagar, libre: base - enSobres - porPagar };
+}
+
 function aplicarMovimientoContable(mov) {
     const cuenta = cuentasDB.find(c => c.id === mov.cuentaId);
     if (!cuenta) return;
