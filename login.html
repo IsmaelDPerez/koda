@@ -195,7 +195,7 @@
         // Tras iniciar sesión: si la hoja ya está preparada se entra directo; si no, se muestra el paso 2
         async function lgContinuar() {
             const { datos, inicializado } = await kodaNubeLlamar('cargar');
-            if (inicializado) { lgPaso(3); setTimeout(() => navegarConTransicion('index.html'), 250); return; }
+            if (inicializado) { lgPaso(3); setTimeout(() => navegarConTransicion(lgDestino()), 250); return; }
             const total = Object.entries(datos).filter(([t]) => t !== 'categorias').reduce((a, [, f]) => a + f.length, 0);
             lgEl('lg-vista-login').classList.add('hidden');
             lgEl('lg-vista-hoja').classList.remove('hidden');
@@ -208,13 +208,19 @@
             lgPaso(2);
         }
 
+        // En la app instalada del celular se abre la versión móvil; en la computadora, el panel completo
+        function lgDestino() {
+            try { if (matchMedia('(display-mode: standalone)').matches || new URLSearchParams(location.search).get('m') === '1') return 'movil.html'; } catch (e) {}
+            return 'index.html';
+        }
+
         async function lgConservar() {
             const btn = lgEl('lg-conservar');
             kodaBotonCargando(btn, true); lgError('', 2);
             try {
                 await kodaNubeLlamar('marcarListo');
                 lgPaso(3);
-                setTimeout(() => navegarConTransicion('index.html'), 300);
+                setTimeout(() => navegarConTransicion(lgDestino()), 300);
             } catch (e) {
                 lgError(lgTraducir(e), 2);
             } finally {
@@ -232,7 +238,7 @@
                     Object.keys(KODA_TABLAS_NUBE).forEach(t => { datos[t] = kodaNubeSerializar(t); });
                     await kodaNubeLlamar('sembrar', { datos });
                     lgPaso(3);
-                    setTimeout(() => navegarConTransicion('index.html'), 300);
+                    setTimeout(() => navegarConTransicion(lgDestino()), 300);
                 } catch (e) {
                     lgError(lgTraducir(e), 2);
                 } finally {

@@ -8,9 +8,10 @@
         // Sin sesión: todas las páginas (menos login.html) llevan al inicio de sesión
         if (!conectado && !window.KODA_PUBLICA) { location.replace('login.html'); return; }
         if (window.KODA_SIN_NUBE || !conectado) return;
+        if (localStorage.getItem('koda_copia')) return;   // hay copia local: la página se muestra al instante
         const st = document.createElement('style');
         st.id = 'koda-ocultar';
-        st.textContent = 'html{opacity:0}';
+        st.textContent = 'html{opacity:0;background:#131722}';
         document.head.appendChild(st);
         setTimeout(() => document.getElementById('koda-ocultar')?.remove(), 8000);
     } catch (e) {}

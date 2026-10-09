@@ -1,0 +1,16 @@
+{
+  "name": "KODA",
+  "short_name": "KODA",
+  "description": "Your money, always in sync.",
+  "start_url": "login.html?m=1",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0F151B",
+  "theme_color": "#0F151B",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

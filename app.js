@@ -1740,7 +1740,7 @@ async function kodaNubeLlamar(action, extra = {}, cfg = kodaNubeConfig()) {
 
 // Cierra la sesión de este dispositivo (la dirección del servidor se recuerda, la clave no)
 function kodaCerrarSesion(ir = true) {
-    try { localStorage.removeItem(KODA_NUBE_KEY); sessionStorage.removeItem(KODA_NUBE_KEY); } catch (e) {}
+    try { localStorage.removeItem(KODA_NUBE_KEY); sessionStorage.removeItem(KODA_NUBE_KEY); localStorage.removeItem(KODA_COPIA_KEY); } catch (e) {}
     kodaNubeActiva = false;
     if (ir) window.location.href = 'login.html';
 }
@@ -1757,11 +1757,34 @@ function kodaNubeTomarSnapshot() {
 async function kodaNubeCargar() {
     const cfg = kodaNubeConfig();
     if (!cfg || window.KODA_SIN_NUBE) return;
+    kodaNubeMostrarCopia();   // muestra al instante la última copia guardada en este equipo; los datos reales llegan enseguida
     try {
         await kodaNubeCargarInterno(cfg);
     } finally {
         document.getElementById('koda-ocultar')?.remove();
     }
+}
+
+const KODA_COPIA_KEY = 'koda_copia';
+function kodaNubeGuardarCopia() {
+    try {
+        const o = {};
+        Object.keys(KODA_TABLAS_NUBE).forEach(t => { o[t] = kodaNubeSerializar(t); });
+        localStorage.setItem(KODA_COPIA_KEY, JSON.stringify(o));
+    } catch (e) {}
+}
+function kodaNubeMostrarCopia() {
+    try {
+        const o = JSON.parse(localStorage.getItem(KODA_COPIA_KEY) || 'null');
+        if (!o) return;
+        Object.keys(KODA_TABLAS_NUBE).forEach(t => {
+            const filas = o[t] || [], destino = KODA_TABLAS_NUBE[t]();
+            destino.splice(0, destino.length, ...(t === 'categorias' ? filas.map(f => f.nombre) : filas));
+        });
+        kodaRefrescarVistas();
+        ['initializeGoalsView', 'renderizarPaginaCheckpay'].forEach(n => { if (typeof window[n] === 'function') { try { window[n](); } catch (e) {} } });
+        document.getElementById('koda-ocultar')?.remove();
+    } catch (e) {}
 }
 
 async function kodaNubeCargarInterno(cfg) {
@@ -1782,6 +1805,7 @@ async function kodaNubeCargarInterno(cfg) {
         notificacionesDB = notificacionesDB.filter(n => n.clave !== 'nube-vacia');
         kodaNubeTomarSnapshot();
         kodaNubeActiva = true;
+        kodaNubeGuardarCopia();
         kodaRefrescarVistas();
         setTimeout(kodaProcesarBandeja, 800);
         setInterval(kodaProcesarBandeja, 60000);
@@ -1804,6 +1828,7 @@ async function kodaNubeSync() {
             await kodaNubeLlamar('guardarTabla', { tabla: t, filas });
             kodaNubeSnapshot[t] = JSON.stringify(filas);
         }
+        kodaNubeGuardarCopia();
         kodaNubeFalloAvisado = false;
     } catch (e) {
         console.error('Sincronización falló:', e);
