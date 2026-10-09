@@ -1802,3 +1802,24 @@ async function kodaNubeSync() {
         if (pendiente) { e.preventDefault(); e.returnValue = ''; }
     });
 })();
+
+
+// ==========================================
+// [APP-16] SIN AUTOCOMPLETADO DEL NAVEGADOR
+// Quita las sugerencias de "Saved info" / autofill en todos los campos, incluidos los de modales cargados después.
+// ==========================================
+function kodaSinAutocompletar(raiz = document) {
+    raiz.querySelectorAll('input, textarea, select, form').forEach(el => {
+        if (el.type === 'password' || el.dataset.kodaAc === '1') return;
+        const esTexto = el.tagName === 'TEXTAREA' || ['text', 'search', 'tel', 'email', 'url', ''].includes(el.type || '');
+        // "off" lo ignoran algunos navegadores en campos que parecen nombre/dirección; "new-password" no activa sugerencias en texto
+        el.setAttribute('autocomplete', esTexto && el.tagName !== 'FORM' ? 'new-password' : 'off');
+        if (esTexto) { el.setAttribute('autocorrect', 'off'); el.setAttribute('autocapitalize', 'off'); el.setAttribute('spellcheck', 'false'); }
+        el.dataset.kodaAc = '1';
+    });
+}
+document.addEventListener('DOMContentLoaded', () => {
+    kodaSinAutocompletar();
+    new MutationObserver(m => { if (m.some(x => x.addedNodes.length)) kodaSinAutocompletar(); })
+        .observe(document.body, { childList: true, subtree: true });
+});
