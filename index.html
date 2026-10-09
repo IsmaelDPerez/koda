@@ -381,7 +381,7 @@
             // En tarjetas el saldo es negativo: se edita el límite y, aparte, lo que se debe
             const esTC = cuenta.tipo === 'Tarjeta Crédito';
             document.getElementById('nueva-cuenta-saldo').value = esTC ? (cuenta.limite || Math.abs(cuenta.saldo)) : cuenta.saldo;
-            document.getElementById('nueva-cuenta-deuda').value = esTC ? Math.abs(Math.min(0, cuenta.saldo || 0)) : '';
+            document.getElementById('nueva-cuenta-disponible').value = esTC ? Math.max(0, (cuenta.limite || 0) + Math.min(0, cuenta.saldo || 0)) : '';
             document.getElementById('titulo-modal-cuenta').innerText = "Edit account";
             document.getElementById('btn-eliminar-cuenta').classList.remove('hidden');
             mostrarModalCuenta();
@@ -418,7 +418,9 @@
             const sigla = document.getElementById('nueva-cuenta-sigla').value.trim().toUpperCase();
             const tipo = document.getElementById('nueva-cuenta-tipo').value;
             const saldo = parseFloat(document.getElementById('nueva-cuenta-saldo').value) || 0;
-            const deuda = Math.abs(parseFloat(document.getElementById('nueva-cuenta-deuda').value) || 0);
+            const dispRaw = document.getElementById('nueva-cuenta-disponible').value;
+            const disponible = dispRaw === '' ? saldo : Math.abs(parseFloat(dispRaw) || 0);   // vacío = tarjeta sin usar
+            const deuda = Math.max(0, saldo - disponible);                                  // KODA calcula lo que se debe
 
             if (!apodo || !banco || !sigla) { mostrarAlertaKoda("Missing info", "Add a name, bank and initials."); return; }
 
@@ -428,6 +430,7 @@
                     cuenta.apodo = apodo; cuenta.banco = banco; cuenta.sigla = sigla; cuenta.tipo = tipo; cuenta.colorClass = CUENTA_COLOR;
                     if (tipo === 'Tarjeta Crédito') {
                         if (saldo <= 0) { mostrarAlertaKoda("Missing info", "Add the credit limit of the card."); return; }
+                        if (disponible > saldo) { mostrarAlertaKoda("Check the amounts", "Available cannot be higher than the credit limit."); return; }
                         cuenta.limite = saldo;
                         cuenta.saldo = -deuda;
                     } else {
@@ -441,6 +444,7 @@
                 };
                 if (tipo === 'Tarjeta Crédito') {
                     if (saldo <= 0) { mostrarAlertaKoda("Missing info", "Add the credit limit of the card."); return; }
+                    if (disponible > saldo) { mostrarAlertaKoda("Check the amounts", "Available cannot be higher than the credit limit."); return; }
                     nuevaCuenta.limite = saldo;
                     nuevaCuenta.saldo = -deuda;
                 }
@@ -493,8 +497,8 @@
                 </div>
 
                 <div id="cuenta-deuda-caja" class="hidden bg-[#0A0D12] border border-white/5 focus-within:border-koda-blue/40 rounded-2xl p-4 flex flex-col items-center justify-center gap-1 transition-colors">
-                    <span class="text-[11.5px] font-semibold text-koda-steel">Amount owed right now</span>
-                    <input type="number" id="nueva-cuenta-deuda" min="0" onwheel="this.blur()" class="w-full bg-transparent text-2xl font-semibold text-white text-center border-none outline-none">
+                    <span class="text-[11.5px] font-semibold text-koda-steel">Available now</span>
+                    <input type="number" id="nueva-cuenta-disponible" min="0" onwheel="this.blur()" class="w-full bg-transparent text-2xl font-semibold text-white text-center border-none outline-none">
                 </div>
 
                 <div class="flex items-center justify-end gap-3 pt-2 border-t border-white/5">
