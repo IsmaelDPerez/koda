@@ -24,6 +24,9 @@
 
     <!-- Acciones de la Derecha (Solo Notificaciones) -->
     <div class="flex items-center gap-4">
+        <button id="btn-asistente" type="button" onclick="toggleAsistente()" title="Ask KODA" class="koda-orb-btn">
+            <span class="koda-orb"></span><span class="koda-orb-ring"></span>
+        </button>
         <div class="relative">
             <button onclick="toggleNotificaciones()" class="w-10 h-10 bg-koda-lightCard dark:bg-koda-darkCard border border-gray-200 dark:border-koda-darkBorder rounded-full flex items-center justify-center relative hover:scale-110 transition-transform">
                 <span class="material-symbols-outlined text-gray-600 dark:text-gray-300">notifications</span>
@@ -45,3 +48,33 @@
         </button>
     </div>
 </nav>
+
+<!-- [NAV-02] CHAT FLOTANTE DEL ASISTENTE -->
+<div id="panel-asistente" class="hidden fixed top-[88px] right-6 z-50 w-[380px] max-w-[calc(100vw-2rem)] h-[540px] max-h-[calc(100vh-110px)] bg-[#141820] border border-white/10 rounded-[1.5rem] shadow-2xl flex-col overflow-hidden" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-white/5">
+        <div class="flex items-center gap-2.5">
+            <span class="koda-orb sm"></span>
+            <span class="text-[15px] font-semibold tracking-tight">Ask KODA</span>
+        </div>
+        <div class="flex items-center gap-1">
+            <button type="button" onclick="nuevoChatAsistente()" title="New chat" class="w-8 h-8 rounded-full hover:bg-white/5 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
+                <span class="material-symbols-outlined text-[19px]">edit_square</span>
+            </button>
+            <button type="button" onclick="cerrarAsistente()" title="Close" class="w-8 h-8 rounded-full hover:bg-white/5 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
+                <span class="material-symbols-outlined text-[19px]">close</span>
+            </button>
+        </div>
+    </div>
+    <div id="asistente-mensajes" class="flex-1 overflow-y-auto no-scrollbar px-4 py-4 flex flex-col gap-3 select-text"></div>
+    <form onsubmit="enviarAsistente(event)" class="px-4 pb-4 pt-2">
+        <div class="bg-[#0A0D12] border border-white/5 rounded-2xl pl-4 pr-2 py-2 flex items-end gap-2 focus-within:border-koda-blue/50 transition-colors">
+            <div class="flex-1 min-w-0 flex flex-col gap-0.5 py-1">
+                <span class="text-[11.5px] font-semibold text-koda-steel">Message</span>
+                <textarea id="asistente-entrada" rows="1" maxlength="1500" onkeydown="teclaAsistente(event)" oninput="ajustarEntradaAsistente()" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none resize-none max-h-24 select-text"></textarea>
+            </div>
+            <button type="submit" id="asistente-enviar" class="w-9 h-9 mb-0.5 rounded-full bg-koda-blue text-[#131722] hover:bg-[#7ab5bd] flex items-center justify-center transition-colors cursor-pointer outline-none flex-shrink-0">
+                <span class="material-symbols-outlined text-[19px]">arrow_upward</span>
+            </button>
+        </div>
+    </form>
+</div>

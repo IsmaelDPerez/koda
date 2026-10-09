@@ -114,6 +114,7 @@
                         <span class="material-symbols-outlined text-[18px] text-koda-steel mt-px">error</span>
                         <span id="lg-error2-texto"></span>
                     </div>
+                    <button type="button" id="lg-conservar" onclick="lgConservar()" class="hidden w-full py-3.5 rounded-xl text-sm font-semibold bg-koda-blue text-[#131722] hover:bg-[#7ab5bd] transition-colors cursor-pointer outline-none">Keep my data</button>
                     <button type="button" id="lg-vacio" onclick="lgPrepararHoja()" class="w-full py-3.5 rounded-xl text-sm font-semibold bg-koda-blue text-[#131722] hover:bg-[#7ab5bd] transition-colors cursor-pointer outline-none">Start empty</button>
                     <button type="button" onclick="lgSalir()" class="self-center text-[12px] font-semibold text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">Sign out</button>
                 </div>
@@ -200,13 +201,29 @@
             lgEl('lg-vista-hoja').classList.remove('hidden');
             lgEl('lg-vista-hoja').classList.add('flex');
             lgEl('lg-hoja-texto').innerText = total
-                ? `Your sheet has ${total} old records. Starting empty will erase them and begin clean.`
+                ? `Your sheet already has ${total} records. Keep them to continue where you left off, or start empty to erase them.`
                 : 'Your sheet is connected. Start empty to begin with a clean KODA.';
+            lgEl('lg-conservar').classList.toggle('hidden', !total);
+            if (total) { const v = lgEl('lg-vacio'); v.className = 'w-full py-3.5 rounded-xl text-sm font-semibold bg-transparent border border-white/15 text-white/80 hover:bg-white/5 transition-colors cursor-pointer outline-none'; }
             lgPaso(2);
         }
 
+        async function lgConservar() {
+            const btn = lgEl('lg-conservar');
+            kodaBotonCargando(btn, true); lgError('', 2);
+            try {
+                await kodaNubeLlamar('marcarListo');
+                lgPaso(3);
+                setTimeout(() => navegarConTransicion('index.html'), 300);
+            } catch (e) {
+                lgError(lgTraducir(e), 2);
+            } finally {
+                kodaBotonCargando(btn, false);
+            }
+        }
+
         function lgPrepararHoja() {
-            const total = lgEl('lg-hoja-texto').innerText.includes('old records');
+            const total = lgEl('lg-hoja-texto').innerText.includes('already has');
             kodaConfirmar('Start empty', total ? 'This clears accounts, envelopes, obligations, goals and history in your Google Sheet.' : 'Your sheet will be prepared for KODA.', async () => {
                 const btn = lgEl('lg-vacio');
                 kodaBotonCargando(btn, true); lgError('', 2);

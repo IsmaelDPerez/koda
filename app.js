@@ -877,6 +877,7 @@ document.addEventListener('keydown', function(event) {
         if (typeof cerrarModalCrearCuenta === 'function') cerrarModalCrearCuenta();
         if (typeof cerrarModalCompromiso === 'function') cerrarModalCompromiso();
         if (typeof cerrarModalDetallePrestamo === 'function') cerrarModalDetallePrestamo();
+        if (typeof cerrarAsistente === 'function') cerrarAsistente();
         
         const popoverCal = document.getElementById('popover-calendario');
         if (popoverCal && !popoverCal.classList.contains('hidden')) {
@@ -1128,7 +1129,7 @@ function limpiarNotificaciones() {
 
 function toggleNotificaciones() {
     const panel = document.getElementById('panel-notificaciones');
-    if (panel) panel.classList.toggle('hidden');
+    if (panel) { if (panel.classList.contains('hidden') && typeof cerrarAsistente === 'function') cerrarAsistente(); panel.classList.toggle('hidden'); }
 }
 document.addEventListener('click', (e) => {
     const panel = document.getElementById('panel-notificaciones');
@@ -1852,3 +1853,102 @@ document.addEventListener('DOMContentLoaded', () => {
     new MutationObserver(m => { if (m.some(x => x.addedNodes.length)) kodaSinAutocompletar(); })
         .observe(document.body, { childList: true, subtree: true });
 });
+
+
+
+// ==========================================
+// [APP-17] ASISTENTE (CHAT FLOTANTE CON GEMINI)
+// La conversación vive en esta pestaña (sessionStorage) y se envía al servidor; KODA no guarda historial.
+// ==========================================
+const KODA_CHAT_KEY = 'koda_chat';
+let kodaChat = [];            // { rol: 'user' | 'model', texto, error? }
+let kodaChatOcupado = false;
+
+function kodaChatCargar() { try { const r = JSON.parse(sessionStorage.getItem(KODA_CHAT_KEY) || '[]'); kodaChat = Array.isArray(r) ? r : []; } catch (e) { kodaChat = []; } }
+function kodaChatGuardar() { try { sessionStorage.setItem(KODA_CHAT_KEY, JSON.stringify(kodaChat.slice(-20))); } catch (e) {} }
+
+function kodaChatTexto(txt) {
+    // Escapa el HTML y solo permite **negrita**, listas con "-" o "*" y saltos de línea
+    let h = kodaEsc(String(txt || ''));
+    h = h.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-white">$1</strong>');
+    const lineas = h.split('\n').map(l => /^\s*[-*•]\s+/.test(l) ? `<span class="flex gap-2"><span class="text-koda-blue">•</span><span>${l.replace(/^\s*[-*•]\s+/, '')}</span></span>` : l);
+    return lineas.join('<br>').replace(/<\/span><br><span class="flex/g, '</span><span class="flex');
+}
+
+function renderizarChatAsistente() {
+    const cont = document.getElementById('asistente-mensajes');
+    if (!cont) return;
+    if (!kodaChat.length) {
+        const sugerencias = ['How much did I spend this month?', 'Which envelope is running low?', 'What do I owe in total?'];
+        cont.innerHTML = `<div class="flex-1 flex flex-col items-center justify-center gap-5 text-center px-2">
+            <span class="koda-orb" style="width:1.6rem;height:1.6rem"></span>
+            <p class="text-[13px] font-medium text-koda-steel">Ask about your accounts, envelopes, bills or goals.</p>
+            <div class="flex flex-col gap-2 w-full">${sugerencias.map(s => `<button type="button" onclick="enviarAsistente(null, this.innerText)" class="w-full text-left px-4 py-2.5 rounded-xl bg-[#0A0D12] border border-white/5 hover:border-koda-blue/40 text-[12.5px] font-medium text-white/90 transition-colors cursor-pointer outline-none">${s}</button>`).join('')}</div>
+        </div>`;
+        return;
+    }
+    cont.innerHTML = kodaChat.map(m => {
+        if (m.rol === 'user') return `<div class="self-end max-w-[85%] bg-koda-blue text-[#131722] px-3.5 py-2.5 rounded-2xl rounded-br-md text-[13.5px] font-medium leading-snug break-words">${kodaEsc(m.texto)}</div>`;
+        if (m.error) return `<div class="self-start max-w-[88%] flex items-start gap-2 text-[12.5px] font-medium text-white/80 px-1"><span class="material-symbols-outlined text-[17px] text-koda-steel mt-px">error</span><span>${kodaEsc(m.texto)}</span></div>`;
+        return `<div class="self-start max-w-[88%] bg-[#0A0D12] border border-white/5 px-3.5 py-2.5 rounded-2xl rounded-bl-md text-[13.5px] font-medium leading-snug text-white/90 break-words flex flex-col gap-1">${kodaChatTexto(m.texto)}</div>`;
+    }).join('') + (kodaChatOcupado ? `<div class="self-start bg-[#0A0D12] border border-white/5 px-4 py-3 rounded-2xl rounded-bl-md koda-escribiendo"><span></span><span></span><span></span></div>` : '');
+    cont.scrollTop = cont.scrollHeight;
+}
+
+function toggleAsistente() {
+    const panel = document.getElementById('panel-asistente');
+    if (!panel) return;
+    if (panel.classList.contains('hidden')) {
+        const notif = document.getElementById('panel-notificaciones'); if (notif) notif.classList.add('hidden');
+        kodaChatCargar(); renderizarChatAsistente();
+        panel.classList.remove('hidden'); panel.classList.add('flex', 'koda-chat-in');
+        setTimeout(() => document.getElementById('asistente-entrada')?.focus(), 60);
+    } else cerrarAsistente();
+}
+function cerrarAsistente() {
+    const panel = document.getElementById('panel-asistente');
+    if (!panel || panel.classList.contains('hidden')) return;
+    panel.classList.add('hidden'); panel.classList.remove('flex', 'koda-chat-in');
+}
+function nuevoChatAsistente() {
+    if (kodaChatOcupado) return;
+    kodaChat = []; kodaChatGuardar(); renderizarChatAsistente();
+    document.getElementById('asistente-entrada')?.focus();
+}
+function ajustarEntradaAsistente() {
+    const t = document.getElementById('asistente-entrada'); if (!t) return;
+    t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 96) + 'px';
+}
+function teclaAsistente(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarAsistente(null); }
+}
+
+async function enviarAsistente(ev, textoDirecto) {
+    if (ev) ev.preventDefault();
+    if (kodaChatOcupado) return;
+    const entrada = document.getElementById('asistente-entrada');
+    const texto = (textoDirecto || entrada?.value || '').trim();
+    if (!texto) return;
+    if (entrada) { entrada.value = ''; ajustarEntradaAsistente(); }
+
+    const historial = kodaChat.filter(m => !m.error).slice(-10).map(m => ({ rol: m.rol, texto: m.texto }));
+    kodaChat.push({ rol: 'user', texto });
+    kodaChatOcupado = true;
+    const orbe = document.getElementById('btn-asistente'), enviar = document.getElementById('asistente-enviar');
+    orbe?.classList.add('pensando'); if (enviar) enviar.disabled = true;
+    renderizarChatAsistente();
+    try {
+        // Los cambios pendientes se guardan primero para que Gemini vea los datos al día
+        if (typeof kodaNubeSync === 'function') await kodaNubeSync();
+        const r = await kodaNubeLlamar('preguntar', { mensaje: texto, historial });
+        kodaChat.push({ rol: 'model', texto: r.respuesta || '' });
+    } catch (e) {
+        const m = (e && e.message) || 'Something went wrong.';
+        kodaChat.push({ rol: 'model', texto: /Failed to fetch/i.test(m) ? 'Could not reach the server. Check your connection.' : m, error: true });
+    } finally {
+        kodaChatOcupado = false;
+        orbe?.classList.remove('pensando'); if (enviar) enviar.disabled = false;
+        kodaChatGuardar(); renderizarChatAsistente();
+        document.getElementById('asistente-entrada')?.focus();
+    }
+}
