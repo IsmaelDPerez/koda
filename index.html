@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KODA - Dashboard</title>
+    
+    <!-- Tipografía e Iconos -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Maven+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' font-family='sans-serif' font-weight='900' fill='%2366A5AD'>K.</text></svg>">
+    
+    <!-- Librerías Externas (Las que faltaban) -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- AÑADE ESTA LÍNEA -->
+    
+    <!-- Estilos Nativos y Tailwind -->
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="tailwind-config.js"></script>
+</head>
+
+<body class="font-sans min-h-screen flex flex-col items-center p-4 md:p-6 bg-koda-lightBg text-gray-900 dark:bg-koda-darkBg dark:text-white transition-colors duration-300">
+
+    <!-- [IDX-01] INYECTOR NAVBAR -->
+    <div id="contenedor-navbar" class="w-full max-w-[1500px]"></div>
+
+    <!-- [IDX-02] CONTENIDO PRINCIPAL DEL DASHBOARD -->
+    <!-- Margen inferior aumentado a pb-32 para que respire el diseño -->
+    <main class="w-full max-w-[1500px] grid grid-cols-1 lg:grid-cols-12 gap-6 pb-32">
+        
+        <!-- ================= COLUMNA IZQUIERDA (3/12) ================= -->
+        <aside class="lg:col-span-3 flex flex-col gap-6">
+            <!-- Disponible Global -->
+            <div class="bg-white dark:bg-koda-darkCard border border-gray-100 dark:border-koda-darkBorder rounded-[2rem] p-8 shadow-sm relative overflow-hidden">
+                <p class="text-koda-textMuted text-xs font-semibold mb-3">Available balance</p>
+                <h2 class="text-5xl font-semibold text-gray-900 dark:text-white" id="disponible-text">$0</h2>
+            </div>
+            
+            <!-- Cuentas -->
+            <div class="bg-koda-lightCard dark:bg-koda-darkCard border border-gray-100 dark:border-koda-darkBorder rounded-[2rem] p-6">
+                <div class="flex justify-between items-center mb-5">
+                    <div>
+                        <p class="text-koda-textMuted text-xs font-semibold mb-1">My accounts</p>
+                        <span id="total-cuentas-text" class="text-xl font-semibold text-gray-900 dark:text-white">$0</span>
+                    </div>
+                    <button onclick="abrirModalCrearCuenta()" class="w-8 h-8 bg-gray-100 dark:bg-koda-darkBg hover:bg-koda-blue hover:text-white rounded-full flex items-center justify-center text-gray-500 transition-colors shadow-sm cursor-pointer">
+                        <span class="material-symbols-outlined text-[18px]">add</span>
+                    </button>
+                </div>
+                <div id="lista-cuentas" class="space-y-2 mb-4"></div>
+            </div>
+
+            <!-- Compromisos (MOVIDO A LA IZQUIERDA) -->
+            <div class="w-full pt-2">
+                <!-- Cabecera Compromisos -->
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold cursor-pointer select-none" onclick="navegarA('compromisos')">Obligations</h3>
+                    <button onclick="navegarA('compromisos')" class="text-[11.5px] font-semibold text-koda-blue cursor-pointer select-none relative inline-flex items-center gap-1 overflow-visible after:absolute after:-bottom-1 after:left-0 after:h-[1.5px] after:w-full after:origin-bottom-right after:scale-x-0 after:bg-current after:transition-transform after:duration-300 after:ease-out hover:after:origin-bottom-left hover:after:scale-x-100">
+                        Manage <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+                    </button>
+                </div>
+                <!-- Apilados verticalmente con flex-col -->
+                <div id="widget-compromisos-container" class="flex flex-col gap-4"></div>
+            </div>
+        </aside>
+
+        <!-- ================= CONTENEDOR CENTRAL Y DERECHO (9/12) ================= -->
+        <div class="lg:col-span-9 grid grid-cols-1 lg:grid-cols-9 gap-6 h-full">
+            
+            <!-- ====== COLUMNA CENTRAL (6/9) ====== -->
+            <section class="lg:col-span-6 flex flex-col gap-6 w-full overflow-hidden h-full">
+                
+                <!-- WIDGET COMPARATIVA -->
+                <div class="bg-white dark:bg-koda-darkCard border border-gray-100 dark:border-koda-darkBorder rounded-[2rem] p-6 w-full shadow-sm">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 gap-4">
+                        <div>
+                            <p class="text-koda-textMuted text-[11.5px] font-semibold mb-1">Comparison</p>
+                            <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Income vs expenses</h3>
+                        </div>
+                        <div class="flex gap-1 bg-[#151A21] p-1 rounded-lg" id="filtros-periodo">
+                            <button data-periodo="1M" onclick="renderizarWidgetComparativa('1M')" class="btn-periodo px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer outline-none text-koda-steel hover:text-white">1M</button>
+                            <button data-periodo="3M" onclick="renderizarWidgetComparativa('3M')" class="btn-periodo px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer outline-none text-koda-steel hover:text-white">3M</button>
+                            <button data-periodo="6M" onclick="renderizarWidgetComparativa('6M')" class="btn-periodo px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer outline-none bg-white/10 text-white shadow-sm activo">6M</button>
+                            <button data-periodo="1A" onclick="renderizarWidgetComparativa('1A')" class="btn-periodo px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer outline-none text-koda-steel hover:text-white">1Y</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 md:gap-4 mb-2">
+                        <div class="bg-gray-50 dark:bg-[#151A21] border border-gray-100 dark:border-gray-800 p-4 rounded-2xl flex flex-col justify-center">
+                            <p class="text-[10px] font-semibold text-koda-textMuted mb-1">Income</p>
+                            <p class="text-base md:text-lg font-semibold text-koda-blue truncate" id="kpi-ingresos">$0</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-[#151A21] border border-gray-100 dark:border-gray-800 p-4 rounded-2xl flex flex-col justify-center">
+                            <p class="text-[10px] font-semibold text-koda-textMuted mb-1">Expenses</p>
+                            <p class="text-base md:text-lg font-semibold text-koda-red truncate" id="kpi-gastos">$0</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-[#151A21] border border-gray-100 dark:border-gray-800 p-4 rounded-2xl flex flex-col justify-center">
+                            <p class="text-[10px] font-semibold text-koda-textMuted mb-1">Net</p>
+                            <p class="text-base md:text-lg font-semibold text-koda-green truncate" id="kpi-diferencia">$0</p>
+                        </div>
+                    </div>
+                    <div class="w-full relative -mx-2 mt-4">
+                        <div id="chart-comparativa" class="w-full h-[220px]"></div>
+                    </div>
+                </div>
+                
+                <!-- Sobres Activos (Con el contenedor wrapper restaurado) -->
+                <div class="w-full">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold cursor-pointer select-none" onclick="navegarA('sobres')">Active envelopes</h3>
+                        <button onclick="navegarA('sobres')" class="text-[11.5px] font-semibold text-koda-blue cursor-pointer select-none relative inline-flex items-center gap-1 overflow-visible after:absolute after:-bottom-1 after:left-0 after:h-[1.5px] after:w-full after:origin-bottom-right after:scale-x-0 after:bg-current after:transition-transform after:duration-300 after:ease-out hover:after:origin-bottom-left hover:after:scale-x-100">
+                            Manage <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4" id="lista-sobres-dashboard"></div>
+                </div>
+
+                <!-- WIDGET DISTRIBUCIÓN (ESTIRADO AL RAS) -->
+                <div class="w-full pt-2 flex-1 flex flex-col">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold cursor-pointer select-none inline-flex items-center gap-2" onclick="navegarA('historial')">
+                            Spending breakdown
+                        </h3>
+                        <button onclick="navegarA('historial')" class="text-[11.5px] font-semibold text-koda-blue cursor-pointer select-none relative inline-flex items-center gap-1 overflow-visible after:absolute after:-bottom-1 after:left-0 after:h-[1.5px] after:w-full after:origin-bottom-right after:scale-x-0 after:bg-current after:transition-transform after:duration-300 after:ease-out hover:after:origin-bottom-left hover:after:scale-x-100">
+                            View details <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+                        </button>
+                    </div>
+                    <div class="bg-white dark:bg-koda-darkCard border border-gray-100 dark:border-koda-darkBorder rounded-[1.5rem] p-8 shadow-sm flex flex-col md:flex-row items-center justify-center gap-12 flex-1">
+                        <div class="w-full md:w-[50%] flex justify-center relative">
+                            <div id="chart-distribucion" class="w-full flex justify-center"></div>
+                        </div>
+                        <div id="leyenda-distribucion" class="w-full md:w-[50%] grid grid-cols-2 gap-y-8 gap-x-6"></div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- ====== COLUMNA DERECHA (3/9) ====== -->
+            <aside class="lg:col-span-3 flex flex-col gap-6 w-full h-full">
+                
+                <!-- Próxima Meta -->
+                <div id="widget-proxima-meta" onclick="" class="bg-[#66A5AD] text-[#131722] rounded-[2rem] p-6 relative overflow-hidden cursor-pointer border border-transparent hover:border-[#131722]/30 transition-colors duration-300 transition-all shadow-sm group w-full block">
+                    <div class="flex justify-between items-start">
+                        <p class="text-[11.5px] font-semibold text-[#131722]/70">Next goal</p>
+                        <div class="w-8 h-8 bg-[#131722]/10 rounded-full flex items-center justify-center group-hover:bg-[#131722] group-hover:text-[#66A5AD] transition-colors">
+                            <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                        </div>
+                    </div>
+                    <h3 class="text-3xl font-semibold mt-[-4px] mb-1 truncate flex items-center gap-2" id="home-meta-nombre">
+                        <span class="material-symbols-outlined text-[26px]">flag</span>
+                        Cargando...
+                    </h3>
+                    <p class="text-[11.5px] font-semibold mb-3 opacity-90" id="home-meta-montos">$0 / $0</p>
+                    <div class="w-full h-1.5 bg-[#131722]/20 rounded-full overflow-hidden">
+                        <div id="home-meta-barra" class="w-[0%] h-full bg-[#131722] rounded-full transition-all duration-500"></div>
+                    </div>
+                </div>
+                
+                <!-- WIDGET CHECK PAY -->
+                <div onclick="navegarA('checkpay')" class="bg-koda-darkCard border border-koda-darkBorder rounded-[2rem] p-6 shadow-sm flex flex-col justify-between cursor-pointer hover:border-[#66A5AD]/50 transition-all group relative overflow-hidden w-full">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[#66A5AD] text-[18px]">fact_check</span>
+                            <span class="text-[15px] font-semibold text-gray-900 dark:text-white">Check Pay</span>
+                        </div>
+                        <span class="material-symbols-outlined text-gray-400 group-hover:text-[#66A5AD] group-hover:translate-x-1 transition-all text-[18px]">arrow_forward</span>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-semibold text-white mb-2" id="home-cp-conteo">0 / 0 paid</h3>
+                        <div class="w-full h-1.5 bg-koda-darkBg rounded-full overflow-hidden mb-3">
+                            <div id="home-cp-barra" class="h-full bg-[#66A5AD] rounded-full transition-all duration-700" style="width: 0%"></div>
+                        </div>
+                        <p class="text-[11.5px] font-semibold text-koda-textMuted" id="home-cp-sub">0% complete this period</p>
+                    </div>
+                </div>
+
+                <!-- Historial (ESTIRADO AL RAS) -->
+                <div class="bg-koda-lightCard dark:bg-koda-darkCard border border-gray-100 dark:border-koda-darkBorder rounded-[2rem] p-5 w-full flex-1 flex flex-col">
+                    <div class="flex justify-between items-center mb-5">
+                        <h3 class="font-semibold text-lg cursor-pointer select-none inline-flex items-center gap-2" onclick="navegarA('historial')">
+                            History
+                        </h3>
+                        <button onclick="navegarA('historial')" class="text-[11.5px] font-semibold text-koda-blue cursor-pointer select-none relative inline-flex items-center gap-1 overflow-visible after:absolute after:-bottom-1 after:left-0 after:h-[1.5px] after:w-full after:origin-bottom-right after:scale-x-0 after:bg-current after:transition-transform after:duration-300 after:ease-out hover:after:origin-bottom-left hover:after:scale-x-100">
+                            View all <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+                        </button>
+                    </div>
+                    <div class="space-y-2 flex-1" id="historial-lista-dashboard"></div>
+                </div>
+            </aside>
+        </div>
+    </main>
+
+    <!-- [IDX-03] INYECTOR MODAL FLOTANTE -->
+    <div id="contenedor-modal"></div>
+
+    <!-- 1. PRIMERO CARGAMOS EL CEREBRO DE LA NUBE -->
+    <script src="koda-api.js"></script> 
+    
+    <!-- 2. LUEGO CARGAMOS LA LÓGICA DE LA APP -->
+    <script src="app.js"></script>
+    
+    <!-- 3. SCRIPT INTERNO DEL DASHBOARD (UNIFICADO Y CORREGIDO) -->
+    <script>
+        const CUENTA_COLOR = "bg-koda-blue/10 text-koda-blue";
+        // --- DASHBOARD RENDER ---
+        function renderizarCuentas() {
+            const contDash = document.getElementById('lista-cuentas');
+            const textTotal = document.getElementById('total-cuentas-text');
+            const textDisp = document.getElementById('disponible-text');
+            contDash.innerHTML = ''; let sumaTotal = 0;
+            cuentasDB.forEach(c => {
+                sumaTotal += c.saldo; 
+                let color = c.saldo < 0 ? 'text-koda-red' : ''; 
+                let displayMonto = c.tipo === 'Tarjeta Crédito' ? `$${(c.limite + c.saldo).toLocaleString()}` : (c.saldo < 0 ? `-$${Math.abs(c.saldo).toLocaleString()}` : `$${c.saldo.toLocaleString()}`);
+                
+                let iconoHtml = c.logo 
+                    ? `<img src="${c.logo}" class="w-full h-full object-cover">` 
+                    : `<span class="text-[14px] font-semibold">${c.sigla}</span>`;
+
+                contDash.innerHTML += `
+        <div onclick="if(typeof abrirModalEditarCuenta === 'function') abrirModalEditarCuenta(${c.id})" class="flex justify-between items-center p-3 mb-1 rounded-xl cursor-pointer hover:bg-koda-darkBorder/50 transition-colors duration-200 group">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden ${CUENTA_COLOR}">${iconoHtml}</div>
+                <div>
+                    <p class="text-[15px] font-semibold text-gray-900 dark:text-white leading-tight mb-0.5">${c.apodo}</p>
+                    <p class="text-[11.5px] text-koda-textMuted leading-tight">${c.banco} · DOP</p>
+                </div>
+            </div>
+            <p class="text-sm font-semibold ${color}">${displayMonto}</p>
+        </div>`;
+            });
+            textTotal.innerText = sumaTotal < 0 ? `-$${Math.abs(sumaTotal).toLocaleString()}` : `$${sumaTotal.toLocaleString()}`;
+            textDisp.innerText = textTotal.innerText; 
+            if (typeof Sortable !== 'undefined') new Sortable(contDash, { animation: 150, ghostClass: 'sortable-ghost' });
+        }
+
+        function renderizarSobresDashboard() {
+            const cont = document.getElementById('lista-sobres-dashboard'); 
+            cont.innerHTML = '';
+            let sobresPendientes = sobresDB.filter(s => s.monto !== 0);
+            
+            sobresPendientes.sort((a, b) => {
+                if (a.monto < 0 && b.monto >= 0) return -1;
+                if (b.monto < 0 && a.monto >= 0) return 1;
+                return (b.monto / b.meta) - (a.monto / a.meta); 
+            });
+            let sobresMostrar = sobresPendientes.slice(0, 4);
+
+            if (sobresMostrar.length === 0) {
+                cont.innerHTML = `
+                <div class="col-span-full flex flex-col items-center justify-center p-6 bg-koda-darkBg rounded-[1.5rem] border border-dashed border-koda-darkBorder">
+                    <span class="material-symbols-outlined text-koda-textMuted mb-2 text-3xl">inbox</span>
+                    <p class="text-sm font-semibold text-koda-textMuted">No active envelopes.</p>
+                </div>`;
+                return;
+            }
+
+            sobresMostrar.forEach(s => { 
+                let porc = Math.round((s.monto / s.meta) * 100); 
+                let colorBarra = 'bg-koda-blue'; 
+                let claseBorde = 'border-koda-darkBorder hover:border-gray-600 transition-colors duration-300'; 
+                let colorTextoMonto = 'text-white';
+
+                if (s.monto < 0) { 
+                    colorBarra = 'bg-koda-gray'; porc = 100; colorTextoMonto = 'text-koda-textMuted'; 
+                    claseBorde = 'border-koda-gray/30 hover:border-koda-gray animate-pulse'; 
+                } else if (porc >= 100) {
+                    colorBarra = 'bg-koda-gold'; porc = 100;
+                    claseBorde = 'border-koda-darkBorder hover:border-koda-gold/60 transition-colors duration-300';
+                }
+                
+                cont.innerHTML += `
+                <div onclick="navegarA('sobres.html?sobre=${s.id}')" class="cursor-pointer bg-koda-darkCard border ${claseBorde}${s.monto === 0 ? ' opacity-50 hover:opacity-100' : ''} transition-colors duration-300 rounded-[1.5rem] p-5 flex flex-col justify-between h-full shadow-sm">
+                    <div class="mb-3"><p class="text-[15px] font-semibold truncate text-gray-300">${s.nombre}</p></div>
+                    <div>
+                        <h4 class="text-2xl font-semibold mb-1 ${colorTextoMonto}">$${s.monto.toLocaleString()}</h4>
+                        <p class="text-[11.5px] font-semibold text-koda-textMuted mb-4">of $${s.meta.toLocaleString()}</p>
+                        <div class="w-full h-1.5 bg-koda-darkBg rounded-full overflow-hidden">
+                            <div class="h-full ${colorBarra} rounded-full transition-all duration-500" style="width: ${porc}%"></div>
+                        </div>
+                    </div>
+                </div>`; 
+            });
+        }
+
+        function renderizarHistorialMini() {
+            const cont = document.getElementById('historial-lista-dashboard'); 
+            cont.innerHTML = '';
+            if (!historialDB || historialDB.length === 0) {
+                cont.innerHTML = `<div class="flex flex-col items-center justify-center py-6"><span class="material-symbols-outlined text-koda-textMuted text-3xl mb-2">receipt_long</span><p class="text-xs text-koda-textMuted font-semibold">No recent transactions.</p></div>`;
+                return;
+            }
+            let ordenados = [...historialDB].sort((a,b) => new Date(b.fechaStr) - new Date(a.fechaStr));
+            ordenados.slice(0, 8).forEach(m => {
+                const esIn = m.tipo === 'Ingreso' || (m.tipo === 'Préstamo' && m.categoria.includes('Cobro')); 
+                
+                const colorTexto = esIn ? 'text-koda-green' : 'text-gray-900 dark:text-white'; 
+                // Opacidad ultrabaja (5%) para que los fondos sean sutiles
+                const iconBg = esIn ? 'bg-koda-green/5 text-koda-green' : 'bg-white/5 text-gray-400'; 
+                const icono = esIn ? 'south_west' : 'north_east'; 
+                
+                cont.innerHTML += `
+        <div onclick="abrirModalEdicion(${m.id})" class="flex justify-between items-center p-3.5 border border-koda-darkBorder hover:border-koda-blue/50 rounded-2xl transition-colors cursor-pointer mb-2 group bg-koda-darkBg">
+            <div class="flex items-center gap-3 min-w-0 pr-3">
+                <div class="w-8 h-8 flex-shrink-0 ${iconBg} rounded-full flex items-center justify-center"><span class="material-symbols-outlined text-[16px] font-semibold">${icono}</span></div>
+                <div class="min-w-0">
+                    <p class="text-[14px] font-semibold text-gray-900 dark:text-white truncate">${m.desc || m.tipo}</p>
+                    <p class="text-[11.5px] text-koda-textMuted truncate mt-0.5">${formatearFechaUI(m.fechaStr)} · ${m.categoria}</p>
+                </div>
+            </div>
+            <p class="text-sm font-semibold flex-shrink-0 ${colorTexto}">${esIn ? '+' : '-'}$${Math.abs(m.monto).toLocaleString()}</p>
+        </div>`;
+            });
+        }
+
+        function renderizarProximaMetaHome() {
+            let activas = metasDB.filter(m => m.montoActual < m.metaTotal);
+            if(activas.length === 0) return;
+            activas.sort((a, b) => (b.montoActual / b.metaTotal) - (a.montoActual / a.metaTotal));
+            let proxima = activas[0];
+            let porc = Math.round((proxima.montoActual / proxima.metaTotal) * 100);
+
+            document.getElementById('home-meta-nombre').innerText = proxima.nombre;
+            document.getElementById('home-meta-montos').innerText = `$${proxima.montoActual.toLocaleString()} / $${proxima.metaTotal.toLocaleString()}`;
+            document.getElementById('home-meta-barra').style.width = `${porc}%`;
+            document.getElementById('widget-proxima-meta').onclick = function() { window.location.href = `metas.html?metaId=${proxima.id}`; };
+        }
+
+        // Llamadas iniciales
+        setTimeout(() => {
+            if (typeof renderizarWidgetCompromisos === 'function') renderizarWidgetCompromisos();
+            if (typeof renderizarWidgetComparativa === 'function') renderizarWidgetComparativa('6M');
+        }, 150);
+
+        // --- ACCOUNT MODAL ---
+
+        function seleccionarTipoCuenta(tipo) {
+            document.getElementById('nueva-cuenta-tipo').value = tipo;
+            const on = 'bg-koda-blue text-[#131722]', off = 'text-koda-steel hover:text-white';
+            const esBanco = tipo === 'Banco';
+            document.getElementById('cuenta-tipo-banco').className = `py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer outline-none ${esBanco ? on : off}`;
+            document.getElementById('cuenta-tipo-tarjeta').className = `py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer outline-none ${esBanco ? off : on}`;
+            document.getElementById('cuenta-saldo-label').innerText = esBanco ? 'Balance' : 'Credit limit';
+        }
+
+        function mostrarModalCuenta() {
+            const m = document.getElementById('modal-crear-cuenta'), c = document.getElementById('card-crear-cuenta');
+            m.classList.remove('opacity-0', 'pointer-events-none'); m.classList.add('opacity-100', 'pointer-events-auto');
+            c.classList.remove('scale-95'); c.classList.add('scale-100');
+        }
+
+        function abrirModalCrearCuenta() {
+            document.getElementById('form-crear-cuenta').reset();
+            document.getElementById('cuenta-id-edicion').value = '';
+            document.getElementById('titulo-modal-cuenta').innerText = "New account";
+            document.getElementById('btn-eliminar-cuenta').classList.add('hidden');
+            seleccionarTipoCuenta('Banco');
+            mostrarModalCuenta();
+        }
+
+        function abrirModalEditarCuenta(id) {
+            const cuenta = cuentasDB.find(c => c.id === id);
+            if (!cuenta) return;
+            document.getElementById('cuenta-id-edicion').value = cuenta.id;
+            document.getElementById('nueva-cuenta-apodo').value = cuenta.apodo;
+            document.getElementById('nueva-cuenta-banco').value = cuenta.banco;
+            document.getElementById('nueva-cuenta-sigla').value = cuenta.sigla;
+            seleccionarTipoCuenta(cuenta.tipo);
+            // En tarjetas el saldo es negativo; se edita el límite
+            document.getElementById('nueva-cuenta-saldo').value = cuenta.tipo === 'Tarjeta Crédito' ? (cuenta.limite || Math.abs(cuenta.saldo)) : cuenta.saldo;
+            document.getElementById('titulo-modal-cuenta').innerText = "Edit account";
+            document.getElementById('btn-eliminar-cuenta').classList.remove('hidden');
+            mostrarModalCuenta();
+        }
+
+        function cerrarModalCrearCuenta() {
+            resetEliminarCuenta();
+            const m = document.getElementById('modal-crear-cuenta'), c = document.getElementById('card-crear-cuenta');
+            m.classList.remove('opacity-100', 'pointer-events-auto'); m.classList.add('opacity-0', 'pointer-events-none');
+            c.classList.remove('scale-100'); c.classList.add('scale-95');
+        }
+
+        // Eliminar pasa por la confirmación estándar de KODA
+        function armarEliminarCuenta() {
+            const id = document.getElementById('cuenta-id-edicion').value;
+            const c = cuentasDB.find(x => x.id == id);
+            kodaConfirmarEliminar(c ? c.apodo : 'this account', eliminarCuentaDashboard);
+        }
+        function resetEliminarCuenta() {}
+
+        function eliminarCuentaDashboard() {
+            const id = document.getElementById('cuenta-id-edicion').value;
+            if (!id) return;
+            const index = cuentasDB.findIndex(c => c.id == id);
+            if (index > -1) cuentasDB.splice(index, 1);
+            cerrarModalCrearCuenta();
+            renderizarCuentas();
+        }
+
+        function guardarNuevaCuentaDashboard() {
+            const idEdicion = document.getElementById('cuenta-id-edicion').value;
+            const apodo = document.getElementById('nueva-cuenta-apodo').value.trim();
+            const banco = document.getElementById('nueva-cuenta-banco').value.trim();
+            const sigla = document.getElementById('nueva-cuenta-sigla').value.trim().toUpperCase();
+            const tipo = document.getElementById('nueva-cuenta-tipo').value;
+            const saldo = parseFloat(document.getElementById('nueva-cuenta-saldo').value) || 0;
+
+            if (!apodo || !banco || !sigla) { mostrarAlertaKoda("Missing info", "Add a name, bank and initials."); return; }
+
+            if (idEdicion) {
+                const cuenta = cuentasDB.find(c => c.id == idEdicion);
+                if (cuenta) {
+                    cuenta.apodo = apodo; cuenta.banco = banco; cuenta.sigla = sigla; cuenta.tipo = tipo; cuenta.colorClass = CUENTA_COLOR;
+                    if (tipo === 'Tarjeta Crédito') {
+                        cuenta.limite = saldo > 0 ? saldo : 15000;
+                        cuenta.saldo = -Math.abs(saldo);
+                    } else {
+                        cuenta.saldo = saldo;
+                    }
+                }
+            } else {
+                const nuevaCuenta = {
+                    id: cuentasDB.length > 0 ? Math.max(...cuentasDB.map(c => c.id)) + 1 : 1,
+                    apodo, banco, saldo, sigla, colorClass: CUENTA_COLOR, tipo
+                };
+                if (tipo === 'Tarjeta Crédito') {
+                    nuevaCuenta.limite = saldo > 0 ? saldo : 15000;
+                    nuevaCuenta.saldo = -Math.abs(saldo);
+                }
+                cuentasDB.push(nuevaCuenta);
+            }
+            cerrarModalCrearCuenta();
+            renderizarCuentas();
+        }
+    </script>
+
+    <!-- [IDX-04] ACCOUNT MODAL -->
+    <div id="modal-crear-cuenta" class="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
+        <div id="card-crear-cuenta" class="relative w-full max-w-[460px] bg-[#141820] border border-white/10 rounded-[32px] p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] flex flex-col gap-4 transform scale-95 transition-all duration-300 ease-out max-h-[90vh] overflow-y-auto no-scrollbar">
+            <div class="flex items-center justify-between">
+                <h3 class="text-2xl font-semibold tracking-tight text-white" id="titulo-modal-cuenta">New account</h3>
+                <button type="button" onclick="cerrarModalCrearCuenta()" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[18px]">close</span>
+                </button>
+            </div>
+
+            <form id="form-crear-cuenta" class="flex flex-col gap-4" onsubmit="event.preventDefault(); guardarNuevaCuentaDashboard();">
+                <input type="hidden" id="cuenta-id-edicion">
+
+                <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                    <span class="text-[11.5px] font-semibold text-koda-steel">Account name</span>
+                    <input type="text" id="nueva-cuenta-apodo" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none">
+                </div>
+
+                <div class="grid grid-cols-[1fr_96px] gap-3">
+                    <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                        <span class="text-[11.5px] font-semibold text-koda-steel">Bank</span>
+                        <input type="text" id="nueva-cuenta-banco" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none">
+                    </div>
+                    <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                        <span class="text-[11.5px] font-semibold text-koda-steel">Initials</span>
+                        <input type="text" id="nueva-cuenta-sigla" maxlength="3" class="w-full bg-transparent text-sm text-white font-medium text-center border-none outline-none">
+                    </div>
+                </div>
+
+                <!-- Type -->
+                <input type="hidden" id="nueva-cuenta-tipo" value="Banco">
+                <div class="grid grid-cols-2 gap-2 bg-[#0A0D12] border border-white/5 rounded-2xl p-1.5">
+                    <button type="button" id="cuenta-tipo-banco" onclick="seleccionarTipoCuenta('Banco')" class="py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer outline-none">Bank account</button>
+                    <button type="button" id="cuenta-tipo-tarjeta" onclick="seleccionarTipoCuenta('Tarjeta Crédito')" class="py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer outline-none">Credit card</button>
+                </div>
+
+                <div class="bg-[#0A0D12] border border-white/5 focus-within:border-koda-blue/40 rounded-2xl p-4 flex flex-col items-center justify-center gap-1 transition-colors">
+                    <span class="text-[11.5px] font-semibold text-koda-steel" id="cuenta-saldo-label">Balance</span>
+                    <input type="number" id="nueva-cuenta-saldo" onwheel="this.blur()" class="w-full bg-transparent text-4xl font-semibold text-white text-center placeholder:text-white/20 border-none outline-none">
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-2 border-t border-white/5">
+                    <button type="button" id="btn-eliminar-cuenta" onclick="armarEliminarCuenta(this)" class="hidden w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer mr-auto outline-none">
+                        <span class="material-symbols-outlined text-[18px]">delete</span>
+                    </button>
+                    <button type="button" onclick="cerrarModalCrearCuenta()" class="px-5 py-2.5 text-xs font-semibold text-koda-steel hover:text-white rounded-full hover:bg-white/5 transition-colors cursor-pointer outline-none">Cancel</button>
+                    <button type="submit" id="btn-guardar-cuenta" class="px-8 py-3 text-xs font-semibold rounded-full bg-koda-blue text-[#131722] hover:bg-[#7ab5bd] transition-colors cursor-pointer outline-none">Confirm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</body>
+</html>
