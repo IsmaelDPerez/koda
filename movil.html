@@ -15,7 +15,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Maven+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <style>
-        :root { --bg:#131722; --card:#1E222D; --card2:#2A2E39; --line:rgba(255,255,255,.08); --txt:#F2F5F7; --mut:#8A98A5; --cy:#66A5AD; --gold:#C1A35F; --red:#D98080; }
+        :root { --bg:#131722; --card:#1E222D; --card2:#2A2E39; --line:rgba(255,255,255,.08); --txt:#F2F5F7; --mut:#8A98A5; --cy:#66A5AD; --gold:#C1A35F;  }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         html, body { margin: 0; background: var(--bg); color: var(--txt); font-family: 'Maven Pro', system-ui, sans-serif; }
         body { min-height: 100dvh; padding-bottom: calc(84px + env(safe-area-inset-bottom)); overscroll-behavior-y: contain; }
@@ -41,7 +41,7 @@
         .item .main { flex: 1; min-width: 0; }
         .item .t { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .item .s { color: var(--mut); font-size: 12.5px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .amt { font-weight: 700; font-size: 15px; white-space: nowrap; } .neg { color: var(--red); } .pos { color: var(--cy); }
+        .amt { font-weight: 700; font-size: 15px; white-space: nowrap; } .neg { color: var(--txt); } .pos { color: var(--cy); }
         .dot { width: 38px; height: 38px; border-radius: 12px; background: var(--card2); display: grid; place-items: center; color: var(--cy); flex: none; }
         .bar { height: 6px; background: var(--card2); border-radius: 99px; overflow: hidden; margin-top: 8px; } .bar > div { height: 100%; background: var(--cy); border-radius: 99px; }
         .empty { color: var(--mut); font-size: 14px; text-align: center; padding: 26px 16px; }
@@ -63,7 +63,7 @@
         .seg button { padding: 10px; border-radius: 11px; font-weight: 700; font-size: 14px; color: var(--mut); } .seg button.on { background: var(--cy); color: #0F151B; }
         .btn { width: 100%; padding: 15px; border-radius: 16px; background: var(--cy); color: #0F151B; font-weight: 800; font-size: 16px; margin-top: 18px; }
         .btn:disabled { opacity: .55; }
-        .err { color: var(--red); font-size: 13px; margin-top: 10px; min-height: 0; }
+        .err { color: var(--gold); font-size: 13px; margin-top: 10px; min-height: 0; }
         .view { display: none; } .view.on { display: block; animation: fade .25s ease-out; }
         @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
         /* Chat */
@@ -71,7 +71,7 @@
         .b { max-width: 86%; padding: 11px 14px; border-radius: 18px; font-size: 15px; line-height: 1.45; white-space: pre-wrap; word-wrap: break-word; }
         .b.u { align-self: flex-end; background: var(--cy); color: #0F151B; border-bottom-right-radius: 6px; font-weight: 500; }
         .b.m { align-self: flex-start; background: var(--card); border: 1px solid var(--line); border-bottom-left-radius: 6px; }
-        .b.e { color: var(--red); }
+        .b.e { color: var(--gold); }
         .sug { text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; font-size: 14.5px; color: var(--txt); }
         .chatbar { position: fixed; left: 0; right: 0; bottom: calc(66px + env(safe-area-inset-bottom)); z-index: 25; background: var(--bg); padding: 8px 0 10px; border-top: 1px solid var(--line); display: none; }
         body.chat-on .chatbar { display: block; } body.chat-on { padding-bottom: calc(150px + env(safe-area-inset-bottom)); }
@@ -82,6 +82,9 @@
         @keyframes bl { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
         #toast { position: fixed; left: 50%; bottom: calc(100px + env(safe-area-inset-bottom)); transform: translate(-50%, 20px); background: #2A2E39; border: 1px solid var(--line); padding: 11px 16px; border-radius: 14px; font-size: 14px; font-weight: 600; opacity: 0; pointer-events: none; transition: .25s; z-index: 60; }
         #toast.on { opacity: 1; transform: translate(-50%, 0); }
+        .queue { display: none; margin-top: 12px; padding: 12px 14px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); font-size: 13.5px; color: var(--mut); align-items: center; gap: 10px; }
+        .queue.on { display: flex; } .queue b { color: var(--gold); } .queue button { margin-left: auto; color: var(--cy); font-weight: 700; font-size: 13.5px; padding: 4px 2px; }
+        .tag { color: var(--gold); font-weight: 700; }
         .pull { text-align: center; color: var(--mut); font-size: 12px; margin-top: 18px; }
     </style>
 </head>
@@ -105,6 +108,7 @@
                     <div class="chip"><span class="lbl">Income this month</span><b id="h-ingreso">$0</b></div>
                 </div>
             </div>
+            <div class="queue" id="h-cola"><span class="ms" style="color:var(--gold)">schedule</span><span id="h-cola-txt"></span><button onclick="enviarCola(true)">Send now</button></div>
             <h2>Accounts</h2><div class="card" id="l-cuentas"></div>
             <h2>Envelopes</h2><div class="card" id="l-sobres"></div>
             <h2>Goals</h2><div class="card" id="l-metas"></div>
@@ -168,10 +172,13 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&a
 const money = n => { n = Number(n) || 0; const v = Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: Math.abs(n) % 1 ? 2 : 0, maximumFractionDigits: 2 }); return (n < 0 ? '-$' : '$') + v; };
 
 async function api(action, extra = {}) {
-    const r = await fetch(cfg.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ token: cfg.token, action, ...extra }) });
-    if (!r.ok) throw new Error('Server answered ' + r.status);
-    let d; try { d = await r.json(); } catch (e) { throw new Error('Invalid server response'); }
-    if (!d.ok) { if (/clave|key/i.test(d.error || '')) { salir(); } throw new Error(d.error || 'Unknown error'); }
+    const falla = (m, o) => Object.assign(new Error(m), o);   // red: sin conexión o servidor caído (se puede reintentar)
+    let r;
+    try { r = await fetch(cfg.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ token: cfg.token, action, ...extra }) }); }
+    catch (e) { throw falla('No connection', { red: true }); }
+    if (!r.ok) throw falla('Server answered ' + r.status, { red: true });
+    let d; try { d = await r.json(); } catch (e) { throw falla('Invalid server response', { red: true }); }
+    if (!d.ok) { if (/clave|key/i.test(d.error || '')) { salir(); throw falla(d.error, { auth: true }); } throw new Error(d.error || 'Unknown error'); }
     return d;
 }
 
@@ -188,14 +195,74 @@ function ir(v) {
     scrollTo(0, 0);
 }
 
+function cacheD() { try { localStorage.setItem('koda_movil_cache', JSON.stringify({ t: Date.now(), D })); } catch (e) {} }
+
+/* ---- Cola de pendientes: lo anotado sin señal se guarda en el teléfono y se envía solo ---- */
+const COLA_KEY = 'koda_movil_cola';
+let cola = []; try { cola = JSON.parse(localStorage.getItem(COLA_KEY) || '[]'); } catch (e) {}
+let enviando = false;
+const guardarCola = () => { try { localStorage.setItem(COLA_KEY, JSON.stringify(cola)); } catch (e) {} };
+const nuevoCid = () => 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+function fechaLocal() { const d = new Date(), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; }
+
+// Datos tal como se ven: lo guardado en la hoja + lo que aún espera para enviarse
+function conPendientes() {
+    const cu = JSON.parse(JSON.stringify(D.cuentas || [])), so = JSON.parse(JSON.stringify(D.sobres || [])), hi = (D.historial || []).slice();
+    const ya = new Set(hi.map(m => m.refCliente).filter(Boolean));   // si la hoja ya lo tiene, no se cuenta dos veces
+    const pend = cola.filter(i => !ya.has(i.cid));
+    pend.filter(i => !i.fallo).forEach(i => {
+        const c = cu.find(x => String(x.id) === String(i.cuentaId)); if (c) c.saldo = (Number(c.saldo) || 0) + (i.tipo === 'Ingreso' ? i.monto : -i.monto);
+        if (i.tipo === 'Gasto' && i.sobre) { const s = so.find(x => x.nombre === i.sobre); if (s) s.monto = (Number(s.monto) || 0) - i.monto; }
+    });
+    pend.forEach(i => {
+        const c = cu.find(x => String(x.id) === String(i.cuentaId));
+        hi.push({ id: i.cid, tipo: i.tipo, monto: i.monto, desc: i.desc, categoria: i.sobre || i.categoria, cuentaOrigen: c ? c.apodo : '', fechaStr: i.fechaStr, pendiente: true, fallo: i.fallo, cid: i.cid });
+    });
+    return { cu, so, hi, n: pend.filter(i => !i.fallo).length, nFallo: pend.filter(i => i.fallo).length };
+}
+
+function aplicarEnD(it, mov) {
+    const c = (D.cuentas || []).find(x => String(x.id) === String(it.cuentaId)); if (c) c.saldo = (Number(c.saldo) || 0) + (it.tipo === 'Ingreso' ? it.monto : -it.monto);
+    if (it.tipo === 'Gasto' && it.sobre) { const s = (D.sobres || []).find(x => x.nombre === it.sobre); if (s) s.monto = (Number(s.monto) || 0) - it.monto; }
+    (D.historial = D.historial || []).push(mov || { id: Date.now(), tipo: it.tipo, monto: it.monto, desc: it.desc, categoria: it.sobre || it.categoria, cuentaOrigen: c ? c.apodo : '', cuentaId: it.cuentaId, fechaStr: it.fechaStr, refCliente: it.cid });
+    cacheD();
+}
+
+async function enviarCola(manual) {
+    if (enviando) return;
+    if (!cola.some(i => !i.fallo)) { if (manual) toast('Nothing to send'); return; }
+    enviando = true; let alguno = false, sinRed = false;
+    try {
+        for (const it of cola.filter(i => !i.fallo)) {
+            try {
+                const r = await api('movimientoRapido', { cid: it.cid, tipo: it.tipo, monto: it.monto, desc: it.desc, cuentaId: it.cuentaId, categoria: it.categoria, sobre: it.sobre, fechaStr: it.fechaStr });
+                cola = cola.filter(x => x.cid !== it.cid); guardarCola(); alguno = true;
+                if (!r.duplicado) aplicarEnD(it, r.mov);
+            } catch (e) {
+                if (e.red) { sinRed = true; break; }   // sin conexión: se reintenta más tarde, en el mismo orden
+                if (e.auth) break;
+                it.fallo = e.message; guardarCola();    // el servidor la rechazó (por ejemplo, una cuenta que ya no existe)
+            }
+        }
+    } finally { enviando = false; pintar(); }
+    if (manual) toast(sinRed ? 'Still no connection' : 'Sent');
+    if (alguno) cargar(false);
+}
+
+function descartar(cid) {
+    if (!confirm('Remove this entry? It could not be sent.')) return;
+    cola = cola.filter(x => x.cid !== cid); guardarCola(); pintar();
+}
+
 async function cargar(manual) {
     if (cargando) return; cargando = true;
     const ic = $('ic-ref'); ic.style.transition = 'transform .8s'; ic.style.transform = 'rotate(360deg)';
     try {
         const r = await api('cargar');
         D = r.datos || {};
-        try { localStorage.setItem('koda_movil_cache', JSON.stringify({ t: Date.now(), D })); } catch (e) {}
+        cacheD();
         pintar();
+        enviarCola();
         $('h-sync').textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         if (manual) toast('Up to date');
     } catch (e) {
@@ -206,8 +273,11 @@ async function cargar(manual) {
 
 const esTarjeta = c => c.tipo === 'Tarjeta Crédito';
 function pintar() {
-    const cu = D.cuentas || [], hi = D.historial || [], so = D.sobres || [], me = D.metas || [], co = D.compromisos || [], ck = D.checkpay || [];
-    const total = cu.filter(c => !esTarjeta(c) && !(c.isForecast === true || c.isForecast === 'TRUE')).reduce((a, c) => a + (Number(c.saldo) || 0), 0);
+    const P = conPendientes();
+    const cu = P.cu, hi = P.hi, so = P.so, me = D.metas || [], co = D.compromisos || [], ck = D.checkpay || [];
+    $('h-cola').classList.toggle('on', P.n + P.nFallo > 0);
+    $('h-cola-txt').innerHTML = P.n ? `<b>${P.n}</b> waiting to send. They go out when you have a connection.` + (P.nFallo ? ` ${P.nFallo} could not be sent (see Activity).` : '') : `<b>${P.nFallo}</b> could not be sent (see Activity).`;
+    const total = cu.reduce((a, c) => a + (Number(c.saldo) || 0), 0);   // igual que la web: la deuda de la tarjeta se resta
     $('h-total').textContent = money(total);
     const mes = new Date().toISOString().slice(0, 7);
     const delMes = hi.filter(m => String(m.fechaStr || '').slice(0, 7) === mes);
@@ -234,7 +304,9 @@ function pintar() {
     $('l-hist').innerHTML = ult.length ? ult.map(m => {
         const ing = m.tipo === 'Ingreso', fe = String(m.fechaStr || '');
         const f = fe ? new Date(fe).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
-        return `<div class="item"><div class="dot"><span class="ms">${ing ? 'south_west' : m.tipo === 'Transferencia' ? 'swap_horiz' : 'north_east'}</span></div><div class="main"><div class="t">${esc(m.desc || m.tipo)}</div><div class="s">${esc(f)} · ${esc(m.cuentaOrigen || '')}${m.categoria ? ' · ' + esc(m.categoria) : ''}</div></div><div class="amt ${ing ? 'pos' : ''}">${ing ? '+' : ''}${money(m.monto)}</div></div>`;
+        const marca = m.pendiente ? (m.fallo ? ` · <span class="tag">Not sent: ${esc(m.fallo)}</span>` : ' · <span class="tag">Pending</span>') : '';
+        const clic = m.pendiente && m.fallo ? ` onclick="descartar('${esc(m.cid)}')"` : '';
+        return `<div class="item"${clic}><div class="dot"><span class="ms">${m.pendiente ? 'schedule' : ing ? 'south_west' : m.tipo === 'Transferencia' ? 'swap_horiz' : 'north_east'}</span></div><div class="main"><div class="t">${esc(m.desc || m.tipo)}</div><div class="s">${esc(f)} · ${esc(m.cuentaOrigen || '')}${m.categoria ? ' · ' + esc(m.categoria) : ''}${marca}</div></div><div class="amt ${ing ? 'pos' : ''}">${ing ? '+' : ''}${money(m.monto)}</div></div>`;
     }).join('') : '<div class="empty">No activity yet.</div>';
 
     $('l-comp').innerHTML = co.length ? co.map(c => {
@@ -267,12 +339,12 @@ function cerrarHoja() { document.body.classList.remove('sheet-on'); document.act
 async function guardar() {
     const monto = parseFloat($('f-monto').value);
     if (!(monto > 0)) { $('f-err').textContent = 'Enter an amount greater than zero.'; return; }
-    const b = $('f-ok'); b.disabled = true; b.textContent = 'Saving...'; $('f-err').textContent = '';
-    try {
-        await api('movimientoRapido', { tipo, monto, desc: $('f-desc').value.trim(), cuentaId: $('f-cuenta').value, categoria: $('f-cat').value, sobre: tipo === 'Gasto' ? $('f-sobre').value : '' });
-        cerrarHoja(); toast(tipo === 'Gasto' ? 'Expense saved' : 'Income saved'); await cargar(false);
-    } catch (e) { $('f-err').textContent = e.message; }
-    finally { b.disabled = false; b.textContent = 'Save'; }
+    // Se guarda primero en el teléfono (así nunca se pierde) y luego se envía a la hoja
+    const it = { cid: nuevoCid(), tipo, monto, desc: $('f-desc').value.trim(), cuentaId: $('f-cuenta').value, categoria: $('f-cat').value, sobre: tipo === 'Gasto' ? $('f-sobre').value : '', fechaStr: fechaLocal() };
+    cola.push(it); guardarCola(); cerrarHoja(); pintar();
+    await enviarCola();
+    const q = cola.find(x => x.cid === it.cid);
+    toast(!q ? (tipo === 'Gasto' ? 'Expense saved' : 'Income saved') : q.fallo ? 'Not sent: ' + q.fallo : 'Saved on this phone. It will be sent when you have a connection.');
 }
 
 /* ---- Chat ---- */
@@ -295,7 +367,7 @@ async function enviar(directo) {
         const r = await api('preguntar', { mensaje: texto, historial: hist });
         chat.push({ rol: 'model', texto: r.respuesta || '' });
     } catch (e) {
-        chat.push({ rol: 'model', texto: /Failed to fetch/i.test(e.message) ? 'Could not reach the server. Check your connection.' : e.message, error: true });
+        chat.push({ rol: 'model', texto: e.red ? 'Could not reach the server. Check your connection.' : e.message, error: true });
     } finally { pensando = false; pintarChat(); }
 }
 $('chat-in').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(); } });
@@ -303,7 +375,9 @@ $('chat-in').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shif
 /* ---- Inicio ---- */
 try { const c = JSON.parse(localStorage.getItem('koda_movil_cache') || 'null'); if (c && c.D) { D = c.D; pintar(); $('h-sync').textContent = 'Showing saved data...'; } } catch (e) {}
 if (cfg) cargar(false);
-document.addEventListener('visibilitychange', () => { if (!document.hidden && cfg) cargar(false); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && cfg) { enviarCola(); cargar(false); } });
+window.addEventListener('online', () => enviarCola());
+setInterval(() => { if (cfg && cola.some(i => !i.fallo)) enviarCola(); }, 15000);
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
 </body>
