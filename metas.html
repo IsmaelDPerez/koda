@@ -540,6 +540,7 @@
             const lista = document.getElementById('main-goals-list');
             lista.innerHTML = '';
             
+            if (!localGoalsDB.length) lista.innerHTML = `<div class="flex flex-col items-center justify-center py-10 gap-1 text-koda-steel"><span class="material-symbols-outlined text-[28px] opacity-60">flag</span><p class="text-[12.5px] font-medium">No goals yet. Use "New Goal" to create the first one.</p></div>`;
             let active = localGoalsDB.filter(m => !m.completadaReal);
             let topActive = active.filter(m => m.montoActual > 0).sort((a,b) => (b.montoActual/b.metaTotal) - (a.montoActual/a.metaTotal)).slice(0, 4);
             if(topActive.length === 0) topActive = active.slice(0, 4); 

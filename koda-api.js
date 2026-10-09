@@ -2,9 +2,12 @@
 // Si KODA está conectado a Google Sheets, oculta la página hasta tener los datos reales (evita ver datos de ejemplo un instante)
 (function () {
     try {
-        if (window.KODA_SIN_NUBE) return;
-        const c = JSON.parse(localStorage.getItem('koda_nube') || 'null');
-        if (!(c && c.url && c.token)) return;
+        let c = null;
+        try { c = JSON.parse(localStorage.getItem('koda_nube') || sessionStorage.getItem('koda_nube') || 'null'); } catch (e) {}
+        const conectado = !!(c && c.url && c.token);
+        // Sin sesión: todas las páginas (menos login.html) llevan al inicio de sesión
+        if (!conectado && !window.KODA_PUBLICA) { location.replace('login.html'); return; }
+        if (window.KODA_SIN_NUBE || !conectado) return;
         const st = document.createElement('style');
         st.id = 'koda-ocultar';
         st.textContent = 'html{opacity:0}';

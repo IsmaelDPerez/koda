@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KODA - Sign in</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Maven+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' font-family='sans-serif' font-weight='900' fill='%2366A5AD'>K.</text></svg>">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="tailwind-config.js"></script>
+    <script>window.KODA_PUBLICA = true; window.KODA_SIN_NUBE = true;</script>
+    <script src="config.js"></script>
+    <style>
+        input, button { font-family: inherit; color-scheme: dark; }
+        .lg-glow {
+            background:
+                radial-gradient(60% 50% at 30% 62%, rgba(102,165,173,.95) 0%, rgba(102,165,173,.35) 45%, rgba(102,165,173,0) 75%),
+                radial-gradient(45% 40% at 88% 14%, rgba(102,165,173,.45) 0%, rgba(102,165,173,0) 70%),
+                radial-gradient(80% 55% at 50% 118%, rgba(40,95,108,.85) 0%, rgba(40,95,108,0) 72%),
+                linear-gradient(165deg, #0F151B 0%, #080B0F 100%);
+        }
+        .lg-grain::after {
+            content: ''; position: absolute; inset: 0; border-radius: inherit; opacity: .10; mix-blend-mode: overlay; pointer-events: none;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+        }
+        #contenedor-modal > button.fixed { display: none; }   /* el botón + de movimientos no va en el login */
+        .lg-fade { animation: lgFade .45s ease-out both; }
+        @keyframes lgFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    </style>
+</head>
+<body class="font-sans min-h-screen flex items-center justify-center p-4 md:p-8 bg-koda-darkBg text-white">
+
+    <div class="w-full max-w-[1080px] bg-koda-darkCard border border-koda-darkBorder rounded-[2rem] p-2 grid md:grid-cols-[1.05fr_1fr] gap-2 shadow-2xl">
+
+        <!-- Panel izquierdo -->
+        <aside class="hidden md:flex relative lg-glow lg-grain rounded-[1.5rem] overflow-hidden min-h-[620px] p-8 flex-col justify-between">
+            <span class="relative z-10 text-3xl select-none" style="font-family: 'Maven Pro', sans-serif; font-weight: 900; letter-spacing: -0.05em;">KODA<span class="text-koda-blue">.</span></span>
+
+            <div class="relative z-10 flex flex-col gap-6">
+                <div class="flex flex-col gap-2">
+                    <h2 class="text-[2.6rem] leading-[1.05] font-semibold tracking-tight">Your money,<br>always in sync.</h2>
+                    <p class="text-sm text-white/70 font-medium">Follow these steps to open your dashboard.</p>
+                </div>
+                <div class="grid grid-cols-3 gap-2" id="lg-pasos">
+                    <div data-paso="1" class="rounded-2xl p-4 h-[120px] flex flex-col justify-between border transition-all duration-300">
+                        <span class="w-6 h-6 rounded-full border text-[11px] font-semibold flex items-center justify-center">1</span>
+                        <span class="text-[13px] font-semibold leading-tight">Sign in</span>
+                    </div>
+                    <div data-paso="2" class="rounded-2xl p-4 h-[120px] flex flex-col justify-between border transition-all duration-300">
+                        <span class="w-6 h-6 rounded-full border text-[11px] font-semibold flex items-center justify-center">2</span>
+                        <span class="text-[13px] font-semibold leading-tight">Prepare your sheet</span>
+                    </div>
+                    <div data-paso="3" class="rounded-2xl p-4 h-[120px] flex flex-col justify-between border transition-all duration-300">
+                        <span class="w-6 h-6 rounded-full border text-[11px] font-semibold flex items-center justify-center">3</span>
+                        <span class="text-[13px] font-semibold leading-tight">Add your accounts</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Panel derecho -->
+        <main class="flex items-center justify-center px-6 py-10 md:px-12">
+            <div class="w-full max-w-[380px] flex flex-col gap-6">
+
+                <span class="md:hidden text-3xl select-none" style="font-family: 'Maven Pro', sans-serif; font-weight: 900; letter-spacing: -0.05em;">KODA<span class="text-koda-blue">.</span></span>
+
+                <!-- Paso 1: acceso -->
+                <form id="lg-vista-login" class="flex flex-col gap-5 lg-fade" onsubmit="lgEntrar(event)" autocomplete="off">
+                    <h1 class="text-3xl font-semibold tracking-tight">Sign in</h1>
+
+                    <div id="lg-caja-url" class="hidden bg-[#0A0D12] border border-white/5 rounded-xl px-4 py-3 flex flex-col gap-1">
+                        <span class="text-[11.5px] font-semibold text-koda-steel">Server address</span>
+                        <input type="text" id="lg-url" spellcheck="false" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none select-text">
+                    </div>
+
+                    <div class="bg-[#0A0D12] border border-white/5 rounded-xl px-4 py-3 flex flex-col gap-1 focus-within:border-koda-blue/50 transition-colors">
+                        <span class="text-[11.5px] font-semibold text-koda-steel">Access key</span>
+                        <div class="flex items-center gap-2">
+                            <input type="password" id="lg-clave" spellcheck="false" class="flex-1 min-w-0 bg-transparent text-sm text-white font-medium border-none outline-none select-text">
+                            <button type="button" onclick="lgVerClave()" class="text-koda-steel hover:text-white transition-colors cursor-pointer outline-none flex items-center">
+                                <span id="lg-ojo" class="material-symbols-outlined text-[20px]">visibility</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <label class="flex items-center justify-between cursor-pointer select-none">
+                        <span class="text-[13px] font-medium text-koda-steel">Keep me signed in on this device</span>
+                        <span class="relative inline-flex items-center">
+                            <input type="checkbox" id="lg-recordar" class="peer sr-only" checked>
+                            <span class="w-9 h-5 rounded-full bg-white/10 peer-checked:bg-koda-blue transition-colors"></span>
+                            <span class="absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-white transition-transform peer-checked:translate-x-4"></span>
+                        </span>
+                    </label>
+
+                    <div id="lg-error" class="hidden items-start gap-2 text-[12.5px] font-medium text-white/90">
+                        <span class="material-symbols-outlined text-[18px] text-koda-steel mt-px">error</span>
+                        <span id="lg-error-texto"></span>
+                    </div>
+
+                    <button type="submit" id="lg-continuar" class="w-full py-3.5 rounded-xl text-sm font-semibold bg-koda-blue text-[#131722] hover:bg-[#7ab5bd] transition-colors cursor-pointer outline-none">Continue</button>
+
+                    <button type="button" id="lg-cambiar-servidor" onclick="lgMostrarUrl()" class="self-center text-[12px] font-semibold text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">Change server</button>
+                </form>
+
+                <!-- Paso 2: preparar la hoja -->
+                <div id="lg-vista-hoja" class="hidden flex flex-col gap-5 lg-fade">
+                    <h1 class="text-3xl font-semibold tracking-tight">Prepare your sheet</h1>
+                    <p id="lg-hoja-texto" class="text-sm font-medium text-koda-steel leading-relaxed"></p>
+                    <div id="lg-error2" class="hidden items-start gap-2 text-[12.5px] font-medium text-white/90">
+                        <span class="material-symbols-outlined text-[18px] text-koda-steel mt-px">error</span>
+                        <span id="lg-error2-texto"></span>
+                    </div>
+                    <button type="button" id="lg-vacio" onclick="lgPrepararHoja()" class="w-full py-3.5 rounded-xl text-sm font-semibold bg-koda-blue text-[#131722] hover:bg-[#7ab5bd] transition-colors cursor-pointer outline-none">Start empty</button>
+                    <button type="button" onclick="lgSalir()" class="self-center text-[12px] font-semibold text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">Sign out</button>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <div id="contenedor-modal"></div>
+
+    <script src="koda-api.js"></script>
+    <script src="app.js"></script>
+    <script>
+        const lgEl = id => document.getElementById(id);
+        const LG_URL_KEY = 'koda_url';
+
+        function lgPaso(n) {
+            document.querySelectorAll('#lg-pasos [data-paso]').forEach(c => {
+                const k = Number(c.dataset.paso), circulo = c.firstElementChild;
+                const activo = k === n, hecho = k < n;
+                c.className = 'rounded-2xl p-4 h-[120px] flex flex-col justify-between border transition-all duration-300 ' +
+                    (activo ? 'bg-white/90 border-white text-[#131722]' : hecho ? 'bg-koda-blue/15 border-koda-blue/30 text-white' : 'bg-white/5 border-white/10 text-white/50');
+                circulo.className = 'w-6 h-6 rounded-full border text-[11px] font-semibold flex items-center justify-center ' +
+                    (activo ? 'bg-koda-blue border-koda-blue text-[#131722]' : hecho ? 'bg-koda-blue border-koda-blue text-[#131722]' : 'border-white/30');
+                circulo.innerHTML = hecho ? '<span class="material-symbols-outlined text-[14px]">check</span>' : String(k);
+            });
+        }
+
+        function lgError(msg, vista = 1) {
+            const caja = lgEl(vista === 1 ? 'lg-error' : 'lg-error2');
+            lgEl(vista === 1 ? 'lg-error-texto' : 'lg-error2-texto').innerText = msg || '';
+            caja.classList.toggle('hidden', !msg); caja.classList.toggle('flex', !!msg);
+        }
+        function lgTraducir(e) {
+            const m = (e && e.message) || String(e);
+            if (/Clave incorrecta/i.test(m)) return 'Incorrect access key.';
+            if (/Failed to fetch|NetworkError/i.test(m)) return 'Could not reach the server. Check the server address and your connection.';
+            return m;
+        }
+        function lgVerClave() {
+            const i = lgEl('lg-clave'); const ver = i.type === 'password';
+            i.type = ver ? 'text' : 'password'; lgEl('lg-ojo').innerText = ver ? 'visibility_off' : 'visibility';
+        }
+        function lgMostrarUrl() {
+            lgEl('lg-caja-url').classList.remove('hidden');
+            lgEl('lg-cambiar-servidor').classList.add('hidden');
+            lgEl('lg-url').focus();
+        }
+        function lgUrlActual() {
+            const escrita = lgEl('lg-url').value.trim();
+            return escrita || localStorage.getItem(LG_URL_KEY) || (window.KODA_API_URL || '');
+        }
+
+        async function lgEntrar(ev) {
+            ev.preventDefault();
+            lgError('');
+            const url = lgUrlActual(), token = lgEl('lg-clave').value.trim();
+            if (!url) { lgMostrarUrl(); return lgError('Enter the server address.'); }
+            if (!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(url)) { lgMostrarUrl(); return lgError('The address should start with https://script.google.com/macros/s/ and end with /exec.'); }
+            if (!token) return lgError('Enter your access key.');
+            const btn = lgEl('lg-continuar');
+            kodaBotonCargando(btn, true);
+            try {
+                const cfg = { url, token };
+                await kodaNubeLlamar('ping', {}, cfg);
+                localStorage.setItem(LG_URL_KEY, url);
+                const destino = lgEl('lg-recordar').checked ? localStorage : sessionStorage;
+                localStorage.removeItem(KODA_NUBE_KEY); sessionStorage.removeItem(KODA_NUBE_KEY);
+                destino.setItem(KODA_NUBE_KEY, JSON.stringify(cfg));
+                await lgContinuar();
+            } catch (e) {
+                lgError(lgTraducir(e));
+            } finally {
+                kodaBotonCargando(btn, false);
+            }
+        }
+
+        // Tras iniciar sesión: si la hoja ya está preparada se entra directo; si no, se muestra el paso 2
+        async function lgContinuar() {
+            const { datos, inicializado } = await kodaNubeLlamar('cargar');
+            if (inicializado) { lgPaso(3); setTimeout(() => navegarConTransicion('index.html'), 250); return; }
+            const total = Object.entries(datos).filter(([t]) => t !== 'categorias').reduce((a, [, f]) => a + f.length, 0);
+            lgEl('lg-vista-login').classList.add('hidden');
+            lgEl('lg-vista-hoja').classList.remove('hidden');
+            lgEl('lg-vista-hoja').classList.add('flex');
+            lgEl('lg-hoja-texto').innerText = total
+                ? `Your sheet has ${total} old records. Starting empty will erase them and begin clean.`
+                : 'Your sheet is connected. Start empty to begin with a clean KODA.';
+            lgPaso(2);
+        }
+
+        function lgPrepararHoja() {
+            const total = lgEl('lg-hoja-texto').innerText.includes('old records');
+            kodaConfirmar('Start empty', total ? 'This clears accounts, envelopes, obligations, goals and history in your Google Sheet.' : 'Your sheet will be prepared for KODA.', async () => {
+                const btn = lgEl('lg-vacio');
+                kodaBotonCargando(btn, true); lgError('', 2);
+                try {
+                    const datos = {};
+                    Object.keys(KODA_TABLAS_NUBE).forEach(t => { datos[t] = kodaNubeSerializar(t); });
+                    await kodaNubeLlamar('sembrar', { datos });
+                    lgPaso(3);
+                    setTimeout(() => navegarConTransicion('index.html'), 300);
+                } catch (e) {
+                    lgError(lgTraducir(e), 2);
+                } finally {
+                    kodaBotonCargando(btn, false);
+                }
+            }, 'Start empty');
+        }
+
+        function lgSalir() { kodaCerrarSesion(false); lgEl('lg-vista-hoja').classList.add('hidden'); lgEl('lg-vista-hoja').classList.remove('flex'); lgEl('lg-vista-login').classList.remove('hidden'); lgPaso(1); }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            lgPaso(1);
+            const guardada = localStorage.getItem(LG_URL_KEY) || window.KODA_API_URL || '';
+            lgEl('lg-url').value = guardada;
+            if (!guardada) lgMostrarUrl();
+            // Si ya hay una sesión guardada, se comprueba y se continúa
+            const cfg = kodaNubeConfig();
+            if (cfg) {
+                try { await kodaNubeLlamar('ping', {}, cfg); await lgContinuar(); return; }
+                catch (e) { kodaCerrarSesion(false); lgError('Your session ended. Sign in again.'); }
+            }
+            lgEl('lg-clave').focus();
+        });
+    </script>
+</body>
+</html>

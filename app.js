@@ -14,73 +14,17 @@
 // ==========================================
 // [APP-02] BASES DE DATOS (Mocks) Y GLOBALES
 // ==========================================
-let cuentasDB = [
-    { 
-        id: 1, apodo: "Nómina Popular", banco: "Banco Popular", saldo: 15000, sigla: "BP", 
-        // Popular: #003b7a
-        colorClass: "bg-[#003b7a]/10 text-[#003b7a] dark:bg-[#003b7a]/40 dark:text-[#66b5ff]", 
-        tipo: "Banco" 
-    },
-    { 
-        id: 2, apodo: "Ahorros Banreservas", banco: "Banreservas", saldo: 2000, sigla: "BR", 
-        // Banreservas: #00558c
-        colorClass: "bg-[#00558c]/10 text-[#00558c] dark:bg-[#00558c]/40 dark:text-[#66c2ff]", 
-        tipo: "Banco" 
-    },
-    { 
-        id: 3, apodo: "Sobres/Forecast", banco: "Banreservas", saldo: 8300, sigla: "BR", 
-        colorClass: "bg-[#00558c]/10 text-[#00558c] dark:bg-[#00558c]/40 dark:text-[#66c2ff]", 
-        tipo: "Banco", isForecast: true 
-    },
-    { 
-        id: 4, apodo: "Tarjeta BHD", banco: "Banco BHD", limite: 15000, saldo: -3200, sigla: "BHD", 
-        // BHD: #50ba40
-        colorClass: "bg-[#50ba40]/15 text-[#378c29] dark:bg-[#50ba40]/20 dark:text-[#7ae66a]", 
-        tipo: "Tarjeta Crédito" 
-    },
-    { 
-        id: 5, apodo: "Tarjeta Scotia", banco: "Scotiabank", limite: 10000, saldo: 0, sigla: "SB", 
-        // Scotiabank: #ed111b
-        colorClass: "bg-[#ed111b]/10 text-[#cc0000] dark:bg-[#ed111b]/20 dark:text-[#ff6666]", 
-        tipo: "Tarjeta Crédito" 
-    }
-];
+let cuentasDB = [];
 
-let sobresDB = [ 
-    { id: 1, nombre: "Diversión", monto: 1500, meta: 1500, q1: 500, q2: 500, orden: 0 },
-    { id: 2, nombre: "Dieta", monto: -600, meta: 5000, q1: 2500, q2: 800, orden: 1 },
-    { id: 3, nombre: "Transporte", monto: 1800, meta: 3000, q1: 1000, q2: 500, orden: 2 },
-    { id: 4, nombre: "Self-Care", monto: 0, meta: 2000, q1: 0, q2: 0, orden: 3 }
-];
+let sobresDB = [];
 
-let compromisosDB = [ 
-    { id: 1, nombre: "Internet", tipo: "fijo", montoQ1: 600, montoQ2: 0, afectaDisponible: true, orden: 0 }, 
-    { id: 2, nombre: "Spotify", tipo: "fijo", montoQ1: 450, montoQ2: 0, afectaDisponible: true, orden: 1 },
-    { id: 3, nombre: "Car Loan", tipo: "deuda", montoQ1: 500, montoQ2: 500, deudaActual: 9000, deudaTotal: 24000, afectaDisponible: true, orden: 0 },
-    { id: 4, nombre: "MacBook Pro", tipo: "deuda", montoQ1: 1500, montoQ2: 1500, deudaActual: 12000, deudaTotal: 45000, afectaDisponible: true, orden: 1 }
-];
+let compromisosDB = [];
 
-let metasDB = [
-    { id: 1, nombre: "Toyota Supra MK4", montoActual: 450000, metaTotal: 1000000, fechaInicio: "2024-01-01", fechaLimite: "2027-12-28", cuotaIdeal: 15000 },
-    { id: 2, nombre: "UNICARIBE", montoActual: 15000, metaTotal: 85000, fechaInicio: "2026-01-01", fechaLimite: "2026-12-28", cuotaIdeal: 4000 },
-    { id: 3, nombre: "Viaje Colombia", montoActual: 45000, metaTotal: 45000, fechaInicio: "2025-06-01", fechaLimite: "2026-05-28", cuotaIdeal: 2000, completadaReal: true, fechaFinReal: "2026-05-15" },
-    { id: 4, nombre: "Celular Nuevo", montoActual: 12000, metaTotal: 30000, fechaInicio: "2026-08-01", fechaLimite: "2026-12-28", cuotaIdeal: 2500 }
-];;
+let metasDB = [];
 
-let prestamosDB = [
-    { id: 1, nombre: "Alex", montoPrestado: 5000, montoPagado: 1000, notasGlobales: "Lent for car repairs. Promised to pay back $500 monthly starting next week." }
-];
+let prestamosDB = [];
 
-let historialDB = [
-    { id: 101, tipo: "Préstamo", monto: 5000, desc: "Initial transfer", categoria: "Loan to Alex", sobre: null, cuentaOrigen: "Nómina Popular", cuentaId: 1, prestamoId: 1, fechaStr: "2026-10-01T09:30:00" },
-    { id: 102, tipo: "Préstamo", monto: 1000, desc: "First payment", categoria: "Cobro de Alex", sobre: null, cuentaOrigen: "Nómina Popular", cuentaId: 1, prestamoId: 1, fechaStr: "2026-10-05T14:15:00" },
-    { id: 103, tipo: "Pago de Deuda", monto: 500, desc: "Car Loan payment", categoria: "Car Loan", sobre: null, cuentaOrigen: "Nómina Popular", cuentaId: 1, deudaId: 3, fechaStr: "2026-09-30T10:05:00" },
-    { id: 104, tipo: "Pago de Deuda", monto: 500, desc: "Car Loan payment", categoria: "Car Loan", sobre: null, cuentaOrigen: "Nómina Popular", cuentaId: 1, deudaId: 3, fechaStr: "2026-09-15T09:20:00" },
-    // Movimientos de gastos...
-    { id: 1, tipo: "Gasto", monto: 800, desc: "Uber", categoria: "Commute", sobre: "Commute", cuentaOrigen: "Nómina Popular", cuentaId: 1, fechaStr: "2026-08-15T08:40:00" },
-    { id: 2, tipo: "Gasto", monto: 540, desc: "Burger King", categoria: "Food", sobre: "Food", cuentaOrigen: "Tarjeta BHD", cuentaId: 4, fechaStr: "2026-09-02T14:40:00" },
-    { id: 3, tipo: "Ingreso", monto: 18000, desc: "Salary Q2", categoria: "Income", sobre: null, cuentaOrigen: "Nómina Popular", cuentaId: 1, fechaStr: "2026-09-15T09:00:00" }
-];
+let historialDB = [];
 
 let categoriasDB = ["Groceries", "Transport", "Health", "Utilities", "Leisure", "Education", "Home", "General"];
 
@@ -638,29 +582,45 @@ function renderizarWidgetComparativa(periodo = '6M') {
             (b.getAttribute('data-periodo') === periodo ? 'bg-white/10 text-white shadow-sm activo' : 'text-koda-steel hover:text-white');
     });
 
-    // 2. Simulación de extracción de datos según el período seleccionado
-    // (Cuando se conecte a Google Sheets, esto iterará sobre historialDB)
-    let categorias = [];
-    let dataIngresos = [];
-    let dataGastos = [];
+    // 2. Datos reales: se agrupan los movimientos de historialDB por mes (o por semana en 1M)
+    const GASTOS = ['Gasto', 'Pago de Compromiso', 'Pago de Deuda'];   // salida de dinero hacia terceros
+    const mesesCortos = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const hoy = new Date();
+    const fechaDe = m => new Date((m.fechaStr || '').split('T')[0] + 'T00:00:00');
+    let categorias = [], dataIngresos = [], dataGastos = [];
 
-    if (periodo === '6M') {
-        categorias = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-        dataIngresos = [18000, 18000, 18000, 18000, 18000, 18000];
-        dataGastos = [11000, 14000, 11000, 13200, 12000, 10500]; // Replicando curva de la imagen
-    } else if (periodo === '3M') {
-        categorias = ['Apr', 'May', 'Jun'];
-        dataIngresos = [18000, 18000, 18000];
-        dataGastos = [13200, 12000, 10500];
-    } else if (periodo === '1A') {
-        categorias = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        dataIngresos = Array(12).fill(18000);
-        dataGastos = [11000, 14000, 11000, 13200, 12000, 10500, 11500, 13000, 12500, 11000, 14000, 13500];
-    } else { // 1M
-        categorias = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
-        dataIngresos = [4500, 4500, 4500, 4500];
-        dataGastos = [3000, 2500, 4000, 1000];
+    if (periodo === '1M') {
+        // Últimas 4 semanas (la última termina hoy)
+        const ini = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - 27);
+        categorias = ['Wk 1', 'Wk 2', 'Wk 3', 'Wk 4'];
+        dataIngresos = [0, 0, 0, 0]; dataGastos = [0, 0, 0, 0];
+        historialDB.forEach(m => {
+            const f = fechaDe(m);
+            const idx = Math.floor((f - ini) / (7 * 86400000));
+            if (isNaN(idx) || idx < 0 || idx > 3) return;
+            if (m.tipo === 'Ingreso') dataIngresos[idx] += m.monto;
+            else if (GASTOS.includes(m.tipo)) dataGastos[idx] += m.monto;
+        });
+    } else {
+        const n = periodo === '3M' ? 3 : periodo === '1A' ? 12 : 6;
+        const claves = [];
+        for (let i = n - 1; i >= 0; i--) {
+            const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+            claves.push(`${d.getFullYear()}-${d.getMonth()}`);
+            categorias.push(mesesCortos[d.getMonth()]);
+        }
+        dataIngresos = Array(n).fill(0); dataGastos = Array(n).fill(0);
+        historialDB.forEach(m => {
+            const f = fechaDe(m);
+            if (isNaN(f)) return;
+            const idx = claves.indexOf(`${f.getFullYear()}-${f.getMonth()}`);
+            if (idx === -1) return;
+            if (m.tipo === 'Ingreso') dataIngresos[idx] += m.monto;
+            else if (GASTOS.includes(m.tipo)) dataGastos[idx] += m.monto;
+        });
     }
+    dataIngresos = dataIngresos.map(v => Math.round(v * 100) / 100);
+    dataGastos = dataGastos.map(v => Math.round(v * 100) / 100);
 
     // 3. Actualizar Widgets Superiores (Basado en el último mes del rango)
     let mesActualIngreso = dataIngresos[dataIngresos.length - 1] || 0;
@@ -879,12 +839,7 @@ function renderizarWidgetDistribucion() {
 let checkpayDB = [];
 
 // Base de datos de la Plantilla (Setup) unificada
-let checkpayTemplateDB = [
-    { id: 101, tipoOrigen: "fijo", refId: 1, nombre: "Internet", monto: 600 },
-    { id: 102, tipoOrigen: "fijo", refId: 2, nombre: "Spotify", monto: 450 },
-    { id: 103, tipoOrigen: "deuda", refId: 3, nombre: "Car Loan", monto: 500 },
-    { id: 104, tipoOrigen: "meta", refId: 4, nombre: "Celular Nuevo", monto: 500 }
-];
+let checkpayTemplateDB = [];
 
 // La interfaz y la lógica de esta página (render, modales, setup, orden) viven ahora
 // dentro de checkpay.html, igual que sobres.html y compromisos.html.
@@ -905,7 +860,7 @@ function renderizarWidgetCheckPayHome() {
     let pagados = typeof checkpayDB !== 'undefined' ? checkpayDB.filter(c => c.pagado).length : 0;
     let porcentaje = total === 0 ? 0 : Math.round((pagados / total) * 100);
 
-    conteoEl.innerText = `${pagados} / ${total} pagados`;
+    conteoEl.innerText = `${pagados} / ${total} paid`;
     barraEl.style.width = `${porcentaje}%`;
     if (subEl) subEl.innerText = `${porcentaje}% complete this period`;
 }
@@ -1591,23 +1546,87 @@ async function confirmarMovimiento() {
 }
 
 // Punto de entrada para movimientos creados solos (p. ej. lectura de correos del banco desde Apps Script)
-async function registrarMovimientoAutomatico({ desc, monto, cuentaId, tipo = 'Gasto', categoria = 'General', sobre = null, fechaStr = null, origen = 'email' }) {
+async function registrarMovimientoAutomatico({ desc, monto, cuentaId, cuentaDestinoId = null, tipo = 'Gasto', categoria = 'General', sobre = null, fechaStr = null, origen = 'email', id = null, notificar = true, refCorreo = null }) {
     const cuenta = cuentasDB.find(c => c.id === cuentaId);
     if (!cuenta || !monto || monto <= 0) {
         kodaNotificar('Automatic entry failed', `Could not register "${desc || 'unknown'}". Check the account and amount.`, { tipo: 'error', link: 'historial.html' });
         return null;
     }
     const mov = {
-        id: Date.now(), tipo, monto, desc, categoria: sobre || categoria, sobre,
+        id: id || Date.now(), tipo, monto, desc, categoria: sobre || categoria, sobre,
         cuentaOrigen: cuenta.apodo, cuentaId: cuenta.id,
         fechaStr: fechaStr || new Date().toISOString().split('.')[0], automatico: true, origen
     };
+    if (refCorreo) mov.refCorreo = refCorreo;
+    if (tipo === 'Transferencia') {
+        const dest = cuentasDB.find(c => c.id === cuentaDestinoId);
+        if (!dest) return null;
+        mov.cuentaDestinoId = dest.id;
+        mov.categoria = `To ${dest.apodo}`;
+    }
     aplicarMovimientoContable(mov);
     historialDB.push(mov);
-    kodaNotificar(tipo === 'Ingreso' ? 'Automatic income registered' : 'Automatic expense registered',
-        `${desc} · $${monto.toLocaleString()} · ${cuenta.apodo}`, { tipo: 'auto', link: 'historial.html' });
+    if (notificar) {
+        const titulo = tipo === 'Ingreso' ? 'Automatic income registered' : tipo === 'Transferencia' ? 'Automatic transfer registered' : 'Automatic expense registered';
+        kodaNotificar(titulo, `${desc} · $${monto.toLocaleString()} · ${cuenta.apodo}`, { tipo: 'auto', link: 'historial.html' });
+    }
     kodaRefrescarVistas();
     return mov;
+}
+
+// Registra en KODA los movimientos que el servidor leyó de los correos del banco (pestaña "bandeja")
+let kodaBandejaProcesando = false;
+async function kodaProcesarBandeja() {
+    if (!kodaNubeActiva || kodaBandejaProcesando || movimientoEnCurso) return;
+    kodaBandejaProcesando = true;
+    try {
+        const { items } = await kodaNubeLlamar('bandeja');
+        if (!items || !items.length) return;
+
+        const listos = items.filter(i => i.estado === 'pendiente');
+        const sinCuenta = items.filter(i => i.estado === 'sin_cuenta');
+        const revisar = items.filter(i => i.estado === 'revisar');
+        const duplicados = items.filter(i => i.estado === 'duplicado');
+        const registrados = [];
+
+        const resumen = listos.length > 3;   // muchos de golpe: una sola notificación
+        for (let n = 0; n < listos.length; n++) {
+            const it = listos[n];
+            if (historialDB.some(m => m.refCorreo === it.id)) { registrados.push(it.id); continue; }   // ya estaba guardado
+            const mov = await registrarMovimientoAutomatico({
+                desc: it.desc, monto: it.monto, cuentaId: it.cuentaId, cuentaDestinoId: it.cuentaDestinoId,
+                tipo: it.tipo, categoria: it.categoria, sobre: it.sobre, fechaStr: it.fechaStr, origen: 'email',
+                id: Date.now() + n, notificar: !resumen, refCorreo: it.id
+            });
+            if (mov) registrados.push(it.id);
+        }
+        if (resumen && registrados.length) kodaNotificar('Automatic entries registered', `${registrados.length} entries from your bank emails.`, { tipo: 'auto', link: 'historial.html' });
+
+        if (registrados.length) {
+            // Primero se guardan en la hoja; solo entonces se marcan como registrados (así nunca se duplican ni se pierden)
+            for (let w = 0; w < 50 && kodaNubeSincronizando; w++) await new Promise(r => setTimeout(r, 200));
+            await kodaNubeSync();
+            const pendiente = Object.keys(KODA_TABLAS_NUBE).some(t => JSON.stringify(kodaNubeSerializar(t)) !== kodaNubeSnapshot[t]);
+            if (!pendiente) await kodaNubeLlamar('marcarBandeja', { ids: registrados, estado: 'registrado' });
+        }
+
+        if (sinCuenta.length) {
+            kodaNotificar('Bank emails need a link', `${sinCuenta.length} email${sinCuenta.length > 1 ? 's' : ''} could not be matched to an account. ${sinCuenta[0].detalle}`,
+                { tipo: 'warning', clave: 'bandeja-sin-cuenta' });
+        }
+        if (duplicados.length) {
+            duplicados.forEach(it => kodaNotificar('Possible duplicate skipped', it.detalle || `${it.desc} looks like a repeated charge.`, { tipo: 'info', link: 'index.html' }));
+            await kodaNubeLlamar('marcarBandeja', { ids: duplicados.map(i => i.id), estado: 'avisado' });
+        }
+        if (revisar.length) {
+            revisar.forEach(it => kodaNotificar('Needs your attention', it.detalle || 'A bank email could not be read.', { tipo: 'warning', link: 'index.html' }));
+            await kodaNubeLlamar('marcarBandeja', { ids: revisar.map(i => i.id), estado: 'avisado' });
+        }
+    } catch (e) {
+        console.error('Bandeja falló:', e);
+    } finally {
+        kodaBandejaProcesando = false;
+    }
 }
 
 // Editar un movimiento desde el historial / ledger
@@ -1699,7 +1718,7 @@ let kodaNubeFalloAvisado = false;
 
 function kodaNubeConfig() {
     try {
-        const c = JSON.parse(localStorage.getItem(KODA_NUBE_KEY) || 'null');
+        const c = JSON.parse(localStorage.getItem(KODA_NUBE_KEY) || sessionStorage.getItem(KODA_NUBE_KEY) || 'null');
         return c && c.url && c.token ? c : null;
     } catch (e) { return null; }
 }
@@ -1716,6 +1735,13 @@ async function kodaNubeLlamar(action, extra = {}, cfg = kodaNubeConfig()) {
     try { data = await res.json(); } catch (e) { throw new Error('Respuesta no válida. Revisa que la dirección sea la de la aplicación web.'); }
     if (!data.ok) throw new Error(data.error || 'Error desconocido del servidor');
     return data;
+}
+
+// Cierra la sesión de este dispositivo (la dirección del servidor se recuerda, la clave no)
+function kodaCerrarSesion(ir = true) {
+    try { localStorage.removeItem(KODA_NUBE_KEY); sessionStorage.removeItem(KODA_NUBE_KEY); } catch (e) {}
+    kodaNubeActiva = false;
+    if (ir) window.location.href = 'login.html';
 }
 
 function kodaNubeSerializar(tabla) {
@@ -1739,11 +1765,11 @@ async function kodaNubeCargar() {
 
 async function kodaNubeCargarInterno(cfg) {
     try {
-        const { datos } = await kodaNubeLlamar('cargar', {}, cfg);
+        const { datos, inicializado } = await kodaNubeLlamar('cargar', {}, cfg);
         const hayDatos = Object.keys(KODA_TABLAS_NUBE).some(t => (datos[t] || []).length > 0);
-        if (!hayDatos) {
-            // Hoja vacía: se queda el modo demo y NO se guarda nada hasta que subas los datos desde setup.html
-            kodaNotificar('Google Sheets is empty', 'Upload your starting data from the setup page to begin saving.', { tipo: 'info', clave: 'nube-vacia', link: 'setup.html' });
+        if (!hayDatos && !inicializado) {
+            // Hoja sin preparar: NO se guarda nada hasta que pulses "Start empty" en setup.html
+            kodaNotificar('Your sheet is not set up', 'Open the setup page and press Start empty to begin saving.', { tipo: 'warning', clave: 'nube-vacia', link: 'login.html' });
             return;
         }
         Object.keys(KODA_TABLAS_NUBE).forEach(t => {
@@ -1752,9 +1778,12 @@ async function kodaNubeCargarInterno(cfg) {
             const nuevas = t === 'categorias' ? filas.map(f => f.nombre) : filas;
             destino.splice(0, destino.length, ...nuevas);
         });
+        notificacionesDB = notificacionesDB.filter(n => n.clave !== 'nube-vacia');
         kodaNubeTomarSnapshot();
         kodaNubeActiva = true;
         kodaRefrescarVistas();
+        setTimeout(kodaProcesarBandeja, 800);
+        setInterval(kodaProcesarBandeja, 60000);
         ['initializeGoalsView', 'renderizarPaginaCheckpay'].forEach(n => { if (typeof window[n] === 'function') { try { window[n](); } catch (e) { console.error(n, e); } } });
     } catch (e) {
         console.error('Carga desde Google Sheets falló:', e);

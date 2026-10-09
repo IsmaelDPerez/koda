@@ -268,7 +268,7 @@
             const grid = document.getElementById('grid-sobres-completo'); 
             if (!grid) return;
             grid.innerHTML = '';
-            
+            if (!sobresDB.length) grid.innerHTML = `<div class="col-span-full flex flex-col items-center justify-center py-16 gap-1 text-koda-steel"><span class="material-symbols-outlined text-[32px] opacity-60">mail</span><p class="text-[13px] font-medium">No envelopes yet. Use "New envelope" to create the first one.</p></div>`;
             sobresDB.forEach(s => {
                 let porcRaw = (s.monto / s.meta) * 100; 
                 let porc = Math.min(100, Math.max(0, Math.round(porcRaw)));

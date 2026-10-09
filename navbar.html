@@ -40,5 +40,8 @@
                 <div id="lista-notificaciones" class="flex flex-col gap-1 max-h-[360px] overflow-y-auto no-scrollbar"></div>
             </div>
         </div>
+        <button type="button" onclick="kodaConfirmar('Sign out', 'You will need your access key to sign in again on this device.', () => kodaCerrarSesion(), 'Sign out', 'logout')" title="Sign out" class="w-10 h-10 bg-koda-lightCard dark:bg-koda-darkCard border border-gray-200 dark:border-koda-darkBorder rounded-full flex items-center justify-center hover:scale-110 transition-transform cursor-pointer outline-none">
+            <span class="material-symbols-outlined text-gray-600 dark:text-gray-300">logout</span>
+        </button>
     </div>
 </nav>

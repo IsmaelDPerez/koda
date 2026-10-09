@@ -152,7 +152,7 @@
                     </div>
                     <h3 class="text-3xl font-semibold mt-[-4px] mb-1 truncate flex items-center gap-2" id="home-meta-nombre">
                         <span class="material-symbols-outlined text-[26px]">flag</span>
-                        Cargando...
+                        No goals yet
                     </h3>
                     <p class="text-[11.5px] font-semibold mb-3 opacity-90" id="home-meta-montos">$0 / $0</p>
                     <div class="w-full h-1.5 bg-[#131722]/20 rounded-full overflow-hidden">
@@ -212,6 +212,7 @@
             const textTotal = document.getElementById('total-cuentas-text');
             const textDisp = document.getElementById('disponible-text');
             contDash.innerHTML = ''; let sumaTotal = 0;
+            if (!cuentasDB.length) contDash.innerHTML = `<div class="flex flex-col items-center justify-center py-8 gap-1 text-koda-steel"><span class="material-symbols-outlined text-[28px] opacity-60">account_balance</span><p class="text-[12.5px] font-medium">No accounts yet. Use the + button to add one.</p></div>`;
             cuentasDB.forEach(c => {
                 sumaTotal += c.saldo; 
                 let color = c.saldo < 0 ? 'text-koda-red' : ''; 
@@ -319,7 +320,13 @@
 
         function renderizarProximaMetaHome() {
             let activas = metasDB.filter(m => m.montoActual < m.metaTotal);
-            if(activas.length === 0) return;
+            if(activas.length === 0) {
+                document.getElementById('home-meta-nombre').innerText = metasDB.length ? 'All goals reached' : 'No goals yet';
+                document.getElementById('home-meta-montos').innerText = '';
+                document.getElementById('home-meta-barra').style.width = '0%';
+                document.getElementById('widget-proxima-meta').onclick = function() { window.location.href = 'metas.html'; };
+                return;
+            }
             activas.sort((a, b) => (b.montoActual / b.metaTotal) - (a.montoActual / a.metaTotal));
             let proxima = activas[0];
             let porc = Math.round((proxima.montoActual / proxima.metaTotal) * 100);
