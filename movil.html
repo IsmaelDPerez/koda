@@ -295,7 +295,7 @@ function pintar() {
     // Available balance = liquidez, igual que la web (cuentas marcadas - sobres - lo que falta por pagar)
     const L = kodaLiquidez(cu, so, ck, co);
     $('h-total').textContent = money(L.hayMarcadas ? L.libre : cu.reduce((a, c) => a + (Number(c.saldo) || 0), 0));
-    $('h-detalle').textContent = L.hayMarcadas ? `${money(L.base)} in ${L.nombres.join(', ')}` + (L.enSobres ? ` · ${money(L.enSobres)} in envelopes` : '') + (L.porPagar ? ` · ${money(L.porPagar)} to pay` : '') : (cu.length ? 'Choose your spending account in KODA on your computer.' : '');
+    $('h-detalle').textContent = L.hayMarcadas ? '' : (cu.length ? 'Choose your spending account in KODA on your computer.' : '');
     const mes = new Date().toISOString().slice(0, 7);
     const delMes = hi.filter(m => String(m.fechaStr || '').slice(0, 7) === mes);
     $('h-gasto').textContent = money(delMes.filter(m => m.tipo === 'Gasto').reduce((a, m) => a + (Number(m.monto) || 0), 0));

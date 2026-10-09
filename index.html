@@ -240,7 +240,7 @@
             const det = document.getElementById('disponible-detalle');
             if (L.hayMarcadas) {
                 textDisp.innerText = fm(L.libre);
-                det.innerText = `${fm(L.base)} in ${L.nombres.join(', ')}` + (L.enSobres ? ` · ${fm(L.enSobres)} in envelopes` : '') + (L.porPagar ? ` · ${fm(L.porPagar)} to pay` : '');
+                det.innerText = '';
             } else {
                 textDisp.innerText = textTotal.innerText;
                 det.innerText = cuentasDB.length ? 'Choose the account you spend from: edit an account and turn on "Counts as spending money".' : '';
