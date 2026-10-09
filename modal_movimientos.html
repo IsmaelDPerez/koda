@@ -1,0 +1,187 @@
+<!-- [MOD-01] BOTÓN FLOTANTE ORO KODA (SIN GLOW) -->
+<button onclick="abrirModalMovimiento()" class="fixed bottom-8 right-8 w-16 h-16 bg-koda-blue text-[#131722] rounded-full shadow-md flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-300 z-40 cursor-pointer">
+    <span class="material-symbols-outlined text-[32px] font-semibold">add</span>
+</button>
+
+<!-- [MODAL BACKDROP - DIFUMINADO APPLE EXTENDIDO] -->
+<div id="modal-movimiento" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
+
+    <!-- [MODAL CARD DIALOG] -->
+    <div id="modal-card" class="relative w-full max-w-[500px] bg-[#141820] border border-white/10 rounded-[32px] p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] flex flex-col gap-4 transform scale-95 transition-all duration-300 ease-out max-h-[92vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+
+        <!-- 1. HEADER -->
+        <div class="flex items-center justify-between">
+            <h3 class="text-2xl font-semibold tracking-tight text-white">New entry</h3>
+            <button type="button" onclick="cerrarModalMovimiento()" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors cursor-pointer">
+                <span class="material-symbols-outlined text-[18px]">close</span>
+            </button>
+        </div>
+
+        <form class="flex flex-col gap-4" onsubmit="event.preventDefault(); confirmarMovimiento();">
+
+            <!-- 2. SEGMENTED TABS APPLE CON SLIDER FLUIDO -->
+            <div class="relative flex items-center bg-[#0A0D12] p-1 rounded-2xl border border-white/5">
+                <div id="tab-slider" class="absolute top-1 bottom-1 left-1 bg-white/10 rounded-xl transition-all duration-300 ease-out pointer-events-none" style="width: 0px; transform: translateX(0px);"></div>
+                <button type="button" onclick="animarTab(this, 'gasto')" class="tab-item relative z-10 flex-1 py-2 text-xs font-semibold text-white transition-colors text-center cursor-pointer">Expense</button>
+                <button type="button" onclick="animarTab(this, 'ingreso')" class="tab-item relative z-10 flex-1 py-2 text-xs font-semibold text-koda-steel transition-colors text-center cursor-pointer">Income</button>
+                <button type="button" onclick="animarTab(this, 'mover')" class="tab-item relative z-10 flex-1 py-2 text-xs font-semibold text-koda-steel transition-colors text-center cursor-pointer">Move</button>
+                <button type="button" onclick="animarTab(this, 'pagar')" class="tab-item relative z-10 flex-1 py-2 text-xs font-semibold text-koda-steel transition-colors text-center cursor-pointer">Pay</button>
+                <button type="button" onclick="animarTab(this, 'meta')" class="tab-item relative z-10 flex-1 py-2 text-xs font-semibold text-koda-steel transition-colors text-center cursor-pointer">Goal</button>
+            </div>
+
+            <!-- 3. NOMBRE DEL MOVIMIENTO -->
+            <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                <span class="text-[11.5px] font-semibold text-koda-steel">Name</span>
+                <input type="text" id="input-nombre-mov" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none">
+            </div>
+
+            <!-- 4. HERO MONTO CENTRADO (STROKE AQUA LIMPIO SIN GLOW) -->
+            <div class="bg-[#0A0D12] border border-white/5 focus-within:border-koda-blue rounded-2xl p-4 flex flex-col items-center justify-center gap-1 transition-colors duration-200">
+                <span class="text-[11.5px] font-semibold text-koda-steel">Amount</span>
+               <input type="number" id="input-monto" oninput="evaluarAlertaSobre()" class="w-full bg-transparent text-4xl font-semibold text-white text-center placeholder:text-white/20 border-none outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]">
+            </div>
+
+            <!-- 5. SELECCIÓN DE CUENTA -->
+            <div class="flex flex-col gap-2">
+                <span class="text-[11.5px] font-semibold text-koda-steel text-center">Select account</span>
+                
+                <!-- ESTE ES EL CONTENEDOR CLAVE (AQUÍ JS INYECTARÁ LAS CUENTAS) -->
+                <div class="flex flex-wrap justify-center items-center gap-3" id="contenedor-pills-cuentas"></div>
+                
+            </div>
+
+            <!-- 6. CUENTA DESTINO INTELIGENTE PARA 'MOVER' -->
+            <div id="panel-mover-destino" class="hidden flex flex-col gap-2">
+                <span class="text-[11.5px] font-semibold text-koda-steel text-center">Move to</span>
+                <div class="flex flex-wrap justify-center items-center gap-3" id="contenedor-mover-destino"></div>
+            </div>
+
+            <!-- 7. SECCIÓN CONDICIONAL: PAGAR -->
+            <div id="panel-pagar-opciones" class="hidden flex flex-col gap-3">
+                <div class="grid grid-cols-3 bg-[#0A0D12] p-1 rounded-2xl border border-white/5 text-center">
+                    <button type="button" onclick="setSubtipoPago('fijos', this)" class="btn-subpago py-1.5 text-xs font-semibold rounded-xl bg-white/10 text-white transition-colors cursor-pointer">Bills</button>
+                    <button type="button" onclick="setSubtipoPago('deudas', this)" class="btn-subpago py-1.5 text-xs font-semibold rounded-xl text-koda-steel hover:text-white transition-colors cursor-pointer">Debts</button>
+                    <button type="button" onclick="setSubtipoPago('sobres', this)" class="btn-subpago py-1.5 text-xs font-semibold rounded-xl text-koda-steel hover:text-white transition-colors cursor-pointer">Envelopes</button>
+                </div>
+                <div class="flex flex-wrap justify-center items-center gap-2" id="contenedor-pills-pagar"></div>
+            </div>
+
+            <!-- 8. SECCIÓN CONDICIONAL: META -->
+            <div id="panel-meta-opciones" class="hidden flex flex-col gap-2">
+                <span class="text-[11.5px] font-semibold text-koda-steel text-center">Goal to fund</span>
+                <div class="flex flex-wrap justify-center items-center gap-2" id="contenedor-pills-metas"></div>
+            </div>
+
+            <!-- 9. EXPANDIBLE DE SOBRES CON STROKE AQUA LIMPIO (SIN GLOW) -->
+            <div id="seccion-afectar-sobre" class="flex flex-col gap-2">
+                <div id="card-toggle-sobre" class="flex items-center justify-between p-3.5 px-4 bg-[#0A0D12] border border-white/5 rounded-2xl transition-colors duration-200">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-[20px] text-koda-blue">account_balance_wallet</span>
+                        <p class="text-sm font-semibold text-gray-200">Charge an envelope?</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggle-sobre" onchange="toggleAnimacionSobres(this.checked)" class="sr-only peer">
+                        <div class="w-11 h-6 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-koda-blue"></div>
+                    </label>
+                </div>
+
+                <div id="wrapper-sobres-reveal" class="grid opacity-0 transition-all duration-300" style="grid-template-rows: 0fr; transform: translateY(-4px);">
+            <div class="overflow-hidden">
+                <div class="p-3.5 bg-white/[0.02] border border-koda-blue/40 rounded-2xl flex flex-col gap-2 mt-1">
+                    
+                    <div class="flex flex-wrap justify-center items-center gap-2" id="contenedor-sobres-gasto"></div>
+
+                    <!-- AQUÍ VA EL CÓDIGO DE LA ALERTA -->
+                    <!-- ALERTA DE SOBRE (ORO KODA) -->
+<div id="alerta-sobre-vacio" class="hidden mt-2 bg-[#66A5AD]/10 border-l-4 border-[#66A5AD] rounded-r-xl p-3 flex items-start gap-3 transition-all duration-300">
+    <span class="material-symbols-outlined text-[#66A5AD] text-[18px] mt-0.5">warning</span>
+    <p class="text-[12px] text-gray-300 font-medium leading-relaxed" id="txt-alerta-sobre"></p>
+</div>
+
+                </div>
+            </div>
+        </div>
+                
+                
+            </div>
+
+            <!-- 10. CATEGORÍAS -->
+            <div id="seccion-categorias" class="flex flex-col gap-2">
+                <span class="text-[11.5px] font-semibold text-koda-steel text-center">Category</span>
+                <div class="flex flex-wrap justify-center items-center gap-2" id="contenedor-categorias">
+                    <button type="button" onclick="seleccionarPillSimple(this, 'cat')" class="pill-cat px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors bg-[#0A0D12] text-koda-steel border-white/5 hover:border-white/10 cursor-pointer">Groceries</button>
+                    <button type="button" onclick="seleccionarPillSimple(this, 'cat')" class="pill-cat px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors bg-[#0A0D12] text-koda-steel border-white/5 hover:border-white/10 cursor-pointer">Transport</button>
+                    <button type="button" onclick="seleccionarPillSimple(this, 'cat')" class="pill-cat px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors bg-[#0A0D12] text-koda-steel border-white/5 hover:border-white/10 cursor-pointer">Health</button>
+
+                    <button type="button" id="btn-toggle-mas-cats" onclick="toggleMasElementos('cats-expandibles', this)" class="w-7 h-7 rounded-full bg-white/5 hover:bg-white/15 border border-white/5 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer">
+                        <span class="material-symbols-outlined text-[16px]">add</span>
+                    </button>
+
+                    <div id="cats-expandibles" class="hidden flex flex-wrap justify-center gap-2 w-full pt-1">
+                        <button type="button" onclick="seleccionarPillSimple(this, 'cat')" class="pill-cat px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors bg-[#0A0D12] text-koda-steel border-white/5 hover:border-white/10 cursor-pointer">Utilities</button>
+                        <button type="button" onclick="seleccionarPillSimple(this, 'cat')" class="pill-cat px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors bg-[#0A0D12] text-koda-steel border-white/5 hover:border-white/10 cursor-pointer">Leisure</button>
+                        <button type="button" onclick="seleccionarPillSimple(this, 'cat')" class="pill-cat px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors bg-[#0A0D12] text-koda-steel border-white/5 hover:border-white/10 cursor-pointer">Education</button>
+                        <button type="button" onclick="seleccionarPillSimple(this, 'cat')" class="pill-cat px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors bg-[#0A0D12] text-koda-steel border-white/5 hover:border-white/10 cursor-pointer">Home</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 11. CALENDARIO DARK ZEN (COMPACTO Y CENTRADO) -->
+            <div class="relative flex justify-center mt-2">
+                <button type="button" onclick="toggleCalendario()" class="w-auto bg-[#0A0D12] border border-white/5 hover:border-white/10 rounded-xl px-4 py-2.5 flex items-center justify-center gap-3 transition-colors cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[16px] text-koda-steel">calendar_today</span>
+                    <span id="fecha-display" class="text-xs text-white font-semibold">Today</span>
+                    <span class="material-symbols-outlined text-[16px] text-koda-steel">expand_less</span>
+                </button>
+
+                <!-- Popover ajustado para abrir hacia arriba (bottom-full) -->
+                <div id="popover-calendario" class="hidden absolute bottom-full mb-3 left-1/2 transform -translate-x-1/2 z-20 bg-[#141820] border border-white/10 rounded-[24px] p-4 shadow-2xl flex flex-col gap-3 w-[260px]">
+                    <div class="flex items-center justify-between px-1">
+                        <span id="cal-mes-ano" class="text-xs font-semibold text-white tracking-wide">Month Year</span>
+                        <div class="flex items-center gap-1">
+                            <button type="button" onclick="cambiarMes(-1)" class="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white cursor-pointer"><span class="material-symbols-outlined text-[14px]">chevron_left</span></button>
+                            <button type="button" onclick="cambiarMes(1)" class="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white cursor-pointer"><span class="material-symbols-outlined text-[14px]">chevron_right</span></button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-7 text-center text-[10px] font-semibold text-koda-steel">
+                        <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+                    </div>
+                    <div id="cal-dias-grid" class="grid grid-cols-7 gap-1 text-center text-xs"></div>
+                </div>
+            </div>
+
+            <!-- 12. CONFIRMAR -->
+            <div class="flex items-center justify-end gap-3 pt-2 border-t border-white/5">
+                <button type="button" onclick="cerrarModalMovimiento()" class="px-5 py-2.5 text-xs font-semibold text-koda-steel hover:text-white rounded-full hover:bg-white/5 transition-colors cursor-pointer">
+                    Cancel
+                </button>
+                <button type="submit" class="px-8 py-3 text-xs font-semibold rounded-full bg-koda-blue text-[#131722] hover:bg-[#7ab5bd] transition-colors cursor-pointer">
+                    Confirm
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+<!-- [MODAL DE ALERTA GLOBAL - DARK ZEN] -->
+<div id="modal-alerta-koda" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
+    <div id="card-alerta-koda" class="relative w-full max-w-[320px] bg-[#141820] border border-[#66A5AD]/30 rounded-[28px] p-6 shadow-2xl flex flex-col items-center text-center transform scale-95 transition-all duration-300 ease-out">
+        
+        <div class="w-12 h-12 rounded-full bg-[#66A5AD]/10 border border-[#66A5AD]/20 flex items-center justify-center mb-4 text-[#66A5AD]">
+            <span class="material-symbols-outlined text-[24px]" id="icono-alerta-koda">warning</span>
+        </div>
+
+        <h3 class="text-base font-semibold text-white mb-1" id="titulo-alerta-koda">Not enough funds</h3>
+        <p class="text-xs font-medium text-koda-steel mb-5" id="desc-alerta-koda">Check the balance of your account or envelope.</p>
+
+        <div class="w-full flex gap-2">
+            <button type="button" id="btn-cancel-alerta-koda" onclick="cerrarAlertaKoda()" class="hidden flex-1 py-3 rounded-xl bg-white/5 text-koda-steel text-xs font-semibold hover:bg-white/10 hover:text-white transition-colors cursor-pointer outline-none">
+                Cancel
+            </button>
+            <button type="button" id="btn-ok-alerta-koda" onclick="aceptarAlertaKoda()" class="flex-1 py-3 rounded-xl bg-[#66A5AD] text-[#131722] text-xs font-semibold hover:bg-[#7ab5bd] transition-colors cursor-pointer outline-none">
+                Got it
+            </button>
+        </div>
+    </div>
+</div>

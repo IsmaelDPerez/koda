@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KODA - Goals</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Maven+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' font-family='sans-serif' font-weight='900' fill='%2366A5AD'>K.</text></svg>">
+    
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="tailwind-config.js"></script>
+
+    <style>
+        input, select, textarea, button { font-family: inherit; color-scheme: dark; }
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+        
+        /* ==========================================
+           ANIMACIONES STROKE (PULSO LIMPIO - CERO GLOW)
+           ========================================== */
+        @keyframes cyanStroke {
+            0% { border-color: rgba(102, 165, 173, 0.3); }
+            50% { border-color: rgba(102, 165, 173, 1); }
+            100% { border-color: rgba(102, 165, 173, 0.3); }
+        }
+        
+        .goal-selected {
+            background-color: #1E222D; /* koda-darkCard */
+            border: 1px solid #66A5AD;
+            animation: cyanStroke 2.5s infinite ease-in-out;
+        }
+
+        .koda-scrollbar::-webkit-scrollbar { width: 4px; }
+        .koda-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .koda-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+    </style>
+</head>
+
+<body class="font-sans min-h-screen flex flex-col items-center p-4 md:p-6 bg-koda-darkBg text-white transition-colors duration-300">
+
+    <div id="contenedor-navbar" class="w-full max-w-[1500px]"></div>
+
+    <main class="w-full max-w-[1500px] flex flex-col pb-20 pt-2">
+        
+        <!-- CABECERA -->
+        <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center gap-4">
+                <button onclick="navegarA('dashboard')" class="w-10 h-10 bg-koda-darkCard border border-koda-darkBorder rounded-full flex items-center justify-center text-koda-steel hover:text-white transition-all shadow-sm cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+                </button>
+                <h2 class="text-3xl font-semibold tracking-tight">Goals</h2>
+            </div>
+
+            <button type="button" onclick="openModalCreate()" class="px-6 py-2.5 bg-koda-blue text-[#131722] font-semibold rounded-full text-xs hover:bg-[#7ab5bd] transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer outline-none">
+                <span class="material-symbols-outlined text-[18px]">add</span>
+                New Goal
+            </button>
+        </div>
+
+        <!-- KPI CARDS -->
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8 w-full">
+            <div class="bg-koda-darkCard border border-koda-darkBorder rounded-[1.5rem] p-6 flex flex-col justify-center shadow-sm">
+                <p class="text-[11.5px] font-semibold text-koda-steel mb-2">Total capital</p>
+                <h4 class="text-3xl font-semibold text-koda-blue truncate" id="kpi-dinero-total">$0</h4>
+            </div>
+            <div class="bg-koda-darkCard border border-koda-darkBorder rounded-[1.5rem] p-6 flex flex-col justify-center shadow-sm">
+                <p class="text-[11.5px] font-semibold text-koda-steel mb-2">Left to save</p>
+                <h4 class="text-3xl font-semibold text-white" id="kpi-faltante">$0</h4>
+            </div>
+            <div class="bg-koda-darkCard border border-koda-darkBorder rounded-[1.5rem] p-6 flex flex-col justify-center shadow-sm">
+                <p class="text-[11.5px] font-semibold text-koda-steel mb-2">In progress</p>
+                <h4 class="text-3xl font-semibold text-white" id="kpi-proceso">0</h4>
+            </div>
+            <!-- Achieved: abre el Hall of Fame (el dorado solo marca logros) -->
+            <div onclick="openModalAchievements()" class="bg-koda-darkCard border border-koda-darkBorder hover:border-koda-gold/40 cursor-pointer rounded-[1.5rem] p-6 flex flex-col justify-center transition-colors shadow-sm group">
+                <div class="flex justify-between items-center mb-2">
+                    <p class="text-[11.5px] font-semibold text-koda-steel">Achieved</p>
+                    <span class="material-symbols-outlined text-koda-steel text-[18px] group-hover:translate-x-1 group-hover:text-koda-gold transition-all">arrow_forward</span>
+                </div>
+                <h4 class="text-3xl font-semibold text-koda-gold" id="kpi-completadas">0</h4>
+            </div>
+        </div>
+
+        <!-- MAQUETACIÓN -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <aside class="lg:col-span-3 flex flex-col gap-5">
+                <div id="main-goals-list" class="flex flex-col gap-3"></div>
+                
+                <button onclick="openModalAllGoals()" class="w-full bg-koda-darkCard border border-koda-darkBorder hover:bg-white/5 text-white text-xs font-semibold py-3.5 rounded-full transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer outline-none">
+                    View all
+                </button>
+
+                <!-- Composición (Colores KODA) -->
+                <div class="bg-koda-darkCard border border-koda-darkBorder rounded-[1.5rem] p-6 mt-2 flex flex-col items-center justify-center flex-1 shadow-sm">
+                    <div class="w-full mb-4 text-center">
+                        <p class="text-[11.5px] font-semibold text-koda-steel">Capital composition</p>
+                    </div>
+                    <div class="w-full max-w-[180px] h-[180px] relative mb-6">
+                        <canvas id="distChart"></canvas>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-2">
+                            <span class="text-[10px] text-koda-steel font-semibold mb-0.5">Total</span>
+                            <span class="text-xl font-semibold text-white" id="donut-center-total">$0</span>
+                        </div>
+                    </div>
+                    <div id="goals-legend" class="w-full space-y-3"></div>
+                </div>
+            </aside>
+
+            <div class="lg:col-span-3 flex flex-col gap-5">
+                <div class="bg-koda-darkCard border border-koda-darkBorder rounded-[1.5rem] p-6 flex flex-col items-center relative flex-1">
+                    <h3 class="text-xl font-semibold mb-8 text-center w-full truncate text-white" id="det-nombre">Selecting...</h3>
+                    <div class="w-48 h-48 relative">
+                        <canvas id="detailRadial"></canvas>
+                        <div class="absolute inset-0 flex items-center justify-center mt-1"><span class="text-5xl font-semibold text-white" id="det-porc">0%</span></div>
+                    </div>
+                    <div class="w-full mt-10 text-center">
+                        <p class="text-3xl font-semibold text-koda-blue transition-colors duration-500" id="det-actual">$0</p>
+                        <p class="text-[11.5px] font-semibold text-koda-steel mt-2" id="det-meta">of $0</p>
+                    </div>
+                </div>
+
+                <div class="bg-koda-darkCard border border-koda-darkBorder rounded-[1.5rem] p-6 flex-1 flex flex-col justify-center">
+                    <p class="text-[11.5px] font-semibold text-koda-steel mb-5 " id="insight-title-icon">Insights</p>
+                    <ul class="space-y-4">
+                        <li class="flex justify-between items-center"><span class="text-[11.5px] font-semibold text-koda-steel">Status</span><span class="text-[11.5px] font-semibold px-3 py-1.5 rounded-full transition-colors duration-300" id="insight-estado">-</span></li>
+                        <li class="flex justify-between items-center"><span class="text-[11.5px] font-semibold text-koda-steel">Remaining</span><span class="text-sm font-semibold text-white" id="insight-faltante">$0</span></li>
+                        <li class="flex justify-between items-center"><span class="text-[11.5px] font-semibold text-koda-steel">Est. duration</span><span class="text-sm font-semibold text-white" id="insight-tiempo">-</span></li>
+                        <li class="flex justify-between items-center"><span class="text-[11.5px] font-semibold text-koda-steel">Paychecks left</span><span class="text-sm font-semibold text-white" id="insight-quincenas">0</span></li>
+                        <li class="flex justify-between items-center pt-4 border-t border-white/5"><span class="text-[11.5px] font-semibold text-koda-steel">Suggested</span><span class="text-sm font-semibold transition-colors duration-500" id="insight-sugerido">$0</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="lg:col-span-6 flex flex-col gap-5">
+                <div class="bg-koda-darkCard border border-koda-darkBorder rounded-[1.5rem] p-6 flex-1 flex flex-col">
+                    <div class="flex justify-between items-center mb-6">
+                        <p class="text-[11.5px] font-semibold text-koda-steel">Growth projection</p>
+                        <div class="flex gap-1 bg-[#151A21] p-1 rounded-lg" id="filtros-tiempo">
+                            <button onclick="filterTime('6M')" class="btn-filtro px-3 py-1 text-xs font-semibold rounded-md text-koda-steel hover:text-white transition-all cursor-pointer outline-none">6M</button>
+                            <button onclick="filterTime('1Y')" class="btn-filtro px-3 py-1 text-xs font-semibold rounded-md text-koda-steel hover:text-white transition-all cursor-pointer outline-none">1Y</button>
+                            <button onclick="filterTime('MAX')" class="btn-filtro px-3 py-1 text-xs font-semibold rounded-md bg-white/10 text-white shadow-sm transition-all activo cursor-pointer outline-none">MAX</button>
+                        </div>
+                    </div>
+                    <div class="w-full flex-1 min-h-[220px] relative"><canvas id="areaChart"></canvas></div>
+                </div>
+
+                <div class="bg-koda-darkCard border border-koda-darkBorder rounded-[1.5rem] p-6 flex-1 flex flex-col">
+                    <div class="flex justify-between items-center mb-6">
+                        <p class="text-[11.5px] font-semibold text-koda-steel">History vs ideal</p>
+                        <p class="text-[11.5px] text-koda-steel font-semibold bg-[#151A21] px-4 py-1.5 rounded-md" id="det-ideal-txt">Ideal: $0</p>
+                    </div>
+                    <div class="w-full flex-1 min-h-[200px] relative"><canvas id="barChart"></canvas></div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- ==========================================
+         MODALES DE GESTIÓN (ENGLISH & KODA STYLE)
+         ========================================== -->
+    
+    <!-- Modal: CREATE / EDIT GOAL -->
+    <div id="modal-create-goal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
+        <div class="relative w-full max-w-[460px] bg-[#141820] border border-white/10 rounded-[32px] p-6 sm:p-7 shadow-2xl flex flex-col gap-4 transform scale-95 transition-all duration-300 ease-out max-h-[92vh] overflow-y-auto">
+            
+            <div class="flex items-center justify-between border-b border-white/5 pb-2">
+                <h3 class="text-2xl font-semibold tracking-tight text-white" id="title-modal-create">New saving goal</h3>
+                <button type="button" onclick="closeModal('modal-create-goal')" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[18px]">close</span>
+                </button>
+            </div>
+            
+            <form id="form-create-goal" class="flex flex-col gap-4" onsubmit="event.preventDefault(); saveNewGoal();">
+                
+                <div class="bg-[#0A0D12] border border-white/5 focus-within:border-koda-blue/40 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                    <span class="text-[11.5px] font-semibold text-koda-steel">Name</span>
+                    <input type="text" id="new-goal-name" autocomplete="off" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none select-text" required>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-[#0A0D12] border border-white/5 focus-within:border-koda-blue/40 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                        <span class="text-[11.5px] font-semibold text-koda-steel">Goal amount</span>
+                        <input type="number" id="new-goal-total" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none input-calc" required>
+                    </div>
+                    <div class="bg-[#0A0D12] border border-white/5 focus-within:border-koda-blue/40 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                        <span class="text-[11.5px] font-semibold text-koda-steel">Saved so far</span>
+                        <input type="number" id="new-goal-saved" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none input-calc">
+                    </div>
+                </div>
+
+                <!-- KODA CUSTOM MONTH/YEAR PICKER (COMPACT, CYAN) -->
+                <div class="relative bg-[#0A0D12] border border-white/5 focus-within:border-koda-blue/40 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors cursor-pointer" id="wrap-goal-date">
+                    <span class="text-[11.5px] font-semibold text-koda-steel">Target date (Month/Year)</span>
+                    <input type="hidden" id="new-goal-date" class="input-calc" required>
+                    <button type="button" onclick="kodaUiToggle('dropdown-goal-date'); kodaRenderMonthPicker()" id="btn-goal-date" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none flex justify-between items-center text-left cursor-pointer">
+                        <span id="display-goal-date" class="text-koda-steel">Select date</span>
+                    </button>
+                    <!-- Dropdown Calendar Compacto -->
+                    <div id="dropdown-goal-date" class="koda-dropdown hidden absolute top-full left-0 mt-2 w-[220px] bg-[#141820] border border-white/10 rounded-2xl shadow-2xl z-50 p-3 backdrop-blur-md" onclick="event.stopPropagation()">
+                        <div class="flex justify-between items-center mb-4 px-1">
+                            <button type="button" onclick="kodaNavYear(-1)" class="text-koda-steel hover:text-white outline-none"><span class="material-symbols-outlined text-[16px]">chevron_left</span></button>
+                            <span id="cal-year-goal" class="text-sm font-semibold text-white">2026</span>
+                            <button type="button" onclick="kodaNavYear(1)" class="text-koda-steel hover:text-white outline-none"><span class="material-symbols-outlined text-[16px]">chevron_right</span></button>
+                        </div>
+                        <!-- Grid de meses 3x4 -->
+                        <div id="cal-grid-goal" class="grid grid-cols-3 gap-y-2 gap-x-2 text-center text-[12px] font-semibold mb-4"></div>
+                        <div class="flex items-center justify-between pt-2 border-t border-white/5">
+                            <button type="button" onclick="kodaClearMonth()" class="text-xs text-koda-blue hover:text-white transition-colors font-semibold outline-none">Clear</button>
+                            <button type="button" onclick="kodaThisMonth()" class="text-xs text-koda-blue hover:text-white transition-colors font-semibold outline-none">This month</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sugerencia (texto sutil, sin caja ni icono) -->
+                <p class="text-[11.5px] font-medium text-koda-steel px-1 min-h-[16px]" id="koda-helper-create"></p>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-[#0A0D12] border border-white/5 focus-within:border-koda-blue/40 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                        <span class="text-[11.5px] font-semibold text-koda-steel">Paycheck 1 savings</span>
+                        <input type="number" id="new-goal-q1" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none" required>
+                    </div>
+                    <div class="bg-[#0A0D12] border border-white/5 focus-within:border-koda-blue/40 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                        <span class="text-[11.5px] font-semibold text-koda-steel">Paycheck 2 savings</span>
+                        <input type="number" id="new-goal-q2" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none" required>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-2 border-t border-white/5 mt-2">
+                    <button type="button" onclick="closeModal('modal-create-goal')" class="px-5 py-2.5 text-xs font-semibold text-koda-steel hover:text-white rounded-full hover:bg-white/5 transition-colors cursor-pointer outline-none">Cancel</button>
+                    <!-- Button Confirm Cyan (Aqua) -->
+                    <button type="submit" id="btn-save-goal" class="px-8 py-3 text-xs font-semibold rounded-full bg-koda-blue text-[#131722] hover:bg-[#7ab5bd] transition-colors cursor-pointer outline-none">Confirm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: VIEW ALL GOALS (CLEAN LAYOUT - NO DOTS) -->
+    <div id="modal-all-goals" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
+        <div class="relative w-full max-w-3xl bg-[#141820] border border-white/10 rounded-[32px] p-6 sm:p-8 shadow-2xl flex flex-col max-h-[85vh] transform scale-95 transition-all duration-300 ease-out">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b border-white/5 pb-4">
+                <h2 class="text-2xl font-semibold text-white">All goals</h2>
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    
+                    <!-- POPOVER FILTRO (Plantilla Oficial KODA) -->
+                    <div class="relative">
+                        <button type="button" onclick="kodaUiToggle('popover-sort-all')" class="flex items-center gap-2 h-9 px-4 rounded-full border border-white/10 hover:border-white/20 text-[11.5px] font-semibold text-white transition-colors cursor-pointer outline-none bg-transparent">
+                            <span id="label-sort-all">Closest to completion</span>
+                            <span class="material-symbols-outlined text-[16px] text-koda-steel">expand_more</span>
+                        </button>
+                        <div id="popover-sort-all" class="koda-dropdown hidden absolute right-0 top-full mt-3 w-[220px] bg-[#141820] border border-white/10 rounded-2xl shadow-2xl z-50 p-3 flex flex-col gap-1 backdrop-blur-md" onclick="event.stopPropagation()">
+                            <div class="flex items-center justify-between pb-1 mb-1 border-b border-white/5">
+                                <span class="text-[11.5px] font-semibold text-koda-steel">Sort by</span>
+                                <button type="button" onclick="document.getElementById('popover-sort-all').classList.add('hidden')" class="text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
+                                    <span class="material-symbols-outlined text-[14px]">close</span>
+                                </button>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <button type="button" onclick="applySortAll('closest', 'Closest to completion', this)" class="item-filtro-all w-full px-3 py-2 rounded-xl text-left text-[11.5px] font-semibold text-koda-blue bg-koda-blue/10 flex items-center justify-between transition-colors cursor-pointer outline-none">
+                                    <span>Closest to completion</span><span class="material-symbols-outlined text-[16px]">check</span>
+                                </button>
+                                <button type="button" onclick="applySortAll('recientes', 'Newest first', this)" class="item-filtro-all w-full px-3 py-2 rounded-xl text-left text-[11.5px] font-semibold text-koda-steel hover:text-white hover:bg-white/5 flex items-center justify-between transition-colors cursor-pointer outline-none">
+                                    <span>Newest first</span><span class="material-symbols-outlined text-[16px] opacity-0">check</span>
+                                </button>
+                                <button type="button" onclick="applySortAll('antiguas', 'Oldest first', this)" class="item-filtro-all w-full px-3 py-2 rounded-xl text-left text-[11.5px] font-semibold text-koda-steel hover:text-white hover:bg-white/5 flex items-center justify-between transition-colors cursor-pointer outline-none">
+                                    <span>Oldest first</span><span class="material-symbols-outlined text-[16px] opacity-0">check</span>
+                                </button>
+                                <button type="button" onclick="applySortAll('mayor', 'Highest amount', this)" class="item-filtro-all w-full px-3 py-2 rounded-xl text-left text-[11.5px] font-semibold text-koda-steel hover:text-white hover:bg-white/5 flex items-center justify-between transition-colors cursor-pointer outline-none">
+                                    <span>Highest amount</span><span class="material-symbols-outlined text-[16px] opacity-0">check</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" onclick="closeModal('modal-all-goals')" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
+                        <span class="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                </div>
+            </div>
+            <div class="overflow-y-auto custom-scrollbar flex-1 pr-2">
+                <div class="flex flex-col gap-4" id="grid-all-goals"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: ACHIEVEMENTS (Solid Plain Background) -->
+    <div id="modal-achievements" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
+        <div class="relative w-full max-w-4xl bg-[#141820] border border-white/10 rounded-[32px] flex flex-col max-h-[85vh] transform scale-95 transition-all duration-300 ease-out overflow-hidden">
+            <!-- HEADER FONDO SÓLIDO -->
+            <div class="p-5 md:p-6 border-b border-white/5 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <h2 class="text-2xl font-semibold text-white tracking-tight">Hall of Fame</h2>
+                </div>
+                <div class="flex items-center gap-4">
+                    
+                    <!-- POPOVER FILTRO -->
+                    <div class="relative">
+                        <button type="button" onclick="kodaUiToggle('popover-sort-achievements')" class="flex items-center gap-2 h-9 px-4 rounded-full border border-white/10 hover:border-white/20 text-[11.5px] font-semibold text-white transition-colors cursor-pointer outline-none bg-transparent">
+                            <span id="label-sort-achievements">Newest first</span>
+                            <span class="material-symbols-outlined text-[16px] text-koda-steel">expand_more</span>
+                        </button>
+                        <div id="popover-sort-achievements" class="koda-dropdown hidden absolute right-0 top-full mt-3 w-[220px] bg-[#141820] border border-white/10 rounded-2xl shadow-2xl z-50 p-3 flex flex-col gap-1 backdrop-blur-md" onclick="event.stopPropagation()">
+                            <div class="flex items-center justify-between pb-1 mb-1 border-b border-white/5">
+                                <span class="text-[11.5px] font-semibold text-koda-steel">Sort by</span>
+                                <button type="button" onclick="document.getElementById('popover-sort-achievements').classList.add('hidden')" class="text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
+                                    <span class="material-symbols-outlined text-[14px]">close</span>
+                                </button>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <button type="button" onclick="applySortAchievements('recientes', 'Newest first', this)" class="item-filtro-ach w-full px-3 py-2 rounded-xl text-left text-[11.5px] font-semibold text-koda-blue bg-koda-blue/10 flex items-center justify-between transition-colors cursor-pointer outline-none">
+                                    <span>Newest first</span><span class="material-symbols-outlined text-[16px]">check</span>
+                                </button>
+                                <button type="button" onclick="applySortAchievements('antiguas', 'Oldest first', this)" class="item-filtro-ach w-full px-3 py-2 rounded-xl text-left text-[11.5px] font-semibold text-koda-steel hover:text-white hover:bg-white/5 flex items-center justify-between transition-colors cursor-pointer outline-none">
+                                    <span>Oldest first</span><span class="material-symbols-outlined text-[16px] opacity-0">check</span>
+                                </button>
+                                <button type="button" onclick="applySortAchievements('mayor', 'Highest amount', this)" class="item-filtro-ach w-full px-3 py-2 rounded-xl text-left text-[11.5px] font-semibold text-koda-steel hover:text-white hover:bg-white/5 flex items-center justify-between transition-colors cursor-pointer outline-none">
+                                    <span>Highest amount</span><span class="material-symbols-outlined text-[16px] opacity-0">check</span>
+                                </button>
+                                <button type="button" onclick="applySortAchievements('menor', 'Lowest amount', this)" class="item-filtro-ach w-full px-3 py-2 rounded-xl text-left text-[11.5px] font-semibold text-koda-steel hover:text-white hover:bg-white/5 flex items-center justify-between transition-colors cursor-pointer outline-none">
+                                    <span>Lowest amount</span><span class="material-symbols-outlined text-[16px] opacity-0">check</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" onclick="closeModal('modal-achievements')" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
+                        <span class="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                </div>
+            </div>
+            <div class="p-5 md:p-8 overflow-y-auto custom-scrollbar flex-1">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="grid-achievements"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inyector del modal global (alertas, confirmaciones y registro de movimientos) -->
+    <div id="contenedor-modal"></div>
+
+    <!-- SCRIPTS -->
+    <script src="koda-api.js"></script>
+    <script src="app.js"></script>
+    <script>
+        let chartRadial = null, chartArea = null, chartBarras = null, chartDist = null;
+        let currentFilter = 'MAX';
+        let currentGoalId = null; 
+        let editingGoalId = null; 
+        
+        let currentSortAll = 'closest';
+        let currentSortAchievements = 'recientes';
+
+        let localGoalsDB = [];
+        let mockContributionsHistory = {};
+
+        // Custom Dropdowns Logic
+        function kodaUiToggle(id) {
+            const drop = document.getElementById(id);
+            const isHidden = drop.classList.contains('hidden');
+            document.querySelectorAll('.koda-dropdown').forEach(d => d.classList.add('hidden'));
+            if(isHidden) drop.classList.remove('hidden');
+        }
+
+        document.addEventListener('click', (e) => {
+            if(!e.target.closest('.koda-dropdown') && !e.target.closest('button[onclick^="kodaUiToggle"]')) {
+                document.querySelectorAll('.koda-dropdown').forEach(d => d.classList.add('hidden'));
+            }
+        });
+
+        // ==========================================
+        // KODA CUSTOM MONTH PICKER (COMPACT, CYAN)
+        // ==========================================
+        let kodaMonthPickerState = { dropId: '', inputId: '', displayId: '', y: new Date().getFullYear(), m: -1 };
+        const kodaMonthsShort = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+        function kodaRenderMonthPicker() {
+            const existingVal = document.getElementById('new-goal-date').value;
+            if(existingVal) {
+                kodaMonthPickerState.y = parseInt(existingVal.split('-')[0]);
+                kodaMonthPickerState.m = parseInt(existingVal.split('-')[1]) - 1;
+            } else {
+                kodaMonthPickerState.y = new Date().getFullYear();
+                kodaMonthPickerState.m = -1;
+            }
+            kodaDrawMonthGrid();
+        }
+
+        function kodaDrawMonthGrid() {
+            const y = kodaMonthPickerState.y;
+            document.getElementById('cal-year-goal').innerText = y;
+            const grid = document.getElementById('cal-grid-goal');
+            grid.innerHTML = '';
+            
+            for (let i = 0; i < 12; i++) {
+                const isSel = (i === kodaMonthPickerState.m);
+                
+                let cls = 'text-white hover:bg-white/5 border-transparent';
+                if(isSel) cls = 'bg-koda-blue text-[#131722] border-koda-blue font-semibold'; 
+                
+                grid.innerHTML += `<div onclick="kodaSelectMonth(${i})" class="w-full py-2.5 mx-auto rounded-xl flex items-center justify-center text-xs transition-colors cursor-pointer border ${cls}">${kodaMonthsShort[i]}</div>`;
+            }
+        }
+
+        function kodaNavYear(dir) {
+            kodaMonthPickerState.y += dir;
+            kodaDrawMonthGrid();
+        }
+
+        function kodaSelectMonth(m) {
+            kodaMonthPickerState.m = m;
+            
+            const p = (n) => String(n).padStart(2, '0');
+            const iso = `${kodaMonthPickerState.y}-${p(m+1)}`;
+            const display = `${kodaMonthsShort[m]} ${kodaMonthPickerState.y}`;
+            
+            document.getElementById('new-goal-date').value = iso;
+            const displaySpan = document.getElementById('display-goal-date');
+            displaySpan.innerText = display;
+            displaySpan.classList.replace('text-koda-steel', 'text-white');
+            
+            document.querySelectorAll('.koda-dropdown').forEach(d => d.classList.add('hidden'));
+            
+            // Trigger input event for KODA suggestions
+            document.getElementById('new-goal-date').dispatchEvent(new Event('input'));
+        }
+
+        function kodaClearMonth() {
+            kodaMonthPickerState.m = -1;
+            document.getElementById('new-goal-date').value = '';
+            const displaySpan = document.getElementById('display-goal-date');
+            displaySpan.innerText = 'Select date';
+            displaySpan.classList.replace('text-white', 'text-koda-steel');
+            document.querySelectorAll('.koda-dropdown').forEach(d => d.classList.add('hidden'));
+            document.getElementById('new-goal-date').dispatchEvent(new Event('input'));
+        }
+
+        function kodaThisMonth() {
+            const d = new Date();
+            kodaMonthPickerState.y = d.getFullYear();
+            kodaSelectMonth(d.getMonth());
+        }
+
+        // ==========================================
+        // FILTER POPOVERS LOGIC
+        // ==========================================
+        function applySortAll(val, label, btn) {
+            document.querySelectorAll('.item-filtro-all').forEach(i => {
+                i.className = 'item-filtro-all w-full px-3 py-2 rounded-xl text-left text-[11.5px] font-semibold text-koda-steel hover:text-white hover:bg-white/5 flex items-center justify-between transition-colors cursor-pointer outline-none';
+                i.querySelector('.material-symbols-outlined').classList.add('opacity-0');
+            });
+            btn.className = 'item-filtro-all w-full px-3 py-2 rounded-xl text-left text-[11.5px] font-semibold text-koda-blue bg-koda-blue/10 flex items-center justify-between transition-colors cursor-pointer outline-none';
+            btn.querySelector('.material-symbols-outlined').classList.remove('opacity-0');
+            
+            currentSortAll = val;
+            document.getElementById('label-sort-all').innerText = label;
+            document.getElementById('popover-sort-all').classList.add('hidden');
+            renderAllGoals();
+        }
+
+        function applySortAchievements(val, label, btn) {
+            document.querySelectorAll('.item-filtro-ach').forEach(i => {
+                i.className = 'item-filtro-ach w-full px-3 py-2 rounded-xl text-left text-[11.5px] font-semibold text-koda-steel hover:text-white hover:bg-white/5 flex items-center justify-between transition-colors cursor-pointer outline-none';
+                i.querySelector('.material-symbols-outlined').classList.add('opacity-0');
+            });
+            btn.className = 'item-filtro-ach w-full px-3 py-2 rounded-xl text-left text-[11.5px] font-semibold text-koda-blue bg-koda-blue/10 flex items-center justify-between transition-colors cursor-pointer outline-none';
+            btn.querySelector('.material-symbols-outlined').classList.remove('opacity-0');
+
+            currentSortAchievements = val;
+            document.getElementById('label-sort-achievements').innerText = label;
+            document.getElementById('popover-sort-achievements').classList.add('hidden');
+            renderAchievements();
+        }
+
+        function checkSelectedGoalUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const metaIdUrl = urlParams.get('metaId');
+            if (metaIdUrl) { currentGoalId = parseInt(metaIdUrl); }
+        }
+
+        function initializeGoalsView() {
+            localGoalsDB = typeof metasDB !== 'undefined' ? metasDB : [];
+            mockContributionsHistory = {};
+            let months = ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'];
+            
+            localGoalsDB.forEach(m => {
+                let cuota = m.cuotaIdeal || Math.round(m.metaTotal / 24); 
+                let acumulado = Math.round(m.montoActual / 6);
+                
+                mockContributionsHistory[m.id] = {
+                    labels: months,
+                    aportes: [acumulado, acumulado, acumulado, acumulado, acumulado, m.montoActual - (acumulado * 5)],
+                    ideal: [cuota, cuota*2, cuota*3, cuota*4, cuota*5, cuota*6],
+                    realAcumulado: [acumulado, acumulado*2, acumulado*3, acumulado*4, acumulado*5, m.montoActual]
+                };
+            });
+
+            checkSelectedGoalUrl();
+            initGlobalDashboard();
+        }
+
+        function initGlobalDashboard() {
+            let completed = localGoalsDB.filter(m => m.completadaReal).length;
+            let active = localGoalsDB.filter(m => !m.completadaReal);
+            let inProgress = active.length; 
+
+            document.getElementById('kpi-completadas').innerText = completed;
+            document.getElementById('kpi-proceso').innerText = inProgress;
+
+            let globalCurrent = 0, globalMissing = 0, distribution = {};
+            active.forEach(m => {
+                globalCurrent += m.montoActual;
+                globalMissing += Math.max(0, m.metaTotal - m.montoActual);
+                if(m.montoActual > 0) distribution[m.nombre] = m.montoActual;
+            });
+
+            document.getElementById('kpi-dinero-total').innerText = `$${(globalCurrent/1000).toFixed(1)}k`;
+            document.getElementById('kpi-faltante').innerText = `$${(globalMissing/1000).toFixed(1)}k`;
+            
+            updateDistributionChart(distribution, globalCurrent);
+            
+            if(!currentGoalId && active.length > 0) {
+                let activeWithMoney = active.filter(m => m.montoActual > 0).sort((a,b) => (b.montoActual/b.metaTotal) - (a.montoActual/a.metaTotal));
+                currentGoalId = activeWithMoney.length > 0 ? activeWithMoney[0].id : active[0].id;
+            }
+            
+            renderMainList();
+            if(currentGoalId) loadGoalDetail(currentGoalId);
+        }
+
+        function renderMainList() {
+            const lista = document.getElementById('main-goals-list');
+            lista.innerHTML = '';
+            
+            let active = localGoalsDB.filter(m => !m.completadaReal);
+            let topActive = active.filter(m => m.montoActual > 0).sort((a,b) => (b.montoActual/b.metaTotal) - (a.montoActual/a.metaTotal)).slice(0, 4);
+            if(topActive.length === 0) topActive = active.slice(0, 4); 
+            
+            topActive.forEach(m => {
+                let porc = Math.round((m.montoActual / m.metaTotal) * 100);
+                let isSel = m.id === currentGoalId;
+                
+                let bgClass = '';
+                if (porc >= 100) {
+                    bgClass = 'bg-koda-darkCard border border-koda-gold/50 hover:border-koda-gold';
+                } else {
+                    bgClass = isSel ? 'goal-selected' : 'bg-koda-darkCard border border-white/10 hover:border-white/20';
+                }
+
+                let checkColor = porc >= 100 ? 'text-koda-gold' : 'text-koda-blue opacity-0';
+                let textColor = 'text-white';
+                let checkHtml = `<div onclick="executeGoal(${m.id}, event)" class="flex items-center justify-center ${checkColor} transition-colors cursor-pointer"><span class="material-symbols-outlined text-[20px] font-semibold">task_alt</span></div>`;
+
+                lista.innerHTML += `
+                <div onclick="loadGoalDetail(${m.id})" class="cursor-pointer rounded-2xl px-5 py-4 transition-all duration-300 flex justify-between items-center ${bgClass}">
+                    <p class="font-semibold text-sm truncate pr-2 ${textColor}">${m.nombre}</p>
+                    ${checkHtml}
+                </div>`;
+            });
+        }
+
+        function calcTimeSpent(fInicio, fFin) {
+            let d1 = new Date(fInicio), d2 = new Date(fFin);
+            let diffMeses = (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
+            if (diffMeses <= 0) return "Less than 1 month";
+            let anos = Math.floor(diffMeses / 12); let meses = diffMeses % 12;
+            let txt = [];
+            if(anos > 0) txt.push(`${anos} year${anos > 1 ? 's' : ''}`);
+            if(meses > 0) txt.push(`${meses} month${meses > 1 ? 's' : ''}`);
+            return txt.join(" and ");
+        }
+
+        function loadGoalDetail(id) {
+            currentGoalId = id;
+            renderMainList(); 
+            
+            const meta = localGoalsDB.find(m => m.id === id);
+            
+            let dataH = mockContributionsHistory[id];
+            if (!dataH) {
+                let mesActual = new Date().toLocaleString('en-US', { month: 'short' });
+                dataH = { labels: [mesActual], aportes: [0], ideal: [meta.cuotaIdeal], realAcumulado: [0] };
+            }
+
+            document.getElementById('det-nombre').innerText = meta.nombre;
+            document.getElementById('det-actual').innerText = `$${meta.montoActual.toLocaleString()}`;
+            document.getElementById('det-meta').innerText = `of $${meta.metaTotal.toLocaleString()}`;
+            let porc = Math.round((meta.montoActual / meta.metaTotal) * 100);
+            document.getElementById('det-porc').innerText = `${porc}%`;
+
+            let faltante = meta.metaTotal - meta.montoActual;
+            document.getElementById('insight-faltante').innerText = faltante > 0 ? `$${faltante.toLocaleString()}` : '0';
+            
+            let fLim = new Date(meta.fechaLimite);
+            let fInic = new Date(meta.fechaInicio);
+            let qRest = ((fLim.getFullYear() - new Date().getFullYear()) * 12 + (fLim.getMonth() - new Date().getMonth())) * 2;
+            document.getElementById('insight-quincenas').innerText = qRest > 0 ? qRest : '-';
+            document.getElementById('insight-sugerido').innerText = qRest > 0 && faltante > 0 ? `$${Math.ceil(faltante / qRest).toLocaleString()}` : '-';
+            
+            let diffTotal = (fLim.getFullYear() - fInic.getFullYear()) * 12 + (fLim.getMonth() - fInic.getMonth());
+            document.getElementById('insight-tiempo').innerText = diffTotal <= 0 ? "Less than 1 month" : `${diffTotal} months`;
+
+            let mainColorHex = porc >= 100 ? '#C1A35F' : '#66A5AD'; 
+            let mainColorClass = porc >= 100 ? 'text-koda-gold' : 'text-koda-blue';
+            
+            document.getElementById('det-actual').className = "text-3xl font-semibold transition-colors duration-500 " + mainColorClass;
+            document.getElementById('insight-sugerido').className = "text-sm font-semibold transition-colors duration-500 " + mainColorClass;
+            
+            const iconTitle = document.getElementById('insight-title-icon');
+            if(iconTitle) iconTitle.className = 'text-[11.5px] font-semibold mb-5 text-koda-steel';
+
+            let badge = document.getElementById('insight-estado');
+            if(porc >= 100) {
+                badge.className = 'text-[11.5px] font-semibold px-4 py-1.5 rounded-full bg-koda-blue text-[#131722] hover:bg-[#7ab5bd] cursor-pointer transition-colors'; 
+                badge.innerText = 'Complete goal';
+                badge.onclick = (e) => executeGoal(id, e);
+            } else if (meta.montoActual === 0 && (!mockContributionsHistory[id] || dataH.realAcumulado[0] === 0)) {
+                badge.className = 'text-[11.5px] font-semibold px-3 py-1.5 rounded-full bg-white/5 text-koda-textMuted'; 
+                badge.innerText = 'Just created'; badge.onclick = null;
+                            } else if(dataH.realAcumulado.length > 0 && faltante > 0) {
+                badge.onclick = null;
+                let uReal = dataH.realAcumulado[dataH.realAcumulado.length - 1], uIdeal = dataH.ideal[dataH.ideal.length - 1];
+                if (uReal >= uIdeal) { badge.className = 'text-[11.5px] font-semibold px-3 py-1.5 rounded-full bg-koda-blue/10 text-koda-blue'; badge.innerText = 'On track'; } 
+                else if (uReal >= (uIdeal * 0.8)) { badge.className = 'text-[11.5px] font-semibold px-3 py-1.5 rounded-full bg-white/10 text-white'; badge.innerText = 'Behind'; } 
+                else { badge.className = 'text-[11.5px] font-semibold px-3 py-1.5 rounded-full bg-white/10 text-white'; badge.innerText = 'At risk'; }
+            } else { badge.className = 'text-[11.5px] font-semibold px-3 py-1.5 rounded-full bg-white/5 text-koda-steel'; badge.innerText = 'No data'; badge.onclick = null; }
+
+            document.getElementById('det-ideal-txt').innerText = `Ideal: $${meta.cuotaIdeal.toLocaleString()}`;
+
+            let autoFilter = 'MAX';
+            if (diffTotal <= 6) autoFilter = '6M';
+            else if (diffTotal <= 12) autoFilter = '1Y';
+
+            updateRadialChartDetail(porc, mainColorHex);
+            filterTime(autoFilter, dataH, mainColorHex); 
+            updateBarChart(dataH.labels, dataH.aportes, meta.cuotaIdeal, mainColorHex);
+        }
+
+        function executeGoal(id, event) {
+            if(event) event.stopPropagation();
+            kodaConfirmar("Complete goal", "It will move to the Hall of Fame.", () => {
+                let m = localGoalsDB.find(m => m.id === id);
+                m.completadaReal = true; m.fechaFinReal = new Date().toISOString().split('T')[0];
+                currentGoalId = null;
+                initGlobalDashboard();
+            });
+        }
+
+        function openModal(id) { 
+            const m = document.getElementById(id); 
+            if (!m) return;
+            m.classList.remove('opacity-0', 'pointer-events-none');
+            m.classList.add('opacity-100', 'pointer-events-auto');
+            const c = m.firstElementChild;
+            c.classList.remove('scale-95');
+            c.classList.add('scale-100');
+        }
+
+        function closeModal(id) { 
+            const m = document.getElementById(id); 
+            if (!m) return;
+            m.classList.remove('opacity-100', 'pointer-events-auto');
+            m.classList.add('opacity-0', 'pointer-events-none');
+            const c = m.firstElementChild;
+            c.classList.remove('scale-100');
+            c.classList.add('scale-95');
+        }
+        
+        function openModalAchievements() { renderAchievements(); openModal('modal-achievements'); }
+        function openModalAllGoals() { renderAllGoals(); openModal('modal-all-goals'); }
+        
+        function openModalCreate() { 
+            editingGoalId = null;
+            document.getElementById('form-create-goal').reset();
+            document.getElementById('title-modal-create').innerText = "New saving goal";
+            document.getElementById('koda-helper-create').innerText = '';
+            document.getElementById('new-goal-date').value = '';
+            document.getElementById('display-goal-date').innerText = 'Select date';
+            document.getElementById('display-goal-date').classList.replace('text-white', 'text-koda-steel');
+            openModal('modal-create-goal'); 
+            setTimeout(() => document.getElementById('new-goal-name').focus(), 80);
+        }
+
+        function openModalEdit(id, event) {
+            if(event) event.stopPropagation();
+            editingGoalId = id;
+            const meta = localGoalsDB.find(m => m.id === id);
+            
+            document.getElementById('title-modal-create').innerText = "Edit saving goal";
+            
+            document.getElementById('new-goal-name').value = meta.nombre;
+            document.getElementById('new-goal-total').value = meta.metaTotal;
+            document.getElementById('new-goal-saved').value = meta.montoActual;
+            
+            let fechaArr = meta.fechaLimite.split('-');
+            let fVal = `${fechaArr[0]}-${fechaArr[1]}`;
+            document.getElementById('new-goal-date').value = fVal;
+            const display = document.getElementById('display-goal-date');
+            display.innerText = `${kodaMonthsShort[parseInt(fechaArr[1])-1]} ${fechaArr[0]}`;
+            display.classList.replace('text-koda-steel', 'text-white');
+            
+            document.getElementById('new-goal-q1').value = meta.cuotaIdeal / 2;
+            document.getElementById('new-goal-q2').value = meta.cuotaIdeal / 2;
+            
+            calcularSugerenciaKoda();
+            openModal('modal-create-goal');
+            closeModal('modal-all-goals');
+        }
+
+        document.querySelectorAll('.input-calc').forEach(input => { input.addEventListener('input', calcularSugerenciaKoda); });
+        
+        function calcularSugerenciaKoda() {
+            const total = parseFloat(document.getElementById('new-goal-total').value) || 0;
+            const acumulado = parseFloat(document.getElementById('new-goal-saved').value) || 0;
+            const fechaStr = document.getElementById('new-goal-date').value; 
+            const helperUI = document.getElementById('koda-helper-create');
+
+            if(total <= 0 || !fechaStr) { helperUI.innerText = ''; return; }
+            let faltante = total - acumulado;
+            if(faltante <= 0) { helperUI.innerText = 'Already fully funded'; return; }
+
+            let today = new Date(); let limitDate = new Date(fechaStr + "-01");
+            let diffMeses = (limitDate.getFullYear() - today.getFullYear()) * 12 + (limitDate.getMonth() - today.getMonth());
+            if(diffMeses < 0) { helperUI.innerText = 'Target date is in the past'; return; }
+
+            let quincenasRestantes = diffMeses * 2; if(quincenasRestantes === 0) quincenasRestantes = 1; 
+            let cuotaSugerida = Math.ceil(faltante / quincenasRestantes);
+            helperUI.innerHTML = `Suggested: <span class="text-koda-blue font-semibold">$${cuotaSugerida.toLocaleString()}</span> per paycheck`;
+        }
+
+        function saveNewGoal() {
+            const nombre = document.getElementById('new-goal-name').value;
+            const total = parseFloat(document.getElementById('new-goal-total').value);
+            const acumulado = parseFloat(document.getElementById('new-goal-saved').value) || 0;
+            const fecha = document.getElementById('new-goal-date').value;
+            const q1 = parseFloat(document.getElementById('new-goal-q1').value) || 0;
+            const q2 = parseFloat(document.getElementById('new-goal-q2').value) || 0;
+
+            if(!nombre || !total || !fecha) { mostrarAlertaKoda("Missing info", "Add a name, goal amount and target date."); return; }
+
+            if (editingGoalId) {
+                let meta = localGoalsDB.find(m => m.id === editingGoalId);
+                meta.nombre = nombre; meta.metaTotal = total; meta.montoActual = acumulado;
+                meta.fechaLimite = fecha + "-28"; meta.cuotaIdeal = q1 + q2;
+                meta.completadaReal = acumulado >= total;
+            } else {
+                const nuevaMeta = {
+                    id: localGoalsDB.length + 10, nombre: nombre, montoActual: acumulado, metaTotal: total,
+                    fechaInicio: new Date().toISOString().split('T')[0], fechaLimite: fecha + "-28",
+                    completadaReal: acumulado >= total, fechaFinReal: null, cuotaIdeal: q1 + q2
+                };
+                localGoalsDB.push(nuevaMeta);
+                currentGoalId = nuevaMeta.id; 
+            }
+            
+            closeModal('modal-create-goal');
+            initGlobalDashboard();
+        }
+
+        function renderAllGoals() {
+            const grid = document.getElementById('grid-all-goals'); grid.innerHTML = '';
+            let active = localGoalsDB.filter(m => !m.completadaReal);
+            let orden = currentSortAll;
+            
+            active.sort((a,b) => {
+                if(orden === 'closest') return (b.montoActual/b.metaTotal) - (a.montoActual/a.metaTotal);
+                if(orden === 'recientes') return new Date(b.fechaInicio) - new Date(a.fechaInicio);
+                if(orden === 'antiguas') return new Date(a.fechaInicio) - new Date(b.fechaInicio);
+                if(orden === 'mayor') return b.metaTotal - a.metaTotal;
+                if(orden === 'menor') return a.metaTotal - b.metaTotal;
+            });
+
+            active.forEach(m => {
+                let porc = Math.round((m.montoActual / m.metaTotal) * 100);
+                let op = m.montoActual === 0 ? 'opacity-50 hover:opacity-100' : '';
+                let barColor = porc >= 100 ? 'bg-koda-gold' : 'bg-koda-blue';
+                
+                grid.innerHTML += `
+                <div data-id="${m.id}" class="rounded-2xl p-5 transition-all duration-300 bg-[#0A0D12] border border-white/5 hover:border-white/20 flex flex-col ${op}">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex items-center gap-3">
+                            <p class="font-semibold text-[15px] truncate pr-2 text-white cursor-pointer" onclick="loadGoalDetail(${m.id}); closeModal('modal-all-goals')">${m.nombre}</p>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <span class="text-sm font-semibold text-white">${porc}%</span>
+                            <button onclick="openModalEdit(${m.id}, event)" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-koda-steel hover:text-white flex items-center justify-center transition-colors shadow-sm cursor-pointer outline-none">
+                                <span class="material-symbols-outlined text-[16px]">edit</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="cursor-pointer" onclick="loadGoalDetail(${m.id}); closeModal('modal-all-goals')">
+                        <p class="text-[11.5px] font-semibold text-white mb-3">$${(m.montoActual/1000).toFixed(1)}k of $${(m.metaTotal/1000).toFixed(1)}k</p>
+                        <div class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden"><div class="h-full ${barColor} rounded-full" style="width: ${porc}%"></div></div>
+                    </div>
+                </div>`;
+            });
+        }
+
+        function renderAchievements() {
+            const grid = document.getElementById('grid-achievements'); grid.innerHTML = '';
+            let completed = localGoalsDB.filter(m => m.completadaReal);
+            let orden = currentSortAchievements;
+            
+            completed.sort((a,b) => {
+                if(orden === 'recientes') return new Date(b.fechaFinReal) - new Date(a.fechaFinReal);
+                if(orden === 'antiguas') return new Date(a.fechaFinReal) - new Date(b.fechaFinReal);
+                if(orden === 'mayor') return b.metaTotal - a.metaTotal;
+                if(orden === 'menor') return a.metaTotal - b.metaTotal;
+            });
+            
+            if(completed.length === 0) { grid.innerHTML = `<p class="text-[11.5px] font-semibold text-koda-steel col-span-full">No achievements yet.</p>`; return; }
+            
+            completed.forEach(m => {
+                grid.innerHTML += `
+                <div class="bg-[#0A0D12] border border-white/5 hover:border-koda-gold/30 rounded-2xl p-5 transition-colors">
+                    <p class="font-semibold text-base text-white mb-2 truncate">${m.nombre}</p>
+                    <h4 class="text-xl font-semibold text-koda-gold mb-4">$${m.metaTotal.toLocaleString()}</h4>
+                    <div class="flex justify-between items-center pt-3 border-t border-white/5">
+                        <span class="text-[11.5px] font-semibold text-koda-steel">${calcTimeSpent(m.fechaInicio, m.fechaFinReal)}</span>
+                        <span class="text-[11.5px] font-semibold text-koda-steel">${new Date(m.fechaFinReal).getFullYear()}</span>
+                    </div>
+                </div>`;
+            });
+        }
+
+        Chart.defaults.color = '#8B96A5'; Chart.defaults.font.family = "'Maven Pro', sans-serif"; Chart.defaults.plugins.tooltip.backgroundColor = '#1B212B';
+
+        function updateDistributionChart(distObj, total) {
+            document.getElementById('donut-center-total').innerText = `$${(total/1000).toFixed(1)}k`;
+            
+            const ctx = document.getElementById('distChart').getContext('2d');
+            if(chartDist) chartDist.destroy();
+            
+            let labels = Object.keys(distObj); 
+            let data = Object.values(distObj); 
+            
+            // Paleta KODA: cyan y aceros; el dorado queda solo como último acento
+            let colors = ['#66A5AD', '#787886', '#487B82', '#B2B5BE', '#52525C', '#C1A35F']; 
+            
+            let sortedDist = Object.entries(distObj).sort((a,b) => b[1] - a[1]).slice(0, 3);
+            let leyenda = document.getElementById('goals-legend'); 
+            leyenda.innerHTML = '';
+            
+            sortedDist.forEach((item) => { 
+                let idx = labels.indexOf(item[0]);
+                let percent = total > 0 ? Math.round((item[1] / total) * 100) : 0;
+                
+                leyenda.innerHTML += `
+                <div class="flex items-center justify-between w-full">
+                    <div class="flex items-center gap-2 min-w-0 pr-2">
+                        <div class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: ${colors[idx%colors.length]}"></div>
+                        <p class="text-[11.5px] font-semibold text-koda-steel hover:text-white transition-colors truncate">${item[0]}</p>
+                    </div>
+                    <span class="text-[11.5px] font-semibold text-white flex-shrink-0">${percent}% | $${(item[1]/1000).toFixed(1)}k</span>
+                </div>`; 
+            });
+
+            chartDist = new Chart(ctx, { 
+                type: 'doughnut', 
+                data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 3, borderColor: '#1E222D', hoverOffset: 4 }] }, 
+                options: { 
+                    responsive: true, maintainAspectRatio: false, cutout: '80%', borderRadius: 4,
+                    plugins: { 
+                        legend: {display: false},
+                        tooltip: { callbacks: { label: function(context) { let val = context.raw; let p = total > 0 ? Math.round((val/total)*100) : 0; return ` ${context.label}: $${val.toLocaleString()} (${p}%)`; } } }
+                    } 
+                } 
+            });
+        }
+        function updateRadialChartDetail(porcentaje, colorHex) {
+            const ctx = document.getElementById('detailRadial').getContext('2d');
+            if(chartRadial) chartRadial.destroy();
+            chartRadial = new Chart(ctx, { 
+                type: 'doughnut', 
+                data: { datasets: [{ data: [porcentaje, Math.max(0, 100-porcentaje)], backgroundColor: [colorHex, '#131722'], borderWidth: 0, borderRadius: [10,0] }] }, 
+                options: { responsive: true, maintainAspectRatio: false, cutout: '85%', plugins: { tooltip: {enabled: false} } } 
+            });
+        }
+
+        // Rango de tiempo de la proyección (6M / 1Y / MAX)
+        let detailData = null, detailColor = '#66A5AD';
+        function filterTime(range, dataH, colorHex) {
+            if (dataH) detailData = dataH;
+            if (colorHex) detailColor = colorHex;
+            currentFilter = range;
+
+            document.querySelectorAll('.btn-filtro').forEach(b => {
+                const on = b.textContent.trim() === range;
+                b.className = 'btn-filtro px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer outline-none ' +
+                    (on ? 'bg-white/10 text-white shadow-sm activo' : 'text-koda-steel hover:text-white');
+            });
+
+            if (!detailData) return;
+            const n = range === '6M' ? 6 : range === '1Y' ? 12 : Infinity;
+            const cut = (arr) => n === Infinity ? arr : arr.slice(-n);
+            updateAreaChart(cut(detailData.labels), cut(detailData.ideal), cut(detailData.realAcumulado), detailColor);
+        }
+
+        function updateAreaChart(labels, ideal, real, colorHex) {
+            const ctx = document.getElementById('areaChart').getContext('2d');
+            if (chartArea) chartArea.destroy();
+            let grad = ctx.createLinearGradient(0,0,0,200); 
+            grad.addColorStop(0, colorHex === '#C1A35F' ? 'rgba(193,163,95,0.2)' : 'rgba(102,165,173,0.2)'); 
+            grad.addColorStop(1, 'rgba(0,0,0,0.0)');
+            
+            chartArea = new Chart(ctx, { 
+                type: 'line', 
+                data: { labels: labels, datasets: [ { data: real, borderColor: colorHex, backgroundColor: grad, borderWidth: 3, fill: true, tension: 0.4, pointRadius: 0, pointHoverRadius: 5 }, { data: ideal, borderColor: 'rgba(120,120,134,0.4)', borderWidth: 1, borderDash: [4,4], fill: false, tension: 0.4, pointRadius: 0 } ] }, 
+                options: { 
+                    responsive: true, maintainAspectRatio: false, plugins: { legend: {display: false} }, 
+                    scales: { x: { display: true, grid: {display: false, drawBorder: false}, ticks: {font: {size: 10, family: "'Maven Pro', sans-serif"}} }, y: { display: false } }, 
+                    interaction: {mode: 'index', intersect: false} 
+                } 
+            });
+        }
+
+        function updateBarChart(labels, aportes, cuotaIdeal, colorHex) {
+            const ctx = document.getElementById('barChart').getContext('2d');
+            if (chartBarras) chartBarras.destroy();
+            const dataIdeal = Array(aportes.length).fill(cuotaIdeal);
+            chartBarras = new Chart(ctx, { 
+                data: { labels: labels, datasets: [ { type: 'line', data: dataIdeal, borderColor: 'rgba(120, 120, 134, 0.3)', borderWidth: 1, borderDash: [4, 4], pointRadius: 0, fill: false }, { type: 'bar', data: aportes, backgroundColor: colorHex, borderRadius: 4, maxBarThickness: 20 } ] }, 
+                options: { 
+                    responsive: true, maintainAspectRatio: false, plugins: { legend: {display: false} }, 
+                    scales: { x: { display: true, grid: {display: false, drawBorder: false}, ticks: {font: {size: 10, family: "'Maven Pro', sans-serif"}} }, y: { display: false } } 
+                } 
+            });
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === "Escape") {
+                closeModal('modal-create-goal');
+                closeModal('modal-all-goals');
+                closeModal('modal-achievements');
+            }
+        });
+
+        window.addEventListener('DOMContentLoaded', initializeGoalsView);
+    </script>
+</body>
+</html>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KODA - Template Alerta</title>
+    
+    <!-- Tipografía e Iconos -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Maven+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { 
+            darkMode: 'class', 
+            theme: { 
+                extend: { 
+                    fontFamily: { sans: ['"Maven Pro"', 'sans-serif'] }, 
+                    colors: { 
+                        koda: { 
+                            darkBg: '#131722', darkCard: '#1E222D', darkBorder: '#2A2E39', textMuted: '#B2B5BE', 
+                            white: '#F8F9FA', blue: '#66A5AD', gold: '#C1A35F', steel: '#787886' 
+                        } 
+                    } 
+                } 
+            } 
+        }
+    </script>
+    <style>
+        /* Ocultar scrollbars */
+        ::-webkit-scrollbar { display: none !important; }
+        * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
+    </style>
+</head>
+<body class="bg-koda-darkBg font-sans flex items-center justify-center min-h-screen">
+
+    <!-- Botones de prueba para lanzar los templates -->
+    <div class="flex gap-4">
+        <button onclick="lanzarAlertaKoda('warning', 'Saldo no disponible')" class="px-6 py-3 bg-koda-gold text-[#131722] font-bold rounded-xl outline-none">Alerta Oro</button>
+        <button onclick="lanzarAlertaKoda('success', 'Movimiento guardado')" class="px-6 py-3 bg-koda-blue text-white font-bold rounded-xl outline-none">Alerta Aqua</button>
+    </div>
+
+    <!-- ==========================================
+         [TEMPLATE B] MODAL MAESTRO DE ALERTA 
+         ========================================== -->
+    <div id="modal-alerta-koda" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
+        
+        <div id="card-alerta-koda" class="relative w-full max-w-[320px] bg-[#141820] border border-white/5 rounded-[32px] p-8 shadow-2xl flex flex-col items-center text-center transform scale-95 transition-all duration-300 ease-out">
+            
+            <!-- Contenedor del Icono (Cambia dinámicamente de color) -->
+            <div id="icono-container-alerta" class="w-16 h-16 rounded-full flex items-center justify-center mb-6 transition-colors duration-300">
+                <span id="icono-alerta" class="material-symbols-outlined text-[32px]">warning</span>
+            </div>
+
+            <!-- Título Directo (Cero subtítulos de relleno) -->
+            <h3 id="titulo-alerta-koda" class="text-xl font-black text-white mb-8">Saldo no disponible</h3>
+
+            <!-- Botón Único de Acción -->
+            <button type="button" id="btn-alerta-koda" onclick="cerrarAlertaKoda()" class="w-full py-4 rounded-2xl text-sm font-black transition-colors cursor-pointer outline-none">
+                Entendido
+            </button>
+            
+        </div>
+    </div>
+
+    <!-- Lógica del Componente (Copiar al app.js luego) -->
+    <script>
+        /**
+         * Controlador del Template B (Alertas)
+         * @param {string} tipo - 'warning' (Oro) o 'success' (Aqua)
+         * @param {string} titulo - Mensaje corto y directo
+         */
+        function lanzarAlertaKoda(tipo, titulo) {
+            const modal = document.getElementById('modal-alerta-koda');
+            const card = document.getElementById('card-alerta-koda');
+            const iconContainer = document.getElementById('icono-container-alerta');
+            const icon = document.getElementById('icono-alerta');
+            const btn = document.getElementById('btn-alerta-koda');
+            const titleEl = document.getElementById('titulo-alerta-koda');
+
+            // 1. Inyectamos el texto directo
+            titleEl.innerText = titulo;
+
+            // 2. Aplicamos la paleta de KODA según el tipo (sin rojo ni verde)
+            if (tipo === 'warning') {
+                icon.innerText = 'warning';
+                iconContainer.className = 'w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-koda-gold/10 border border-koda-gold/20 text-koda-gold';
+                btn.className = 'w-full py-4 rounded-2xl text-sm font-black cursor-pointer outline-none transition-colors bg-koda-gold text-[#131722] hover:bg-[#d8b86d]';
+            } else if (tipo === 'success') {
+                icon.innerText = 'check';
+                iconContainer.className = 'w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-koda-blue/10 border border-koda-blue/20 text-koda-blue';
+                btn.className = 'w-full py-4 rounded-2xl text-sm font-black cursor-pointer outline-none transition-colors bg-koda-blue text-white hover:bg-[#7ab1b8]';
+            }
+
+            // 3. Ejecutamos la animación Dark Zen
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modal.classList.add('opacity-100', 'pointer-events-auto');
+            card.classList.remove('scale-95');
+            card.classList.add('scale-100');
+        }
+
+        function cerrarAlertaKoda() {
+            const modal = document.getElementById('modal-alerta-koda');
+            const card = document.getElementById('card-alerta-koda');
+            modal.classList.remove('opacity-100', 'pointer-events-auto');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            card.classList.remove('scale-100');
+            card.classList.add('scale-95');
+        }
+    </script>
+</body>
+</html>

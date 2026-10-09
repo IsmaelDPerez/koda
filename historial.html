@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KODA - History</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Maven+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' font-family='sans-serif' font-weight='900' fill='%2366A5AD'>K.</text></svg>">
+
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="tailwind-config.js"></script>
+
+    <style>
+        input, button { font-family: inherit; color-scheme: dark; }
+
+        /* Menú de opciones de fila: aparece al pasar el mouse */
+        .fila-grid .btn-opciones { opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+        @media (hover: hover) { .fila-grid:hover .btn-opciones, .fila-grid.menu-activo .btn-opciones { opacity: 1; pointer-events: auto; } }
+        @media (hover: none) { .fila-grid .btn-opciones { opacity: 1; pointer-events: auto; } }
+
+        /* Checkbox KODA */
+        input[type="checkbox"].koda-check {
+            appearance: none; width: 16px; height: 16px; border: 1.5px solid rgba(255,255,255,0.2); border-radius: 4px;
+            outline: none; cursor: pointer; transition: all 0.2s ease; position: relative; flex-shrink: 0;
+        }
+        input[type="checkbox"].koda-check:checked { background-color: #66A5AD; border-color: #66A5AD; }
+        input[type="checkbox"].koda-check:checked::after {
+            content: ''; position: absolute; left: 4px; top: 1px; width: 5px; height: 10px;
+            border: solid #131722; border-width: 0 2px 2px 0; transform: rotate(45deg);
+        }
+
+        /* Tabla: la columna del checkbox aparece al seleccionar */
+        .grid-koda { display: grid; grid-template-columns: 0px 140px 2.5fr 2fr 120px 40px; transition: grid-template-columns 0.3s cubic-bezier(0.25, 1, 0.5, 1); }
+        .modo-seleccion .grid-koda { grid-template-columns: 40px 140px 2.5fr 2fr 120px 40px; }
+        .col-check { overflow: hidden; opacity: 0; transform: translateX(-10px); transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1); display: flex; justify-content: center; align-items: center; }
+        .modo-seleccion .col-check { opacity: 1; transform: translateX(0); }
+
+        /* Buscador que se expande */
+        .search-container { width: 36px; height: 36px; transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1); border-radius: 9999px; background-color: transparent; border: 1px solid transparent; cursor: pointer; position: relative; }
+        .search-container.active { width: 240px; background-color: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); cursor: text; }
+        .search-container input { pointer-events: none; opacity: 0; width: 100%; height: 100%; background: transparent; padding-left: 16px; padding-right: 36px; font-size: 11.5px; font-weight: 500; color: white; border: none; outline: none; }
+        .search-container.active input { pointer-events: auto; opacity: 1; }
+        .search-icon-btn { position: absolute; right: 0; top: 0; bottom: 0; width: 36px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; outline: none; cursor: pointer; color: #8E939F; transition: color .2s; }
+        .search-container.active .search-icon-btn, .search-icon-btn:hover { color: white; }
+
+        /* Calendario con rango */
+        @keyframes kodaPulse { 0% { transform: scale(0.8); opacity: 0.5; } 50% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); } }
+        .cal-cell { position: relative; width: 100%; height: 32px; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 11.5px; font-weight: 600; color: #fff; margin-bottom: 2px; }
+        .cal-day-circle { position: relative; z-index: 10; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; }
+        .cal-cell:hover .cal-day-circle { background-color: rgba(255,255,255,0.1); }
+        .cal-range-bg { position: absolute; top: 0; bottom: 0; background-color: rgba(102, 165, 173, 0.15); z-index: 1; }
+        .cal-range-start .cal-range-bg { left: 50%; right: 0; border-top-left-radius: 16px; border-bottom-left-radius: 16px; }
+        .cal-range-end .cal-range-bg { left: 0; right: 50%; border-top-right-radius: 16px; border-bottom-right-radius: 16px; }
+        .cal-range-full .cal-range-bg { left: 0; right: 0; }
+        .cal-selected .cal-day-circle { background-color: #66A5AD; color: #131722; animation: kodaPulse 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
+        .cal-selected:hover .cal-day-circle { background-color: #66A5AD; }
+        .cal-today::after { content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background-color: #66A5AD; border-radius: 50%; z-index: 20; }
+        .cal-selected.cal-today::after { background-color: #131722; }
+        .cal-empty { color: #4b5563; pointer-events: none; }
+    </style>
+</head>
+
+<body class="font-sans min-h-screen flex flex-col items-center p-4 md:p-6 bg-koda-darkBg text-white transition-colors duration-300 relative">
+
+    <div id="contenedor-navbar" class="w-full max-w-[1500px]"></div>
+
+    <main class="w-full max-w-[1500px] flex flex-col pb-32 pt-2">
+
+        <!-- CABECERA -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8 w-full max-w-[1100px] mx-auto">
+
+            <div class="flex items-center gap-4">
+                <button onclick="navegarA('dashboard')" class="w-10 h-10 bg-koda-darkCard border border-koda-darkBorder rounded-full flex items-center justify-center text-koda-steel hover:text-white transition-all shadow-sm cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+                </button>
+                <h2 class="text-3xl font-semibold tracking-tight">History</h2>
+            </div>
+
+            <div class="flex items-center gap-3">
+
+                <!-- Buscador -->
+                <div id="wrapper-buscador" class="search-container flex items-center">
+                    <input type="text" id="filtro-texto" autocomplete="off" aria-label="Search" oninput="hxFiltrosCambiaron()">
+                    <button id="btn-abrir-buscador" type="button" class="search-icon-btn" onclick="hxAbrirBuscador(event)">
+                        <span class="material-symbols-outlined text-[20px]">search</span>
+                    </button>
+                </div>
+
+                <!-- Categories -->
+                <div class="relative">
+                    <button type="button" onclick="hxPopover(event, 'popover-categorias')" class="flex items-center gap-2 h-9 px-4 rounded-full border border-white/10 hover:border-white/20 text-[11.5px] font-semibold text-white transition-colors cursor-pointer outline-none bg-transparent">
+                        <span class="material-symbols-outlined text-[16px] text-koda-steel">sell</span>
+                        Categories
+                    </button>
+
+                    <div id="popover-categorias" class="hx-popover hidden absolute right-0 top-full mt-2 w-[270px] bg-[#141820] border border-white/10 rounded-2xl shadow-2xl z-30 p-3 flex flex-col gap-1 backdrop-blur-md" onclick="event.stopPropagation()">
+                        <div class="flex items-center justify-between pb-1 mb-1 border-b border-white/5">
+                            <span class="text-[11.5px] font-semibold text-koda-steel">Categories</span>
+                            <button type="button" onclick="hxCerrarTodo()" class="text-koda-steel hover:text-white transition-colors cursor-pointer outline-none"><span class="material-symbols-outlined text-[14px]">close</span></button>
+                        </div>
+
+                        <div class="flex items-end gap-2 mb-1">
+                            <div class="flex-1 bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-xl px-3 py-2 flex flex-col gap-0.5 transition-colors">
+                                <span class="text-[11.5px] font-semibold text-koda-steel">New category</span>
+                                <input type="text" id="input-nueva-cat" autocomplete="off" class="w-full bg-transparent text-xs text-white font-medium border-none outline-none" onkeydown="if(event.key === 'Enter') { event.preventDefault(); hxAgregarCategoria(); }">
+                            </div>
+                            <button type="button" onclick="hxAgregarCategoria()" class="w-10 h-10 rounded-xl bg-koda-blue text-[#131722] hover:bg-[#7ab5bd] flex items-center justify-center transition-colors cursor-pointer outline-none flex-shrink-0">
+                                <span class="material-symbols-outlined text-[18px]">add</span>
+                            </button>
+                        </div>
+
+                        <div id="lista-categorias" class="flex flex-col gap-0.5 max-h-[190px] overflow-y-auto no-scrollbar"></div>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="relative">
+                    <button type="button" onclick="hxPopover(event, 'popover-filtros')" class="flex items-center gap-2 h-9 px-4 rounded-full border border-white/10 hover:border-white/20 text-[11.5px] font-semibold text-white transition-colors cursor-pointer outline-none bg-transparent">
+                        <span class="material-symbols-outlined text-[16px] text-koda-steel">filter_list</span>
+                        Filters
+                        <span id="badge-filtros" class="hidden w-1.5 h-1.5 rounded-full bg-koda-blue"></span>
+                    </button>
+
+                    <div id="popover-filtros" class="hx-popover hidden absolute right-0 top-full mt-2 w-[220px] bg-[#141820] border border-white/10 rounded-2xl shadow-2xl z-30 p-3 flex flex-col gap-1 backdrop-blur-md" onclick="event.stopPropagation()">
+                        <div class="flex items-center justify-between pb-1 mb-1 border-b border-white/5">
+                            <span class="text-[11.5px] font-semibold text-koda-steel">Show</span>
+                            <button type="button" onclick="hxCerrarTodo()" class="text-koda-steel hover:text-white transition-colors cursor-pointer outline-none"><span class="material-symbols-outlined text-[14px]">close</span></button>
+                        </div>
+                        <div id="lista-filtros-tipo" class="flex flex-col"></div>
+                    </div>
+                </div>
+
+                <!-- Dates -->
+                <div class="relative">
+                    <button type="button" onclick="hxPopover(event, 'popover-fechas')" class="flex items-center gap-2 h-9 px-4 rounded-full border border-white/10 hover:border-white/20 text-[11.5px] font-semibold text-white transition-colors cursor-pointer outline-none bg-transparent">
+                        <span class="material-symbols-outlined text-[16px] text-koda-steel">calendar_today</span>
+                        <span id="label-fechas">Dates</span>
+                    </button>
+
+                    <div id="popover-fechas" class="hx-popover hidden absolute right-0 top-full mt-2 w-[300px] bg-[#141820] border border-white/10 rounded-2xl shadow-2xl z-30 p-3 flex flex-col gap-2 backdrop-blur-md" onclick="event.stopPropagation()">
+                        <div id="vista-dias" class="flex flex-col">
+                            <div class="flex items-center justify-between px-1 mb-3">
+                                <button type="button" onclick="hxNavMes(-1)" class="w-8 h-8 rounded-full hover:bg-white/5 flex items-center justify-center text-koda-steel hover:text-white cursor-pointer outline-none"><span class="material-symbols-outlined text-[18px]">chevron_left</span></button>
+                                <button type="button" onclick="hxToggleMeses()" class="flex items-center gap-1 text-sm font-semibold text-white hover:text-koda-blue transition-colors outline-none cursor-pointer"><span id="cal-titulo">October 2026</span><span class="material-symbols-outlined text-[16px]">expand_more</span></button>
+                                <button type="button" onclick="hxNavMes(1)" class="w-8 h-8 rounded-full hover:bg-white/5 flex items-center justify-center text-koda-steel hover:text-white cursor-pointer outline-none"><span class="material-symbols-outlined text-[18px]">chevron_right</span></button>
+                            </div>
+                            <div class="grid grid-cols-7 text-center text-[11px] font-semibold text-koda-steel mb-2"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div>
+                            <div id="cal-grid" class="grid grid-cols-7"></div>
+                        </div>
+
+                        <div id="vista-meses" class="hidden flex flex-col">
+                            <div class="flex items-center justify-between px-1 mb-4">
+                                <button type="button" onclick="hxNavAno(-1)" class="w-8 h-8 rounded-full hover:bg-white/5 flex items-center justify-center text-koda-steel hover:text-white cursor-pointer outline-none"><span class="material-symbols-outlined text-[18px]">chevron_left</span></button>
+                                <span id="year-titulo" class="text-sm font-semibold text-white">2026</span>
+                                <button type="button" onclick="hxNavAno(1)" class="w-8 h-8 rounded-full hover:bg-white/5 flex items-center justify-center text-koda-steel hover:text-white cursor-pointer outline-none"><span class="material-symbols-outlined text-[18px]">chevron_right</span></button>
+                            </div>
+                            <div id="grid-meses" class="grid grid-cols-3 gap-2"></div>
+                        </div>
+
+                        <div class="flex items-center justify-between pt-2 border-t border-white/5">
+                            <button type="button" onclick="hxLimpiarFechas()" class="text-xs font-semibold text-koda-steel hover:text-white transition-colors cursor-pointer outline-none px-2 py-1.5">Clear</button>
+                            <button type="button" onclick="hxCerrarTodo()" class="px-6 py-2 text-xs font-semibold rounded-full bg-koda-blue text-[#131722] hover:bg-[#7ab5bd] transition-colors cursor-pointer outline-none">Done</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TABLA -->
+        <div class="w-full overflow-x-auto pb-8 max-w-[1100px] mx-auto">
+            <div id="contenedor-tabla" class="min-w-[900px]">
+
+                <div class="grid-koda gap-4 px-4 py-3 border-b border-white/10 text-[11.5px] font-semibold text-koda-steel items-center">
+                    <div class="col-check"><input type="checkbox" id="check-todos" class="koda-check" onchange="hxSeleccionarTodos(this)"></div>
+                    <div>Date</div>
+                    <div>Transaction</div>
+                    <div>Category</div>
+                    <div class="text-right pr-4">Amount</div>
+                    <div></div>
+                </div>
+
+                <div id="lista-completa-historial" class="flex flex-col"></div>
+
+                <div id="hx-mas-wrap" class="hidden justify-center pt-5">
+                    <button type="button" onclick="hxCargarMas()" class="px-6 py-2.5 text-xs font-semibold text-koda-steel hover:text-white rounded-full border border-white/10 hover:border-white/20 transition-colors cursor-pointer outline-none">
+                        Load more
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- BARRA DE SELECCIÓN MÚLTIPLE -->
+        <div id="barra-lote" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-[#141820] border border-white/10 px-5 py-3 rounded-full shadow-[0_20px_40px_-10px_rgba(0,0,0,0.8)] flex items-center gap-5 translate-y-20 opacity-0 pointer-events-none transition-all duration-300 z-40">
+            <button type="button" onclick="hxCancelarSeleccion()" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
+                <span class="material-symbols-outlined text-[18px]">close</span>
+            </button>
+            <div class="flex items-center gap-3">
+                <div class="min-w-[28px] h-7 px-2 rounded-full bg-koda-blue text-[#131722] flex items-center justify-center text-xs font-semibold" id="contador-lote">0</div>
+                <span class="text-xs font-semibold text-white">selected</span>
+            </div>
+            <div class="w-px h-5 bg-white/10"></div>
+            <button type="button" onclick="hxEliminarSeleccion()" class="text-xs font-semibold text-white hover:text-koda-blue transition-colors cursor-pointer outline-none pr-1">Delete</button>
+        </div>
+
+    </main>
+
+    <div id="contenedor-modal"></div>
+
+    <script src="koda-api.js"></script>
+    <script src="app.js"></script>
+    <script>
+        // ==========================================
+        // HISTORY: lógica de la página (prefijo hx)
+        // ==========================================
+        const HX_PAGINA = 40;
+        const HX_MESES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const HX_TIPOS = [
+            { clave: 'gasto',      label: 'Expenses',          tipos: ['Gasto'] },
+            { clave: 'ingreso',    label: 'Income',            tipos: ['Ingreso'] },
+            { clave: 'transfer',   label: 'Transfers',         tipos: ['Transferencia'] },
+            { clave: 'meta',       label: 'Goal contributions', tipos: ['Aporte a Meta'] },
+            { clave: 'obligacion', label: 'Obligations',       tipos: ['Pago de Deuda', 'Pago de Compromiso'] },
+            { clave: 'fondeo',     label: 'Envelope funding',  tipos: ['Fondeo de Sobre'] },
+            { clave: 'prestamo',   label: 'Loans',             tipos: ['Préstamo'] }
+        ];
+        const hx = {
+            tiposActivos: new Set(HX_TIPOS.map(t => t.clave)),
+            texto: '', desde: '', hasta: '',
+            limite: HX_PAGINA,
+            seleccion: new Set(),
+            calMes: new Date().getMonth(), calAno: new Date().getFullYear()
+        };
+        const hxEl = (id) => document.getElementById(id);
+        const hxPad = (n) => String(n).padStart(2, '0');
+        const hxIso = (y, m, d) => `${y}-${hxPad(m + 1)}-${hxPad(d)}`;
+
+        // ---------- Helpers de presentación ----------
+        function hxFecha(fechaStr) {
+            const d = new Date(fechaStr.includes('T') ? fechaStr : fechaStr + 'T12:00:00');
+            const mismoAno = d.getFullYear() === new Date().getFullYear();
+            return {
+                dia: d.toLocaleDateString('en-US', mismoAno ? { day: '2-digit', month: 'short' } : { day: '2-digit', month: 'short', year: 'numeric' }),
+                hora: d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+            };
+        }
+        function hxEsCobro(m) { return m.tipo === 'Préstamo' && (m.categoria || '').includes('Cobro'); }
+        function hxMonto(m) {
+            const n = `$${Math.abs(m.monto).toLocaleString()}`;
+            if (m.tipo === 'Ingreso' || hxEsCobro(m)) return { txt: `+${n}`, cls: 'text-koda-blue' };
+            if (m.tipo === 'Transferencia' || m.tipo === 'Fondeo de Sobre') return { txt: n, cls: 'text-white' };
+            return { txt: `-${n}`, cls: 'text-white' };
+        }
+        function hxIcono(m) {
+            if (m.tipo === 'Ingreso' || hxEsCobro(m)) return { icon: 'south_west', cls: 'bg-koda-blue/10 text-koda-blue' };
+            const mapa = { 'Transferencia': 'swap_horiz', 'Aporte a Meta': 'flag', 'Pago de Compromiso': 'receipt_long', 'Pago de Deuda': 'account_balance', 'Fondeo de Sobre': 'mail' };
+            return { icon: mapa[m.tipo] || 'north_east', cls: 'bg-white/5 text-koda-steel' };
+        }
+        function hxCategoria(m) {
+            if (m.tipo === 'Transferencia') return { l1: m.categoria || 'Transfer', ic1: false };
+            if (m.sobre) return { l1: m.sobre, ic1: true };
+            return { l1: m.categoria || kodaTipoLabel(m.tipo), ic1: false };
+        }
+
+        // ---------- Filtrado ----------
+        function hxFiltrados() {
+            const tiposOk = new Set();
+            HX_TIPOS.forEach(t => { if (hx.tiposActivos.has(t.clave)) t.tipos.forEach(x => tiposOk.add(x)); });
+            const q = hx.texto.trim();
+            return historialDB.filter(m => {
+                if (!tiposOk.has(m.tipo)) return false;
+                const dia = (m.fechaStr || '').split('T')[0];
+                if (hx.desde && dia < hx.desde) return false;
+                if (hx.hasta && dia > hx.hasta) return false;
+                if (!q) return true;
+                return textoCoincideGoogleStyle(m.desc, q) || textoCoincideGoogleStyle(m.categoria, q) ||
+                       textoCoincideGoogleStyle(m.cuentaOrigen, q) || textoCoincideGoogleStyle(m.sobre, q) ||
+                       String(m.monto).includes(q.replace(/[$,]/g, ''));
+            }).sort((a, b) => new Date(b.fechaStr) - new Date(a.fechaStr));
+        }
+
+        function hxFiltrosCambiaron() {
+            hx.texto = hxEl('filtro-texto').value;
+            hx.limite = HX_PAGINA;
+            renderizarPaginaHistorial();
+        }
+
+        // ---------- Render de la tabla ----------
+        function renderizarPaginaHistorial() {
+            const cont = hxEl('lista-completa-historial');
+            if (!cont) return;
+
+            // Limpiar selección de ids que ya no existen
+            hx.seleccion.forEach(id => { if (!historialDB.some(m => m.id === id)) hx.seleccion.delete(id); });
+
+            const lista = hxFiltrados();
+            const visibles = lista.slice(0, hx.limite);
+
+            if (!lista.length) {
+                cont.innerHTML = `<div class="py-16 text-center text-[11.5px] font-medium text-koda-steel">No transactions match these filters.</div>`;
+            } else {
+                cont.innerHTML = visibles.map(m => {
+                    const f = hxFecha(m.fechaStr), ic = hxIcono(m), ct = hxCategoria(m), mt = hxMonto(m);
+                    const sel = hx.seleccion.has(m.id);
+                    const editable = m.tipo !== 'Préstamo';
+                    const cuentaTxt = m.tipo === 'Transferencia' ? `${m.cuentaOrigen}` : m.cuentaOrigen;
+                    return `
+                    <div data-id="${m.id}" class="fila-grid grid-koda gap-4 px-4 py-4 border-b border-white/5 items-center hover:bg-[#1A2027] transition-colors relative ${sel ? 'bg-[#141820]' : ''}">
+                        <div class="col-check" onclick="event.stopPropagation()"><input type="checkbox" class="koda-check hx-check" ${sel ? 'checked' : ''} onchange="hxToggleSeleccion(${m.id}, this.checked)"></div>
+                        <div class="flex flex-col">
+                            <span class="text-sm font-semibold text-white">${f.dia}</span>
+                            <span class="text-[11.5px] font-medium text-koda-steel mt-0.5">${f.hora}</span>
+                        </div>
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="w-8 h-8 rounded-full ${ic.cls} flex items-center justify-center flex-shrink-0">
+                                <span class="material-symbols-outlined text-[16px]">${ic.icon}</span>
+                            </div>
+                            <div class="flex flex-col min-w-0">
+                                <span class="text-sm font-semibold text-white truncate">${kodaEsc(m.desc)}</span>
+                                ${m.automatico ? `<span class="text-[11px] font-medium text-koda-blue flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">bolt</span>Automatic</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="flex flex-col min-w-0">
+                            <div class="flex items-center gap-1.5">
+                                ${ct.ic1 ? `<span class="material-symbols-outlined text-[14px] text-koda-blue">mail</span>` : ''}
+                                <span class="text-[11.5px] font-semibold ${ct.ic1 ? 'text-koda-blue' : 'text-koda-textMuted'} truncate">${kodaEsc(ct.l1)}</span>
+                            </div>
+                            <span class="text-[11.5px] font-medium text-koda-steel mt-0.5 truncate">${kodaEsc(cuentaTxt)}</span>
+                        </div>
+                        <div class="text-right pr-4"><span class="text-sm font-semibold ${mt.cls} tracking-tight">${mt.txt}</span></div>
+                        <div class="flex items-center justify-end relative">
+                            <button type="button" onclick="hxMenuFila(event, ${m.id})" class="btn-opciones w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors outline-none cursor-pointer"><span class="material-symbols-outlined text-[18px]">more_vert</span></button>
+                            <div id="menu-fila-${m.id}" class="hx-menu hidden absolute right-8 top-0 mt-2 w-36 bg-[#141820] border border-white/10 rounded-2xl shadow-2xl z-20 flex flex-col p-1.5 gap-0.5 backdrop-blur-md" onclick="event.stopPropagation()">
+                                ${editable ? `<button type="button" onclick="hxEditar(${m.id})" class="text-left px-3 py-2 text-[11.5px] font-semibold text-white hover:bg-white/5 rounded-xl transition-colors cursor-pointer outline-none">Edit</button>` : ''}
+                                <button type="button" onclick="hxSeleccionRapida(${m.id})" class="text-left px-3 py-2 text-[11.5px] font-semibold text-white hover:bg-white/5 rounded-xl transition-colors cursor-pointer outline-none">Select</button>
+                                <button type="button" onclick="hxEliminarUno(${m.id})" class="text-left px-3 py-2 text-[11.5px] font-semibold text-white hover:bg-white/5 rounded-xl transition-colors cursor-pointer outline-none">Delete</button>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+
+            hxEl('hx-mas-wrap').classList.toggle('hidden', lista.length <= hx.limite);
+            hxEl('hx-mas-wrap').classList.toggle('flex', lista.length > hx.limite);
+            hxActualizarBarra();
+            hxPintarFiltros();
+        }
+        function hxCargarMas() { hx.limite += HX_PAGINA; renderizarPaginaHistorial(); }
+
+        // ---------- Selección ----------
+        function hxToggleSeleccion(id, on) { on ? hx.seleccion.add(id) : hx.seleccion.delete(id); hxActualizarBarra(); }
+        function hxSeleccionarTodos(chk) {
+            hxFiltrados().slice(0, hx.limite).forEach(m => chk.checked ? hx.seleccion.add(m.id) : hx.seleccion.delete(m.id));
+            renderizarPaginaHistorial();
+        }
+        function hxSeleccionRapida(id) { hxCerrarTodo(); hx.seleccion.add(id); renderizarPaginaHistorial(); }
+        function hxCancelarSeleccion() { hx.seleccion.clear(); renderizarPaginaHistorial(); }
+        function hxActualizarBarra() {
+            const n = hx.seleccion.size;
+            hxEl('contador-lote').innerText = n;
+            hxEl('barra-lote').classList.toggle('translate-y-20', n === 0);
+            hxEl('barra-lote').classList.toggle('opacity-0', n === 0);
+            hxEl('barra-lote').classList.toggle('pointer-events-none', n === 0);
+            hxEl('contenedor-tabla').classList.toggle('modo-seleccion', n > 0);
+            hx.seleccion.forEach(id => { const f = document.querySelector(`.fila-grid[data-id="${id}"]`); if (f) f.classList.add('bg-[#141820]'); });
+            const visibles = hxFiltrados().slice(0, hx.limite);
+            hxEl('check-todos').checked = n > 0 && visibles.length > 0 && visibles.every(m => hx.seleccion.has(m.id));
+        }
+
+        // ---------- Acciones de fila ----------
+        function hxMenuFila(e, id) {
+            e.stopPropagation();
+            const menu = hxEl(`menu-fila-${id}`);
+            const abierto = !menu.classList.contains('hidden');
+            hxCerrarTodo();
+            if (!abierto) { menu.classList.remove('hidden'); menu.closest('.fila-grid').classList.add('menu-activo'); }
+        }
+        function hxEditar(id) { hxCerrarTodo(); abrirModalEdicion(id); }
+
+        function hxEliminarMovimientos(ids) {
+            ids.forEach(id => { revertirMovimientoContable(id); historialDB = historialDB.filter(m => m.id !== id); hx.seleccion.delete(id); });
+            kodaRefrescarVistas();
+        }
+        function hxEliminarUno(id) {
+            hxCerrarTodo();
+            const m = historialDB.find(x => x.id === id);
+            kodaConfirmarEliminar(m ? `"${m.desc}"` : 'this transaction', () => hxEliminarMovimientos([id]), 'Balances will be reverted.');
+        }
+        function hxEliminarSeleccion() {
+            const ids = [...hx.seleccion];
+            if (!ids.length) return;
+            kodaConfirmarEliminar(`${ids.length} transaction${ids.length > 1 ? 's' : ''}`, () => hxEliminarMovimientos(ids), 'Balances will be reverted.');
+        }
+
+        // ---------- Popovers / buscador ----------
+        function hxCerrarTodo() {
+            document.querySelectorAll('.hx-popover, .hx-menu').forEach(p => p.classList.add('hidden'));
+            document.querySelectorAll('.fila-grid').forEach(f => f.classList.remove('menu-activo'));
+        }
+        function hxPopover(e, id) {
+            e.stopPropagation();
+            const p = hxEl(id), estabaOculto = p.classList.contains('hidden');
+            hxCerrarTodo();
+            if (estabaOculto) p.classList.remove('hidden');
+        }
+        function hxAbrirBuscador(e) {
+            e.stopPropagation();
+            hxCerrarTodo();
+            hxEl('wrapper-buscador').classList.add('active');
+            setTimeout(() => hxEl('filtro-texto').focus(), 100);
+        }
+        document.addEventListener('click', (e) => {
+            const wrap = hxEl('wrapper-buscador');
+            if (wrap && wrap.classList.contains('active') && !wrap.contains(e.target) && hxEl('filtro-texto').value.trim() === '') wrap.classList.remove('active');
+            if (!e.target.closest('.hx-popover') && !e.target.closest('.hx-menu')) hxCerrarTodo();
+        });
+
+        // ---------- Filtro por tipo ----------
+        function hxPintarFiltros() {
+            const cont = hxEl('lista-filtros-tipo');
+            if (!cont) return;
+            cont.innerHTML = HX_TIPOS.map(t => `
+                <label class="flex items-center gap-3 cursor-pointer px-3 py-2 rounded-xl hover:bg-white/5 transition-colors">
+                    <input type="checkbox" class="koda-check" ${hx.tiposActivos.has(t.clave) ? 'checked' : ''} onchange="hxToggleTipo('${t.clave}', this.checked)">
+                    <span class="text-[11.5px] font-semibold text-koda-textMuted">${t.label}</span>
+                </label>`).join('');
+            const hayFiltro = hx.tiposActivos.size !== HX_TIPOS.length;
+            hxEl('badge-filtros').classList.toggle('hidden', !hayFiltro);
+            const rango = hx.desde || hx.hasta;
+            hxEl('label-fechas').innerText = rango ? hxEtiquetaRango() : 'Dates';
+        }
+        function hxToggleTipo(clave, on) {
+            on ? hx.tiposActivos.add(clave) : hx.tiposActivos.delete(clave);
+            hx.limite = HX_PAGINA;
+            renderizarPaginaHistorial();
+        }
+
+        // ---------- Categorías ----------
+        function hxPintarCategorias() {
+            hxEl('lista-categorias').innerHTML = categoriasDB.map((c, i) => `
+                <div class="flex items-center justify-between group px-3 py-2 rounded-xl hover:bg-white/5 transition-colors" data-i="${i}">
+                    <span class="text-[11.5px] font-semibold text-white cat-nombre truncate">${kodaEsc(c)}</span>
+                    <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                        <button type="button" onclick="hxEditarCategoria(${i})" class="text-koda-steel hover:text-white transition-colors cursor-pointer outline-none"><span class="material-symbols-outlined text-[15px]">edit</span></button>
+                        <button type="button" onclick="hxEliminarCategoria(${i})" class="text-koda-steel hover:text-white transition-colors cursor-pointer outline-none"><span class="material-symbols-outlined text-[15px]">delete</span></button>
+                    </div>
+                </div>`).join('');
+        }
+        function hxAgregarCategoria() {
+            const input = hxEl('input-nueva-cat'), val = input.value.trim();
+            if (!val) return;
+            if (categoriasDB.some(c => c.toLowerCase() === val.toLowerCase())) return mostrarAlertaKoda('Category exists', 'That category already exists.');
+            categoriasDB.push(val);
+            input.value = '';
+            hxPintarCategorias();
+            if (typeof inyectarCategoriasEnModal === 'function') inyectarCategoriasEnModal();
+        }
+        function hxEditarCategoria(i) {
+            const fila = document.querySelector(`#lista-categorias [data-i="${i}"]`);
+            const span = fila.querySelector('.cat-nombre'), acciones = fila.querySelector('.flex.gap-2');
+            const actual = categoriasDB[i];
+            const input = document.createElement('input');
+            input.type = 'text'; input.value = actual;
+            input.className = 'bg-[#0A0D12] text-white text-[11.5px] font-semibold outline-none border border-koda-blue/50 rounded-lg px-2 w-40 py-1';
+            let hecho = false;
+            const guardar = () => {
+                if (hecho) return; hecho = true;
+                const nuevo = input.value.trim();
+                if (nuevo && nuevo !== actual && !categoriasDB.some((c, k) => k !== i && c.toLowerCase() === nuevo.toLowerCase())) {
+                    categoriasDB[i] = nuevo;
+                    historialDB.forEach(m => { if (m.categoria === actual && !m.sobre) m.categoria = nuevo; });
+                    if (typeof inyectarCategoriasEnModal === 'function') inyectarCategoriasEnModal();
+                }
+                hxPintarCategorias();
+                renderizarPaginaHistorial();
+            };
+            input.onkeydown = (e) => { if (e.key === 'Enter') guardar(); if (e.key === 'Escape') { hecho = true; hxPintarCategorias(); } };
+            input.onblur = guardar;
+            acciones.classList.add('hidden');
+            span.replaceWith(input);
+            input.focus(); input.select();
+        }
+        function hxEliminarCategoria(i) {
+            const nombre = categoriasDB[i];
+            kodaConfirmarEliminar(`"${nombre}"`, () => {
+                categoriasDB.splice(i, 1);
+                hxPintarCategorias();
+                if (typeof inyectarCategoriasEnModal === 'function') inyectarCategoriasEnModal();
+            }, 'Past transactions keep their label.');
+        }
+
+        // ---------- Calendario con rango ----------
+        function hxEtiquetaRango() {
+            const f = (iso) => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); };
+            if (hx.desde && hx.hasta) return hx.desde === hx.hasta ? f(hx.desde) : `${f(hx.desde)} - ${f(hx.hasta)}`;
+            return hx.desde ? `From ${f(hx.desde)}` : `Until ${f(hx.hasta)}`;
+        }
+        function hxRenderCalendario() {
+            hxEl('cal-titulo').innerText = `${HX_MESES[hx.calMes]} ${hx.calAno}`;
+            const grid = hxEl('cal-grid');
+            const prim = new Date(hx.calAno, hx.calMes, 1).getDay(), total = new Date(hx.calAno, hx.calMes + 1, 0).getDate();
+            const hoy = new Date(), hoyIso = hxIso(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+            let html = '';
+            for (let i = 0; i < prim; i++) html += `<div class="cal-cell"><div class="cal-empty"></div></div>`;
+            for (let d = 1; d <= total; d++) {
+                const iso = hxIso(hx.calAno, hx.calMes, d);
+                const esIni = iso === hx.desde, esFin = iso === hx.hasta;
+                const enRango = hx.desde && hx.hasta && iso > hx.desde && iso < hx.hasta;
+                let cls = 'cal-cell';
+                if (esIni || esFin) cls += ' cal-selected';
+                if (hx.desde && hx.hasta && hx.desde !== hx.hasta) {
+                    if (esIni) cls += ' cal-range-start'; else if (esFin) cls += ' cal-range-end'; else if (enRango) cls += ' cal-range-full';
+                }
+                if (iso === hoyIso) cls += ' cal-today';
+                const banda = (enRango || ((esIni || esFin) && hx.desde !== hx.hasta && hx.desde && hx.hasta)) ? '<div class="cal-range-bg"></div>' : '';
+                html += `<div class="${cls}" onclick="hxElegirDia('${iso}')">${banda}<div class="cal-day-circle">${d}</div></div>`;
+            }
+            grid.innerHTML = html;
+        }
+        function hxElegirDia(iso) {
+            if (!hx.desde || (hx.desde && hx.hasta)) { hx.desde = iso; hx.hasta = ''; }
+            else if (iso < hx.desde) { hx.hasta = hx.desde; hx.desde = iso; }
+            else hx.hasta = iso;
+            hx.limite = HX_PAGINA;
+            hxRenderCalendario();
+            renderizarPaginaHistorial();
+        }
+        function hxLimpiarFechas() { hx.desde = ''; hx.hasta = ''; hxRenderCalendario(); renderizarPaginaHistorial(); }
+        function hxNavMes(dir) {
+            hx.calMes += dir;
+            if (hx.calMes < 0) { hx.calMes = 11; hx.calAno--; } else if (hx.calMes > 11) { hx.calMes = 0; hx.calAno++; }
+            hxRenderCalendario();
+        }
+        function hxToggleMeses() {
+            hxEl('vista-dias').classList.toggle('hidden');
+            hxEl('vista-meses').classList.toggle('hidden');
+            hxRenderMeses();
+        }
+        function hxRenderMeses() {
+            hxEl('year-titulo').innerText = hx.calAno;
+            hxEl('grid-meses').innerHTML = HX_MESES.map((m, i) =>
+                `<button type="button" class="py-2.5 rounded-xl text-[11.5px] font-semibold transition-colors cursor-pointer outline-none ${i === hx.calMes ? 'bg-koda-blue text-[#131722]' : 'text-white hover:bg-white/5'}" onclick="hxElegirMes(${i})">${m.substring(0, 3)}</button>`).join('');
+        }
+        function hxNavAno(dir) { hx.calAno += dir; hxRenderMeses(); }
+        function hxElegirMes(i) { hx.calMes = i; hxToggleMeses(); hxRenderCalendario(); }
+
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hxCerrarTodo(); });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            hxPintarCategorias();
+            hxRenderCalendario();
+            renderizarPaginaHistorial();
+        });
+    </script>
+</body>
+</html>

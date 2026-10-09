@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KODA - Check Pay</title>
+
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Maven+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' font-family='sans-serif' font-weight='900' fill='%2366A5AD'>K.</text></svg>">
+
+    <!-- Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+    <!-- Tailwind & Config -->
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="tailwind-config.js"></script>
+
+    <style>
+        /* Inputs sin flechas de scroll y con la fuente de KODA */
+        input, button { font-family: inherit; color-scheme: dark; }
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+    </style>
+</head>
+<body class="font-sans min-h-screen flex flex-col items-center p-4 md:p-6 bg-koda-darkBg text-white transition-colors duration-300 relative select-none">
+
+    <!-- NAVBAR INJECTOR -->
+    <div id="contenedor-navbar" class="w-full max-w-[1500px]"></div>
+
+    <main class="w-full max-w-[1500px] flex flex-col pb-32 pt-2">
+
+        <!-- HEADER -->
+        <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center gap-4">
+                <button onclick="navegarA('dashboard')" class="w-10 h-10 bg-koda-darkCard border border-koda-darkBorder rounded-full flex items-center justify-center text-koda-textMuted hover:text-white transition-colors shadow-sm cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+                </button>
+                <h2 class="text-3xl font-semibold tracking-tight">Check Pay</h2>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button type="button" onclick="abrirModalSetupCP()" class="px-5 py-2.5 rounded-full border border-white/10 hover:border-white/20 text-xs font-medium text-white transition-colors cursor-pointer outline-none bg-transparent">Setup</button>
+                <button type="button" onclick="abrirModalItemCP('lista')" class="px-6 py-2.5 bg-koda-blue text-[#131722] font-semibold rounded-full text-xs hover:bg-[#7ab5bd] transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[18px]">add</span>
+                    Add payment
+                </button>
+            </div>
+        </div>
+
+        <!-- PROGRESS -->
+        <div class="bg-koda-darkCard border border-koda-darkBorder rounded-[1.5rem] p-6 md:p-8 shadow-sm mb-8">
+            <div class="flex items-end justify-between mb-6">
+                <div>
+                    <p class="text-sm text-koda-textMuted mb-1">Progress</p>
+                    <h3 class="text-4xl font-semibold tracking-tight">
+                        <span id="cp-pagados">0</span><span class="text-koda-textMuted font-normal"> / <span id="cp-total-items">0</span></span>
+                    </h3>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm text-koda-textMuted mb-1">Paid</p>
+                    <h3 class="text-2xl font-semibold text-koda-blue" id="cp-monto-pagado">$0</h3>
+                    <p class="text-sm text-koda-textMuted mt-0.5" id="cp-monto-total">of $0</p>
+                </div>
+            </div>
+            <div class="w-full h-1.5 bg-koda-darkBg rounded-full overflow-hidden">
+                <div id="cp-barra" class="h-full bg-koda-blue rounded-full transition-all duration-700 ease-out" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- ACTION BAR -->
+        <div class="flex justify-between items-center mb-4">
+            <p class="text-sm text-koda-textMuted px-1">Payments</p>
+
+            <div class="relative">
+                <button type="button" id="cp-btn-orden" onclick="togglePopoverOrdenCP(event)" class="flex items-center gap-2 h-9 px-4 rounded-full border border-white/10 hover:border-white/20 text-xs font-medium text-white transition-colors cursor-pointer outline-none bg-transparent">
+                    <span class="material-symbols-outlined text-[16px] text-koda-textMuted">filter_list</span>
+                    <span id="cp-label-orden">Custom order</span>
+                </button>
+
+                <!-- Sort popover (template_filtro_popover) -->
+                <div id="cp-popover-orden" class="hidden absolute right-0 top-full mt-2 w-[220px] bg-[#141820] border border-white/10 rounded-2xl shadow-2xl z-30 p-3 flex flex-col gap-1 backdrop-blur-md" onclick="event.stopPropagation()">
+                    <div class="flex items-center justify-between pb-1 mb-1 border-b border-white/5">
+                        <span class="text-xs text-koda-textMuted">Sort by</span>
+                        <button type="button" onclick="cerrarPopoverOrdenCP()" class="text-koda-textMuted hover:text-white transition-colors cursor-pointer outline-none">
+                            <span class="material-symbols-outlined text-[14px]">close</span>
+                        </button>
+                    </div>
+                    <div id="cp-lista-orden" class="flex flex-col gap-1"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LIST -->
+        <div class="bg-koda-darkCard border border-koda-darkBorder rounded-[1.5rem] shadow-sm overflow-hidden">
+            <div id="cp-lista" class="divide-y divide-white/5"></div>
+        </div>
+    </main>
+
+    <!-- ==========================================
+         MODAL: PAYMENT (new / edit) - sirve para la lista y para el Setup
+         Basado en template_entidad: tabs con slider + popover selector + monto hero
+         ========================================== -->
+    <div id="cp-modal-item" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
+        <div class="relative w-full max-w-[460px] bg-[#141820] border border-white/10 rounded-[32px] p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] flex flex-col gap-4 transform scale-95 transition-all duration-300 ease-out">
+            <div class="flex items-center justify-between">
+                <h3 class="text-2xl font-semibold tracking-tight text-white" id="cp-item-titulo">New payment</h3>
+                <button type="button" onclick="cpCerrar('cp-modal-item')" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-textMuted hover:text-white transition-colors cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[18px]">close</span>
+                </button>
+            </div>
+
+            <form class="flex flex-col gap-4" onsubmit="event.preventDefault(); guardarItemCP();">
+                <!-- Tipo (segmented tabs con slider) -->
+                <div class="relative flex items-center bg-[#0A0D12] p-1 rounded-2xl border border-white/5">
+                    <div id="cp-seg-slider" class="absolute top-1 bottom-1 left-1 bg-koda-blue/15 rounded-xl transition-all duration-300 ease-out pointer-events-none" style="width: calc((100% - 8px) / 5); transform: translateX(0%);"></div>
+                    <button type="button" data-tipo="fijo" onclick="cpSetTipo('fijo')" class="cp-seg relative z-10 flex-1 py-2 text-xs font-medium text-center transition-colors cursor-pointer outline-none">Fixed</button>
+                    <button type="button" data-tipo="deuda" onclick="cpSetTipo('deuda')" class="cp-seg relative z-10 flex-1 py-2 text-xs font-medium text-center transition-colors cursor-pointer outline-none">Debt</button>
+                    <button type="button" data-tipo="sobre" onclick="cpSetTipo('sobre')" class="cp-seg relative z-10 flex-1 py-2 text-xs font-medium text-center transition-colors cursor-pointer outline-none">Envelope</button>
+                    <button type="button" data-tipo="meta" onclick="cpSetTipo('meta')" class="cp-seg relative z-10 flex-1 py-2 text-xs font-medium text-center transition-colors cursor-pointer outline-none">Goal</button>
+                    <button type="button" data-tipo="manual" onclick="cpSetTipo('manual')" class="cp-seg relative z-10 flex-1 py-2 text-xs font-medium text-center transition-colors cursor-pointer outline-none">Manual</button>
+                </div>
+
+                <!-- Elemento (popover selector) -->
+                <div id="cp-sel-wrap" class="relative flex flex-col gap-1.5">
+                    <button type="button" id="cp-sel-trigger" onclick="togglePopoverRefCP(event)" class="w-full bg-[#0A0D12] border border-white/5 hover:border-white/10 focus:border-white/20 rounded-2xl px-4 py-3.5 flex items-center justify-between transition-colors cursor-pointer outline-none">
+                        <div class="flex flex-col items-start gap-0.5">
+                            <span class="text-[11px] text-koda-textMuted">Item</span>
+                            <span id="cp-sel-texto" class="text-sm font-medium text-koda-textMuted">Select</span>
+                        </div>
+                        <span class="material-symbols-outlined text-[18px] text-koda-textMuted">expand_more</span>
+                    </button>
+                    <div id="cp-sel-popover" class="hidden absolute left-0 right-0 top-full mt-2 z-30 bg-[#141820] border border-white/10 rounded-2xl shadow-2xl p-2 flex flex-col gap-1 backdrop-blur-md" onclick="event.stopPropagation()">
+                        <div id="cp-sel-lista" class="flex flex-col gap-1 max-h-[180px] overflow-y-auto"></div>
+                    </div>
+                </div>
+
+                <!-- Nombre (solo manual) -->
+                <div id="cp-manual-wrap" class="hidden bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                    <span class="text-[11px] text-koda-textMuted">Name</span>
+                    <input type="text" id="cp-manual-nombre" autocomplete="off" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none select-text">
+                </div>
+
+                <!-- Monto hero -->
+                <div class="bg-[#0A0D12] border border-white/5 focus-within:border-koda-blue/40 rounded-2xl p-4 flex flex-col items-center justify-center gap-1 transition-colors">
+                    <span class="text-xs text-koda-textMuted">Amount</span>
+                    <input type="number" id="cp-monto" onwheel="this.blur()" class="w-full bg-transparent text-4xl font-semibold text-white text-center border-none outline-none">
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-2 border-t border-white/5">
+                    <button type="button" id="cp-item-eliminar" onclick="cpArmarEliminar(this, eliminarItemCP)" class="hidden w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-textMuted hover:text-white transition-colors cursor-pointer mr-auto outline-none">
+                        <span class="material-symbols-outlined text-[18px]">delete</span>
+                    </button>
+                    <button type="button" onclick="cpCerrar('cp-modal-item')" class="px-5 py-2.5 text-xs font-medium text-koda-textMuted hover:text-white rounded-full hover:bg-white/5 transition-colors cursor-pointer outline-none">Cancel</button>
+                    <button type="submit" id="cp-item-confirmar" class="min-w-[112px] px-8 py-3 text-xs font-semibold rounded-full bg-koda-blue text-[#131722] hover:bg-[#7ab5bd] transition-colors flex items-center justify-center cursor-pointer outline-none">Confirm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MODAL: SETUP (plantilla que se repite cada quincena)
+         ========================================== -->
+    <div id="cp-modal-setup" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
+        <div class="relative w-full max-w-[460px] bg-[#141820] border border-white/10 rounded-[32px] p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] flex flex-col gap-4 transform scale-95 transition-all duration-300 ease-out max-h-[92vh] overflow-y-auto">
+            <div class="flex items-center justify-between">
+                <h3 class="text-2xl font-semibold tracking-tight text-white">Setup</h3>
+                <button type="button" onclick="cpCerrar('cp-modal-setup')" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-textMuted hover:text-white transition-colors cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[18px]">close</span>
+                </button>
+            </div>
+
+            <div class="bg-[#0A0D12] border border-white/5 rounded-2xl overflow-hidden">
+                <div id="cp-setup-lista" class="divide-y divide-white/5"></div>
+            </div>
+
+            <div class="flex items-center justify-between gap-3 pt-2 border-t border-white/5">
+                <button type="button" onclick="abrirModalItemCP('plantilla')" class="px-4 py-2.5 text-xs font-medium text-koda-blue hover:bg-koda-blue/10 rounded-full transition-colors cursor-pointer outline-none">Add item</button>
+                <button type="button" id="cp-setup-cargar" onclick="aplicarPlantillaCP()" class="min-w-[132px] px-8 py-3 text-xs font-semibold rounded-full bg-koda-blue text-[#131722] hover:bg-[#7ab5bd] transition-colors flex items-center justify-center cursor-pointer outline-none">Load template</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GLOBAL POPUP INJECTOR (movimientos + alerta KODA) -->
+    <div id="contenedor-modal"></div>
+
+    <!-- Scripts -->
+    <script src="koda-api.js"></script>
+    <script src="app.js"></script>
+    <script>
+        // ==========================================
+        // CHECK PAY - lógica de la página (autocontenida, igual que sobres.html y compromisos.html)
+        // Datos globales de app.js: checkpayDB, checkpayTemplateDB, compromisosDB, sobresDB, metasDB
+        // Es solo una checklist manual: nada aquí mueve dinero ni toca cuentas.
+        // ==========================================
+        const CP_TIPOS = {
+            fijo:   'Fixed',
+            deuda:  'Debt',
+            sobre:  'Envelope',
+            meta:   'Goal',
+            manual: 'Manual'
+        };
+        const CP_ORDEN_DEFAULT = 'Custom order';
+        const CP_OPCIONES_ORDEN = [
+            ['pendientes', 'Unpaid first'],
+            ['mayor', 'Highest amount'],
+            ['menor', 'Lowest amount'],
+            ['alfabetico', 'Alphabetical A-Z']
+        ];
+
+        let cpOrdenEtiqueta = CP_ORDEN_DEFAULT;
+        let cpDestino = 'lista';      // 'lista' (esta quincena) | 'plantilla' (Setup)
+        let cpEditId = null;
+        let cpTipo = 'fijo';
+        let cpRefId = null;
+        let cpGuardando = false;
+        let cpTimerEliminar = null;
+        let cpSeq = Date.now();
+
+        // ---------- Utilidades ----------
+        const cpEl = (id) => document.getElementById(id);
+        const cpMoney = (n) => `$${(Number(n) || 0).toLocaleString()}`;
+        const cpEsc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const cpNuevoId = () => ++cpSeq;
+
+        function cpAlerta(titulo, desc) {
+            if (typeof mostrarAlertaKoda === 'function' && cpEl('modal-alerta-koda')) mostrarAlertaKoda(titulo, desc);
+            else alert(desc);
+        }
+
+        function cpAbrir(id) {
+            const m = cpEl(id);
+            if (!m) return;
+            m.classList.remove('opacity-0', 'pointer-events-none');
+            m.classList.add('opacity-100', 'pointer-events-auto');
+            const c = m.firstElementChild;
+            c.classList.remove('scale-95');
+            c.classList.add('scale-100');
+        }
+        function cpCerrar(id) {
+            const m = cpEl(id);
+            if (!m) return;
+            m.classList.remove('opacity-100', 'pointer-events-auto');
+            m.classList.add('opacity-0', 'pointer-events-none');
+            const c = m.firstElementChild;
+            c.classList.remove('scale-100');
+            c.classList.add('scale-95');
+            cpResetEliminar();
+            if (id === 'cp-modal-item') cerrarPopoverRefCP();
+        }
+
+        // Eliminar pasa por la confirmación estándar de KODA
+        function cpArmarEliminar(btn, accion) { kodaConfirmarEliminar('this item', accion); }
+        function cpResetEliminar() {}
+
+        function cpSpinner() {
+            return '<span class="w-4 h-4 border-2 border-[#131722]/30 border-t-[#131722] rounded-full animate-spin"></span>';
+        }
+
+        // ---------- Datos de origen ----------
+        function cpFuente(item) {
+            if (item.tipoOrigen === 'fijo' || item.tipoOrigen === 'deuda') return compromisosDB.find(c => c.id == item.refId && c.tipo === item.tipoOrigen) || null;
+            if (item.tipoOrigen === 'sobre') return sobresDB.find(s => s.id == item.refId) || null;
+            if (item.tipoOrigen === 'meta') return metasDB.find(m => m.id == item.refId) || null;
+            return null;
+        }
+        const cpNombre = (item) => { const s = cpFuente(item); return s ? s.nombre : item.nombre; };
+
+        function cpDetalle(item) {
+            const base = CP_TIPOS[item.tipoOrigen] || 'Manual';
+            const s = cpFuente(item);
+            if (!s) return base;
+            if (item.tipoOrigen === 'deuda' && s.deudaTotal > 0) return `${base} · ${Math.round(((s.deudaTotal - s.deudaActual) / s.deudaTotal) * 100)}% paid`;
+            if (item.tipoOrigen === 'sobre' && s.meta > 0) return `${base} · ${Math.max(0, Math.round((s.monto / s.meta) * 100))}%`;
+            if (item.tipoOrigen === 'meta' && s.metaTotal > 0) return `${base} · ${Math.round((s.montoActual / s.metaTotal) * 100)}%`;
+            return base;
+        }
+
+        function cpOpcionesRef(tipo) {
+            if (tipo === 'fijo' || tipo === 'deuda') return compromisosDB.filter(c => c.tipo === tipo).map(c => ({ id: c.id, nombre: c.nombre, extra: '' }));
+            if (tipo === 'sobre') return sobresDB.filter(s => s.monto < s.meta).map(s => ({ id: s.id, nombre: s.nombre, extra: `${cpMoney(s.meta - s.monto)} left` }));
+            if (tipo === 'meta') return metasDB.filter(m => m.montoActual < m.metaTotal).map(m => ({ id: m.id, nombre: m.nombre, extra: '' }));
+            return [];
+        }
+
+        function cpMontoSugerido(tipo, refId) {
+            if (tipo === 'fijo' || tipo === 'deuda') {
+                const c = compromisosDB.find(x => x.id == refId);
+                return c ? ((new Date().getDate() <= 15 ? c.montoQ1 : c.montoQ2) || 0) : 0;   // quincena en curso
+            }
+            if (tipo === 'sobre') {
+                const s = sobresDB.find(x => x.id == refId);
+                return s ? ((new Date().getDate() <= 15 ? s.q1 : s.q2) || 0) : 0;
+            }
+            return 0; // metas y manuales: el monto lo decides tú
+        }
+
+        // Los sobres fondeados y metas completadas salen solos de la lista
+        function autoLimpiarCheckpay() {
+            checkpayDB = checkpayDB.filter(item => {
+                if (item.tipoOrigen === 'sobre') {
+                    const s = sobresDB.find(x => x.id == item.refId);
+                    if (s && s.monto >= s.meta) return false;
+                }
+                if (item.tipoOrigen === 'meta') {
+                    const m = metasDB.find(x => x.id == item.refId);
+                    if (m && m.montoActual >= m.metaTotal) return false;
+                }
+                return true;
+            });
+        }
+
+        // ==========================================
+        // 1. RENDER
+        // ==========================================
+        function renderizarPaginaCheckpay() {
+            const cont = cpEl('cp-lista');
+            if (!cont) return;
+            autoLimpiarCheckpay();
+
+            const items = checkpayDB.slice().sort((a, b) => (a.orden ?? 9999) - (b.orden ?? 9999));
+            const total = items.length;
+            const pagados = items.filter(i => i.pagado).length;
+            const montoTotal = items.reduce((s, i) => s + i.monto, 0);
+            const montoPagado = items.filter(i => i.pagado).reduce((s, i) => s + i.monto, 0);
+            const pct = total === 0 ? 0 : Math.round((pagados / total) * 100);
+
+            cpEl('cp-pagados').innerText = pagados;
+            cpEl('cp-total-items').innerText = total;
+            cpEl('cp-monto-pagado').innerText = cpMoney(montoPagado);
+            cpEl('cp-monto-total').innerText = `of ${cpMoney(montoTotal)}`;
+            const barra = cpEl('cp-barra');
+            barra.style.width = `${pct}%`;
+            barra.className = `h-full ${total > 0 && pct === 100 ? 'bg-koda-gold' : 'bg-koda-blue'} rounded-full transition-all duration-700 ease-out`;
+
+            cpEl('cp-label-orden').innerText = cpOrdenEtiqueta;
+            cpRenderListaOrden();
+
+            if (!total) {
+                cont.innerHTML = `<div class="py-16 text-center text-sm text-koda-textMuted">Nothing here yet</div>`;
+                return;
+            }
+
+            cont.innerHTML = items.map(item => {
+                const check = item.pagado
+                    ? 'bg-koda-blue border-koda-blue text-[#131722]'
+                    : 'border-white/25 hover:border-koda-blue text-transparent';
+                return `
+                <div data-id="${item.id}" onclick="abrirModalItemCP('lista', ${item.id})" class="px-6 py-4 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer">
+                    <button type="button" onclick="event.stopPropagation(); toggleCheckpay(${item.id})" class="cp-check w-6 h-6 rounded-full border flex items-center justify-center flex-shrink-0 transition-colors cursor-pointer outline-none ${check}">
+                        <span class="material-symbols-outlined text-[16px]">check</span>
+                    </button>
+                    <div class="flex flex-col min-w-0 flex-1">
+                        <span class="text-[15px] font-medium truncate transition-colors ${item.pagado ? 'text-koda-textMuted line-through' : 'text-white'}">${cpEsc(cpNombre(item))}</span>
+                        <span class="text-xs text-koda-textMuted mt-0.5">${cpEsc(cpDetalle(item))}</span>
+                    </div>
+                    <span class="text-[15px] font-semibold flex-shrink-0 transition-colors ${item.pagado ? 'text-koda-textMuted' : 'text-white'}">${cpMoney(item.monto)}</span>
+                </div>`;
+            }).join('');
+
+            // Arrastrar para ordenar (el círculo de check queda fuera para evitar arrastres accidentales)
+            if (typeof Sortable !== 'undefined') {
+                new Sortable(cont, {
+                    animation: 150,
+                    filter: '.cp-check', preventOnFilter: false,
+                    ghostClass: 'koda-sortable-ghost', chosenClass: 'koda-sortable-chosen', dragClass: 'koda-sortable-drag',
+                    delay: 50, delayOnTouchOnly: true,
+                    onEnd: () => {
+                        cont.querySelectorAll('[data-id]').forEach((nodo, i) => {
+                            const obj = checkpayDB.find(c => c.id == nodo.dataset.id);
+                            if (obj) obj.orden = i;
+                        });
+                        cpOrdenEtiqueta = CP_ORDEN_DEFAULT;
+                        cpEl('cp-label-orden').innerText = cpOrdenEtiqueta;
+                        cpRenderListaOrden();
+                    }
+                });
+            }
+        }
+
+        function toggleCheckpay(id) {
+            const item = checkpayDB.find(c => c.id === id);
+            if (item) { item.pagado = !item.pagado; renderizarPaginaCheckpay(); }
+        }
+
+        // ==========================================
+        // 2. SORT POPOVER (template_filtro_popover)
+        // ==========================================
+        function cpRenderListaOrden() {
+            cpEl('cp-lista-orden').innerHTML = CP_OPCIONES_ORDEN.map(([clave, etiqueta]) => {
+                const activo = cpOrdenEtiqueta === etiqueta;
+                return `
+                <button type="button" onclick="aplicarOrdenCP('${clave}', '${etiqueta}')" class="w-full px-3 py-2 rounded-xl text-left text-xs font-medium ${activo ? 'text-koda-blue bg-koda-blue/10' : 'text-koda-textMuted hover:text-white hover:bg-white/5'} flex items-center justify-between transition-colors cursor-pointer outline-none">
+                    <span>${etiqueta}</span>
+                    <span class="material-symbols-outlined text-[16px] ${activo ? '' : 'opacity-0'}">check</span>
+                </button>`;
+            }).join('');
+        }
+        function togglePopoverOrdenCP(e) { e.stopPropagation(); cpEl('cp-popover-orden').classList.toggle('hidden'); }
+        function cerrarPopoverOrdenCP() { const p = cpEl('cp-popover-orden'); if (p) p.classList.add('hidden'); }
+
+        function aplicarOrdenCP(criterio, etiqueta) {
+            const lista = checkpayDB.slice().sort((a, b) => (a.orden ?? 9999) - (b.orden ?? 9999));
+            if (criterio === 'mayor') lista.sort((a, b) => b.monto - a.monto);
+            else if (criterio === 'menor') lista.sort((a, b) => a.monto - b.monto);
+            else if (criterio === 'alfabetico') lista.sort((a, b) => cpNombre(a).localeCompare(cpNombre(b)));
+            else if (criterio === 'pendientes') lista.sort((a, b) => Number(!!a.pagado) - Number(!!b.pagado));
+            lista.forEach((it, i) => { it.orden = i; });
+            cpOrdenEtiqueta = etiqueta;
+            cerrarPopoverOrdenCP();
+            renderizarPaginaCheckpay();
+        }
+
+        // ==========================================
+        // 3. MODAL PAYMENT (new / edit) - lista y plantilla
+        // ==========================================
+        const cpDB = () => cpDestino === 'lista' ? checkpayDB : checkpayTemplateDB;
+
+        function abrirModalItemCP(destino, id = null) {
+            cpDestino = destino;
+            const item = id !== null ? cpDB().find(x => x.id == id) : null;
+            if (id !== null && !item) return;
+            cpEditId = item ? item.id : null;
+            const esLista = destino === 'lista';
+            cpEl('cp-item-titulo').innerText = item ? (esLista ? 'Edit payment' : 'Edit item') : (esLista ? 'New payment' : 'New item');
+            cpRefId = item ? item.refId : null;
+            cpSetTipo(item ? item.tipoOrigen : 'fijo', false);
+            cpEl('cp-manual-nombre').value = item && item.tipoOrigen === 'manual' ? item.nombre : '';
+            cpEl('cp-monto').value = item ? item.monto : '';
+            if (item && item.tipoOrigen !== 'manual') cpEl('cp-sel-texto').innerText = cpNombre(item);
+            if (item && item.tipoOrigen !== 'manual') cpEl('cp-sel-texto').className = 'text-sm font-medium text-white';
+            cpEl('cp-item-eliminar').classList.toggle('hidden', !item);
+            cpResetEliminar();
+            cpAbrir('cp-modal-item');
+        }
+
+        // Cambia el tipo: mueve el slider, el selector y la lista de opciones
+        function cpSetTipo(tipo, limpiar = true) {
+            const orden = Object.keys(CP_TIPOS);
+            cpTipo = tipo;
+            cpEl('cp-seg-slider').style.transform = `translateX(${orden.indexOf(tipo) * 100}%)`;
+            document.querySelectorAll('.cp-seg').forEach(b => {
+                const on = b.dataset.tipo === tipo;
+                b.classList.toggle('text-koda-blue', on);
+                b.classList.toggle('text-koda-textMuted', !on);
+            });
+
+            const manual = tipo === 'manual';
+            cpEl('cp-sel-wrap').classList.toggle('hidden', manual);
+            cpEl('cp-manual-wrap').classList.toggle('hidden', !manual);
+            cerrarPopoverRefCP();
+
+            if (limpiar) {
+                cpRefId = null;
+                cpEl('cp-monto').value = '';
+                cpEl('cp-manual-nombre').value = '';
+            }
+            if (!manual) {
+                if (limpiar || cpRefId === null) {
+                    cpEl('cp-sel-texto').innerText = 'Select';
+                    cpEl('cp-sel-texto').className = 'text-sm font-medium text-koda-textMuted';
+                }
+                const opciones = cpOpcionesRef(tipo);
+                cpEl('cp-sel-lista').innerHTML = opciones.length
+                    ? opciones.map(o => `
+                        <button type="button" onclick="cpElegirRef(${o.id})" class="text-left px-3 py-2 rounded-xl text-xs font-medium text-white hover:bg-white/5 transition-colors flex items-center justify-between gap-3 cursor-pointer outline-none">
+                            <span class="truncate">${cpEsc(o.nombre)}</span>
+                            <span class="text-[11px] text-koda-textMuted flex-shrink-0">${cpEsc(o.extra)}</span>
+                        </button>`).join('')
+                    : `<div class="px-3 py-2 text-xs text-koda-textMuted">Nothing available</div>`;
+            }
+        }
+
+        function togglePopoverRefCP(e) { e.stopPropagation(); cpEl('cp-sel-popover').classList.toggle('hidden'); }
+        function cerrarPopoverRefCP() { const p = cpEl('cp-sel-popover'); if (p) p.classList.add('hidden'); }
+
+        function cpElegirRef(id) {
+            cpRefId = id;
+            const o = cpOpcionesRef(cpTipo).find(x => x.id == id);
+            cpEl('cp-sel-texto').innerText = o ? o.nombre : 'Select';
+            cpEl('cp-sel-texto').className = 'text-sm font-medium text-white';
+            const sugerido = cpMontoSugerido(cpTipo, id);
+            if (sugerido > 0) cpEl('cp-monto').value = sugerido;   // se sugiere, pero puedes cambiarlo
+            cerrarPopoverRefCP();
+        }
+
+        async function guardarItemCP() {
+            if (cpGuardando) return;
+            const monto = parseFloat(cpEl('cp-monto').value);
+            let nombre = '';
+
+            if (cpTipo === 'manual') {
+                nombre = cpEl('cp-manual-nombre').value.trim();
+                if (!nombre) return cpAlerta('Missing info', 'Add a name for this payment.');
+            } else {
+                if (cpRefId === null) return cpAlerta('Missing info', 'Select an item first.');
+                const o = cpOpcionesRef(cpTipo).find(x => x.id == cpRefId);
+                const src = cpFuente({ tipoOrigen: cpTipo, refId: cpRefId });
+                nombre = o ? o.nombre : (src ? src.nombre : '');
+                if (!nombre) return cpAlerta('Missing info', 'Select an item first.');
+            }
+            if (!monto || monto <= 0) return cpAlerta('Missing info', 'Add an amount greater than zero.');
+
+            if (cpTipo !== 'manual' && cpDB().some(x => x.tipoOrigen === cpTipo && x.refId == cpRefId && x.id !== cpEditId)) {
+                return cpAlerta('Already added', `${nombre} is already in the ${cpDestino === 'lista' ? 'list' : 'template'}.`);
+            }
+
+            // Punto de enganche para Apps Script: aquí se reemplaza simularPeticion por la llamada real
+            const btn = cpEl('cp-item-confirmar');
+            const textoOriginal = btn.innerHTML;
+            cpGuardando = true;
+            btn.innerHTML = cpSpinner();
+            try {
+                await KodaAPI.simularPeticion('guardarItemCheckpay', { destino: cpDestino, id: cpEditId, tipo: cpTipo, nombre, monto }, 500);
+
+                const refFinal = cpTipo === 'manual' ? null : cpRefId;
+                const lista = cpDB();
+                if (cpEditId !== null) {
+                    const it = lista.find(x => x.id == cpEditId);
+                    if (it) Object.assign(it, { tipoOrigen: cpTipo, refId: refFinal, nombre, monto });
+                } else if (cpDestino === 'lista') {
+                    lista.push({ id: cpNuevoId(), tipoOrigen: cpTipo, refId: refFinal, nombre, monto, pagado: false, orden: lista.length });
+                } else {
+                    lista.push({ id: cpNuevoId(), tipoOrigen: cpTipo, refId: refFinal, nombre, monto });
+                }
+
+                cpCerrar('cp-modal-item');
+                renderizarPaginaCheckpay();
+                renderizarListaSetupCP();
+            } catch (e) {
+                cpAlerta('Something went wrong', 'The payment could not be saved.');
+            } finally {
+                btn.innerHTML = textoOriginal;
+                cpGuardando = false;
+            }
+        }
+
+        function eliminarItemCP() {
+            if (cpEditId === null) return;
+            const lista = cpDB();
+            const i = lista.findIndex(x => x.id == cpEditId);
+            if (i >= 0) lista.splice(i, 1);
+            cpCerrar('cp-modal-item');
+            renderizarPaginaCheckpay();
+            renderizarListaSetupCP();
+        }
+
+        // ==========================================
+        // 4. SETUP (plantilla)
+        // ==========================================
+        function abrirModalSetupCP() {
+            renderizarListaSetupCP();
+            cpAbrir('cp-modal-setup');
+        }
+
+        function renderizarListaSetupCP() {
+            const cont = cpEl('cp-setup-lista');
+            if (!cont) return;
+            if (!checkpayTemplateDB.length) {
+                cont.innerHTML = `<div class="py-10 text-center text-sm text-koda-textMuted">Empty</div>`;
+                return;
+            }
+            cont.innerHTML = checkpayTemplateDB.map(t => `
+                <div onclick="abrirModalItemCP('plantilla', ${t.id})" class="px-4 py-3.5 flex items-center justify-between gap-4 hover:bg-white/5 transition-colors cursor-pointer">
+                    <div class="flex flex-col min-w-0">
+                        <span class="text-sm font-medium text-white truncate">${cpEsc(cpNombre(t))}</span>
+                        <span class="text-xs text-koda-textMuted mt-0.5">${cpEsc(CP_TIPOS[t.tipoOrigen] || 'Manual')}</span>
+                    </div>
+                    <span class="text-sm font-semibold text-white flex-shrink-0">${cpMoney(t.monto)}</span>
+                </div>`).join('');
+        }
+
+        async function aplicarPlantillaCP() {
+            if (cpGuardando) return;
+            const btn = cpEl('cp-setup-cargar');
+            const textoOriginal = btn.innerHTML;
+            cpGuardando = true;
+            btn.innerHTML = cpSpinner();
+            try {
+                // Punto de enganche para Apps Script
+                await KodaAPI.simularPeticion('aplicarPlantillaAQuincena', { items: checkpayTemplateDB.length }, 700);
+                checkpayTemplateDB.forEach(t => {
+                    const existe = t.tipoOrigen !== 'manual' && checkpayDB.some(c => c.tipoOrigen === t.tipoOrigen && c.refId == t.refId);
+                    if (!existe) checkpayDB.push({ id: cpNuevoId(), tipoOrigen: t.tipoOrigen, refId: t.refId, nombre: t.nombre, monto: t.monto, pagado: false, orden: checkpayDB.length });
+                });
+                cpCerrar('cp-modal-setup');
+                renderizarPaginaCheckpay();
+            } catch (e) {
+                cpAlerta('Something went wrong', 'The template could not be loaded.');
+            } finally {
+                btn.innerHTML = textoOriginal;
+                cpGuardando = false;
+            }
+        }
+
+        // ==========================================
+        // 5. EVENTOS DE PÁGINA
+        // ==========================================
+        document.addEventListener('click', (e) => {
+            const po = cpEl('cp-popover-orden'), to = cpEl('cp-btn-orden');
+            if (po && !po.classList.contains('hidden') && !po.contains(e.target) && !to.contains(e.target)) cerrarPopoverOrdenCP();
+            const pr = cpEl('cp-sel-popover'), tr = cpEl('cp-sel-trigger');
+            if (pr && !pr.classList.contains('hidden') && !pr.contains(e.target) && !tr.contains(e.target)) cerrarPopoverRefCP();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            if (!cpEl('cp-sel-popover').classList.contains('hidden')) return cerrarPopoverRefCP();
+            if (!cpEl('cp-popover-orden').classList.contains('hidden')) return cerrarPopoverOrdenCP();
+            if (cpEl('cp-modal-item').classList.contains('opacity-100')) return cpCerrar('cp-modal-item');
+            if (cpEl('cp-modal-setup').classList.contains('opacity-100')) return cpCerrar('cp-modal-setup');
+        });
+        window.addEventListener('DOMContentLoaded', renderizarPaginaCheckpay);
+    </script>
+</body>
+</html>

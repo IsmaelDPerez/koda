@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KODA - Template Tarjeta Métrica Profunda</title>
+    
+    <!-- Fuentes e Iconos -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Maven+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { 
+            darkMode: 'class', 
+            theme: { 
+                extend: { 
+                    fontFamily: { sans: ['"Maven Pro"', 'sans-serif'] }, 
+                    colors: { 
+                        koda: { 
+                            darkBg: '#131722', 
+                            darkCard: '#1E222D', 
+                            darkBorder: '#2A2E39', 
+                            textMuted: '#B2B5BE', 
+                            white: '#F8F9FA', 
+                            blue: '#66A5AD', 
+                            gold: '#C1A35F', 
+                            steel: '#787886' 
+                        } 
+                    } 
+                } 
+            } 
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { display: none !important; }
+        * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
+
+        /* Comportamiento del botón 3 puntos en hover */
+        .card-metrica .btn-opciones {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @media (hover: hover) {
+            .card-metrica:hover .btn-opciones {
+                opacity: 1;
+                pointer-events: auto;
+            }
+        }
+        @media (hover: none) {
+            .card-metrica .btn-opciones {
+                opacity: 1;
+                pointer-events: auto;
+            }
+        }
+    </style>
+</head>
+<body class="bg-koda-darkBg font-sans flex flex-col items-center justify-center min-h-screen p-6 text-white relative">
+
+    <div class="w-full max-w-sm flex flex-col gap-4">
+        <p class="text-[11.5px] font-bold text-koda-steel uppercase tracking-widest px-1">Ejemplo: Meta de Ahorro / Préstamo</p>
+
+        <!-- ==========================================
+             [TEMPLATE] TARJETA MÉTRICA PROFUNDA
+             ========================================== -->
+        <div class="card-metrica group relative bg-koda-darkCard border border-koda-darkBorder hover:border-white/10 rounded-[2rem] p-6 shadow-sm flex flex-col justify-between transition-colors duration-200">
+            
+            <!-- Cabecera de la Tarjeta -->
+            <div class="flex items-start justify-between mb-4">
+                <div class="flex items-center gap-3 min-w-0 pr-2">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center bg-koda-gold/10 text-koda-gold flex-shrink-0">
+                        <span class="material-symbols-outlined text-[20px]">flag</span>
+                    </div>
+                    <div class="flex flex-col min-w-0">
+                        <h4 class="text-base font-bold text-white truncate leading-tight">Fondo de Emergencia</h4>
+                        <span class="text-[11.5px] font-bold text-koda-steel truncate leading-tight mt-0.5">Meta personal · 65%</span>
+                    </div>
+                </div>
+
+                <!-- 3 puntos contextuales en hover -->
+                <button type="button" onclick="alert('Abre menú contextual')" class="btn-opciones w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[18px]">more_vert</span>
+                </button>
+            </div>
+
+            <!-- Hero Metric -->
+            <div class="flex flex-col mb-4">
+                <span class="text-[11.5px] font-bold text-koda-steel uppercase tracking-widest mb-1">Monto actual</span>
+                <div class="flex items-baseline gap-2">
+                    <h3 class="text-3xl font-black text-white tracking-tight">RD$65,000</h3>
+                    <span class="text-[11.5px] font-bold text-koda-steel">/ RD$100,000</span>
+                </div>
+            </div>
+
+            <!-- Barra de Progreso Unificada -->
+            <div class="flex flex-col gap-2">
+                <div class="w-full h-2 bg-koda-darkBg rounded-full overflow-hidden">
+                    <div class="h-full bg-koda-gold rounded-full transition-all duration-700" style="width: 65%"></div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-[11.5px] font-bold text-koda-steel">Restante: RD$35,000</span>
+                    <span class="text-[11.5px] font-bold text-koda-gold">En progreso</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>

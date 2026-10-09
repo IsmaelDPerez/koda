@@ -1,0 +1,176 @@
+/* ==========================================
+   styles.css - Estilos globales de KODA
+   ========================================== */
+
+/* 1. ANIQUILACIÓN TOTAL DEL SCROLLBAR (ESTILO DARK ZEN) */
+:root {
+    scrollbar-width: none !important;
+}
+
+::-webkit-scrollbar {
+    width: 0px !important;
+    background: transparent !important;
+    display: none !important;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+    display: none !important;
+    width: 0px !important;
+    height: 0px !important;
+    background: transparent !important;
+    -webkit-appearance: none !important;
+}
+
+::-webkit-scrollbar-thumb,
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-button {
+    display: none !important;
+    width: 0px !important;
+    height: 0px !important;
+}
+
+html, body, * {
+    -ms-overflow-style: none !important;  /* IE y Edge */
+    scrollbar-width: none !important;  /* Firefox */
+}
+
+/* 2. DRAG AND DROP (SORTABLE) */
+.draggable-item { cursor: grab; } 
+.draggable-item:active { cursor: grabbing; }
+.sortable-ghost { opacity: 0.2; }
+
+/* 3. EFECTOS DE SOBRES INACTIVOS */
+.sobre-inactivo { 
+    opacity: 0.5; 
+    filter: grayscale(100%); 
+    transition: all 0.3s ease; 
+}
+.sobre-inactivo:hover { 
+    opacity: 1; 
+    filter: grayscale(0%); 
+}
+
+/* 4. SWITCH / TOGGLE IOS */
+#toggle-afecta-sobre:checked ~ .toggle-bg { background-color: #1A6FFF; }
+#toggle-afecta-sobre:checked ~ .dot { transform: translateX(100%); }
+
+/* 5. CATEGORÍAS EN MODAL */
+.pill-cat { cursor: pointer; transition: all 0.2s ease-in-out; }
+
+/* ==========================================
+   6. ANIMACIÓN TIPO APPLE PARA ENLACES Y TÍTULOS
+   ========================================== */
+.link-apple {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+    outline: none; /* Evita el cuadro azul al hacer click */
+    -webkit-tap-highlight-color: transparent; /* Evita el parpadeo en móviles */
+}
+
+.link-apple::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    transform: scaleX(0);
+    height: 1.5px;
+    bottom: -2px;
+    left: 0;
+    background-color: currentColor;
+    transform-origin: bottom right;
+    transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.link-apple:hover::after {
+    transform: scaleX(1);
+    transform-origin: bottom left;
+}
+
+/* ==========================================
+   ANIMACIÓN BOTÓN CONFIRMAR (PULIDA KODA)
+   ========================================== */
+.btn-koda-loading {
+    color: transparent !important;
+    position: relative !important;
+    pointer-events: none !important;
+    transform: scale(0.98);
+    opacity: 0.9;
+    transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+
+.btn-koda-loading::after {
+    content: '' !important;
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    width: 18px !important;
+    height: 18px !important;
+    margin-top: -9px !important;
+    margin-left: -9px !important;
+    box-sizing: border-box !important;
+    border: 2.5px solid rgba(19, 23, 34, 0.2) !important;
+    border-top-color: #131722 !important; /* Contraste oscuro sobre el fondo oro */
+    border-radius: 50% !important;
+    z-index: 20 !important;
+    animation: spin-koda 0.6s linear infinite !important;
+}
+
+@keyframes spin-koda {
+    to { transform: rotate(360deg); }
+}
+
+.btn-koda-success {
+    background-color: #3ECF8E !important; /* Verde KODA */
+    color: #131722 !important;
+    border-color: #3ECF8E !important;
+    pointer-events: none !important;
+    transition: all 0.25s ease !important;
+}
+
+/* ==========================================
+   7. DRAG & DROP DARK ZEN (SortableJS) - Sobres y Compromisos
+   ========================================== */
+.koda-sortable-ghost {
+    opacity: 0.25 !important;
+    border: 1.5px dashed rgba(193, 163, 95, 0.4) !important;
+    background-color: transparent !important;
+}
+.koda-sortable-chosen {
+    background-color: #1A2027 !important;
+}
+.koda-sortable-drag {
+    opacity: 0.95 !important;
+    transform: scale(1.02);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85) !important;
+    cursor: grabbing !important;
+}
+
+/* 6. INPUTS NUMÉRICOS: sin flechas ni scroll (global) */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+}
+input[type=number] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+/* 7. BOTÓN CARGANDO (confirmaciones que esperan a la base de datos) */
+.btn-cargando { position: relative; cursor: default !important; color: transparent !important; opacity: .9; }
+.btn-cargando::after {
+    content: ''; position: absolute; inset: 0; margin: auto;
+    width: 16px; height: 16px; border-radius: 9999px;
+    border: 2px solid rgba(19, 23, 34, .22); border-top-color: #131722;
+    animation: koda-spin .75s linear infinite;
+}
+@keyframes koda-spin { to { transform: rotate(360deg); } }
+
+/* 8. TRANSICIÓN ENTRE PÁGINAS (igual en todas) */
+@keyframes koda-page-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+main { animation: koda-page-in .38s cubic-bezier(.22,.61,.36,1) both; }
+body.koda-saliendo main { opacity: 0; transform: translateY(-6px); transition: opacity .16s ease, transform .16s ease; }
+@media (prefers-reduced-motion: reduce) { main { animation: none; } body.koda-saliendo main { transition: none; } }

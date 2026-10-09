@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KODA - Envelopes</title>
+    
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Maven+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' font-family='sans-serif' font-weight='900' fill='%2366A5AD'>K.</text></svg>">
+    
+    <!-- Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    
+    <!-- Tailwind & Config -->
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="tailwind-config.js"></script>
+</head>
+<body class="font-sans min-h-screen flex flex-col items-center p-4 md:p-6 bg-koda-darkBg text-white transition-colors duration-300 relative select-none">
+
+    <!-- [SOB-01] NAVBAR INJECTOR -->
+    <div id="contenedor-navbar" class="w-full max-w-[1500px]"></div>
+
+    <!-- [SOB-02] MAIN ENVELOPES CONTAINER -->
+    <main class="w-full max-w-[1500px] flex flex-col pb-32 pt-2">
+        
+        <!-- HEADER -->
+        <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center gap-4">
+                <button onclick="navegarA('dashboard')" class="w-10 h-10 bg-koda-darkCard border border-koda-darkBorder rounded-full flex items-center justify-center text-koda-steel hover:text-white transition-all shadow-sm cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+                </button>
+                <h2 class="text-3xl font-semibold tracking-tight">Envelopes</h2>
+            </div>
+
+            <button onclick="abrirModalCrearSobre()" class="px-6 py-2.5 bg-koda-blue text-[#131722] font-semibold rounded-full text-xs hover:bg-[#7ab5bd] transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer outline-none">
+                <span class="material-symbols-outlined text-[18px]">add</span>
+                New envelope
+            </button>
+        </div>
+
+        <!-- STATS KPI (Total, Active, To fund, Funded) -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div class="bg-koda-darkCard border border-koda-darkBorder rounded-[1.5rem] p-6 shadow-sm">
+                <p class="text-[11.5px] font-semibold text-koda-steel mb-2">Total assigned</p>
+                <h4 class="text-3xl font-semibold text-koda-blue" id="sobres-stat-total">$0</h4>
+            </div>
+            <div class="bg-koda-darkCard border border-koda-darkBorder rounded-[1.5rem] p-6 shadow-sm">
+                <p class="text-[11.5px] font-semibold text-koda-steel mb-2">Active envelopes</p>
+                <h4 class="text-3xl font-semibold text-white" id="sobres-stat-activos">0</h4>
+            </div>
+            <div class="bg-koda-darkCard border border-koda-darkBorder rounded-[1.5rem] p-6 shadow-sm">
+                <p class="text-[11.5px] font-semibold text-koda-steel mb-2">To fund</p>
+                <h4 class="text-3xl font-semibold text-white" id="sobres-stat-reponer">$0</h4>
+            </div>
+            <div class="bg-koda-darkCard border border-koda-darkBorder rounded-[1.5rem] p-6 shadow-sm">
+                <p class="text-[11.5px] font-semibold text-koda-steel mb-2">Funded</p>
+                <h4 class="text-3xl font-semibold text-koda-gold" id="sobres-stat-llenos">0</h4>
+            </div>
+        </div>
+
+        <!-- ACTION BAR -->
+        <div class="flex justify-between items-center mb-6">
+            <p class="text-[12px] font-semibold text-koda-steel">
+                Active Allocation
+            </p>
+
+            <div class="relative">
+                <button type="button" id="btn-trigger-orden" onclick="togglePopoverOrden(event)" class="flex items-center gap-2 h-9 px-4 rounded-full border border-white/10 hover:border-white/20 text-[11.5px] font-semibold text-white transition-colors cursor-pointer outline-none bg-transparent">
+                    <span class="material-symbols-outlined text-[16px] text-koda-steel">filter_list</span>
+                    <span id="label-orden-activo">Most funded first</span>
+                </button>
+
+                <!-- Filter Popover -->
+                <div id="popover-orden-sobres" class="hidden absolute right-0 top-full mt-2 w-[220px] bg-[#141820] border border-white/10 rounded-2xl shadow-2xl z-30 p-3 flex flex-col gap-1 backdrop-blur-md" onclick="event.stopPropagation()">
+                    <div class="flex items-center justify-between pb-1 mb-1 border-b border-white/5">
+                        <span class="text-[11.5px] font-semibold text-koda-steel">Sort by</span>
+                        <button type="button" onclick="cerrarPopoverOrden()" class="text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
+                            <span class="material-symbols-outlined text-[14px]">close</span>
+                        </button>
+                    </div>
+                    <button type="button" onclick="aplicarOrdenSobres('lleno', 'Most funded first')" class="item-orden w-full px-3 py-2 rounded-xl text-left text-[11.5px] font-semibold text-koda-blue bg-koda-blue/10 flex items-center justify-between transition-colors cursor-pointer outline-none">
+                        <span>Most funded first</span>
+                        <span class="material-symbols-outlined text-[16px]">check</span>
+                    </button>
+                    <button type="button" onclick="aplicarOrdenSobres('vacio', 'Least funded first')" class="item-orden w-full px-3 py-2 rounded-xl text-left text-[11.5px] font-semibold text-koda-steel hover:text-white hover:bg-white/5 flex items-center justify-between transition-colors cursor-pointer outline-none">
+                        <span>Least funded first</span>
+                        <span class="material-symbols-outlined text-[16px] opacity-0">check</span>
+                    </button>
+                    <button type="button" onclick="aplicarOrdenSobres('alfabetico', 'Alphabetical A-Z')" class="item-orden w-full px-3 py-2 rounded-xl text-left text-[11.5px] font-semibold text-koda-steel hover:text-white hover:bg-white/5 flex items-center justify-between transition-colors cursor-pointer outline-none">
+                        <span>Alphabetical A-Z</span>
+                        <span class="material-symbols-outlined text-[16px] opacity-0">check</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ENVELOPES GRID -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="grid-sobres-completo"></div>
+    </main>
+
+    <!-- [SOB-03] GLOBAL CONTEXT MENU -->
+    <div id="koda-menu-contextual" class="hidden fixed z-50 w-44 bg-[#141820] border border-white/10 rounded-2xl shadow-2xl p-1.5 flex flex-col gap-0.5 backdrop-blur-md" onclick="event.stopPropagation()">
+        <button type="button" onclick="ejecutarAccionContextualSobre('editar')" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-300 hover:text-white hover:bg-white/5 transition-colors cursor-pointer outline-none w-full text-left">
+            <span class="material-symbols-outlined text-[16px] text-koda-steel">edit</span>
+            Edit
+        </button>
+        <button type="button" onclick="ejecutarAccionContextualSobre('fondear')" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-300 hover:text-white hover:bg-white/5 transition-colors cursor-pointer outline-none w-full text-left">
+            <span class="material-symbols-outlined text-[16px] text-koda-steel">add_circle</span>
+            Add Funds
+        </button>
+        <div class="w-full h-px bg-white/5 my-1"></div>
+        <button type="button" onclick="ejecutarAccionContextualSobre('eliminar')" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-white hover:bg-white/5 transition-colors cursor-pointer outline-none w-full text-left">
+            <span class="material-symbols-outlined text-[16px] text-white">delete</span>
+            Delete
+        </button>
+    </div>
+
+    <!-- [SOB-04] DETAILED DRAWER/MODAL -->
+    <div id="modal-detalle-sobre" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
+        <div id="card-detalle-sobre" class="relative w-full max-w-[460px] bg-[#141820] border border-white/10 rounded-[32px] p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] flex flex-col gap-5 transform scale-95 transition-all duration-300 ease-out max-h-[90vh]">
+            <div class="flex items-start justify-between">
+                <div>
+                    <h3 class="text-2xl font-semibold text-white leading-tight" id="det-sobre-nombre">Envelope</h3>
+                    <p class="text-[11.5px] font-semibold text-koda-steel mt-0.5" id="det-sobre-progreso">0% funded</p>
+                </div>
+                <button type="button" onclick="cerrarDetalleSobre()" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[18px]">close</span>
+                </button>
+            </div>
+
+            <!-- Hero Metric -->
+            <div class="flex flex-col items-center justify-center bg-[#0A0D12] border border-white/5 rounded-2xl py-6">
+                <span class="text-[11.5px] font-semibold text-koda-steel mb-1">Available balance</span>
+                <h2 class="text-4xl font-semibold text-white tracking-tight" id="det-sobre-monto">$0</h2>
+                <span class="text-[11.5px] font-medium text-koda-steel mt-1" id="det-sobre-meta">of $0</span>
+                <div class="w-48 h-1.5 bg-koda-darkBg rounded-full overflow-hidden mt-4">
+                    <div id="det-sobre-barra" class="h-full bg-koda-blue rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Insight -->
+            <div class="bg-[#0A0D12] border border-white/5 rounded-2xl p-4 flex flex-col gap-2">
+                <span class="text-[11.5px] font-semibold text-koda-blue flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[14px]">auto_awesome</span> KODA Insight
+                </span>
+                <p class="text-xs font-normal text-gray-300 leading-relaxed" id="det-sobre-insight">Calculating...</p>
+                <button id="btn-cubrir-excedente" onclick="abrirModalCubrir()" class="hidden w-full mt-2 py-2.5 bg-koda-blue text-[#131722] font-semibold rounded-xl text-xs hover:bg-[#7ab5bd] transition-colors cursor-pointer outline-none">
+                    Cover Overspending
+                </button>
+            </div>
+
+            <!-- Recent transactions -->
+            <div>
+                <p class="text-[11.5px] font-semibold text-koda-steel mb-3">Recent transactions</p>
+                <div class="flex flex-col gap-2 max-h-48 overflow-y-auto" id="det-sobre-historial"></div>
+            </div>
+
+            <div class="flex items-center gap-3 pt-2 border-t border-white/5">
+                <button type="button" onclick="editarSobreDesdeDetalle()" class="flex-1 py-3 bg-white/10 hover:bg-white/15 text-white text-xs font-semibold rounded-full transition-colors cursor-pointer outline-none">
+                    Edit envelope
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- [SOB-05] CREATE / EDIT ENVELOPE (SIN SPIN-BUTTONS NI SCROLL DE NUMBERS) -->
+    <div id="modal-form-sobre" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
+        <div id="card-form-sobre" class="relative w-full max-w-[460px] bg-[#141820] border border-white/10 rounded-[32px] p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] flex flex-col gap-4 transform scale-95 transition-all duration-300 ease-out max-h-[92vh]">
+            <div class="flex items-center justify-between">
+                <h3 class="text-2xl font-semibold tracking-tight text-white" id="titulo-modal-form-sobre">Envelope</h3>
+                <button type="button" onclick="cerrarModalFormSobre()" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[18px]">close</span>
+                </button>
+            </div>
+
+            <form class="flex flex-col gap-4" onsubmit="event.preventDefault(); guardarSobre();">
+                <input type="hidden" id="sobre-id-edicion">
+
+                <!-- Envelope Name -->
+                <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                    <span class="text-[11.5px] font-semibold text-koda-steel">Envelope name</span>
+                    <input type="text" id="sobre-nombre" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none" required>
+                </div>
+
+                <!-- Budget Hero Amount -->
+                <div class="bg-[#0A0D12] border border-white/5 focus-within:border-koda-blue/40 rounded-2xl p-4 flex flex-col items-center justify-center gap-1 transition-colors">
+                    <span class="text-[11.5px] font-semibold text-koda-steel">Budget</span>
+                    <input type="number" id="sobre-techo" onwheel="this.blur()" class="w-full bg-transparent text-4xl font-semibold text-white text-center placeholder:text-white/20 border-none outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]" required>
+                </div>
+
+                <!-- Top-up 1 & Top-up 2 (FLECHAS Y SCROLL ELIMINADOS) -->
+                <div class="grid grid-cols-2 gap-3" id="bloque-reposiciones">
+                    <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                        <span class="text-[11.5px] font-semibold text-koda-steel">Top-up 1</span>
+                        <input type="number" id="sobre-q1" onwheel="this.blur()" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]">
+                    </div>
+                    <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                        <span class="text-[11.5px] font-semibold text-koda-steel">Top-up 2</span>
+                        <input type="number" id="sobre-q2" onwheel="this.blur()" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]">
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center justify-end gap-3 pt-2 border-t border-white/5">
+                    <button type="button" id="btn-eliminar-sobre" onclick="eliminarSobre()" class="hidden w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer mr-auto outline-none">
+                        <span class="material-symbols-outlined text-[18px]">delete</span>
+                    </button>
+                    <button type="button" onclick="cerrarModalFormSobre()" class="px-5 py-2.5 text-xs font-semibold text-koda-steel hover:text-white rounded-full hover:bg-white/5 transition-colors cursor-pointer outline-none">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-8 py-3 text-xs font-semibold rounded-full bg-koda-blue text-[#131722] hover:bg-[#7ab5bd] transition-colors cursor-pointer outline-none">
+                        Confirm
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- [SOB-06] COVER OVERSPENDING MODAL -->
+    <div id="modal-cubrir" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
+        <div id="card-cubrir" class="relative w-full max-w-sm bg-[#141820] border border-white/10 rounded-[28px] p-6 shadow-2xl flex flex-col gap-4 transform scale-95 transition-all duration-300 ease-out">
+            <div class="flex justify-between items-center">
+                <h3 class="text-base font-semibold text-white flex items-center gap-2">
+                    <span class="material-symbols-outlined text-koda-blue text-[20px]">warning</span>
+                    Cover Overspending
+                </h3>
+                <button type="button" onclick="cerrarModalCubrir()" class="text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[18px]">close</span>
+                </button>
+            </div>
+            <p class="text-xs text-koda-steel font-normal leading-relaxed">Transfer available balance from another envelope to clear this negative amount.</p>
+            
+            <div class="bg-[#0A0D12] border border-white/5 rounded-2xl p-2 max-h-40 overflow-y-auto flex flex-col gap-1" id="lista-sobres-cubrir"></div>
+        </div>
+    </div>
+
+    <!-- [SOB-07] GLOBAL POPUP INJECTOR -->
+    <div id="contenedor-modal"></div>
+
+    <!-- Scripts -->
+    <script src="koda-api.js"></script>
+    <script src="app.js"></script>
+    <script>
+        let sobreEditandoId = null;
+        let sobreAbiertoId = null;
+        let sobreContextualId = null;
+
+        // 1. RENDER ENVELOPES (USANDO FORMATO $)
+        function renderizarPaginaSobres() {
+            let total = 0, llenos = 0, reponer = 0;
+            
+            sobresDB.forEach(s => { 
+                total += s.monto; 
+                if (s.monto >= s.meta) llenos++; 
+                else if (s.monto >= 0) reponer += (s.meta - s.monto); 
+            });
+            
+            document.getElementById('sobres-stat-total').innerText = `$${total.toLocaleString()}`;
+            document.getElementById('sobres-stat-activos').innerText = sobresDB.length;
+            document.getElementById('sobres-stat-reponer').innerText = `$${reponer.toLocaleString()}`;
+            document.getElementById('sobres-stat-llenos').innerText = llenos;
+
+            const grid = document.getElementById('grid-sobres-completo'); 
+            if (!grid) return;
+            grid.innerHTML = '';
+            
+            sobresDB.forEach(s => {
+                let porcRaw = (s.monto / s.meta) * 100; 
+                let porc = Math.min(100, Math.max(0, Math.round(porcRaw)));
+                let isLleno = s.monto >= s.meta; 
+                let isNegativo = s.monto < 0; 
+                
+                let colorBarra = isLleno ? 'bg-koda-gold' : 'bg-koda-blue';
+                let txtFooter = isLleno 
+                    ? `<span class="text-koda-gold font-semibold text-[11.5px]">Funded</span>` 
+                    : (isNegativo 
+                        ? `<span class="text-koda-steel font-medium text-[11.5px]">Over by $${Math.abs(s.monto).toLocaleString()}</span>`
+                        : `<span class="text-koda-steel font-medium text-[11.5px]">$${(s.meta - s.monto).toLocaleString()} left</span>`);
+
+                grid.innerHTML += `
+                <div data-id="${s.id}" onclick="abrirDetalleSobre(${s.id})" class="fila-koda group relative bg-koda-darkCard border border-koda-darkBorder hover:border-white/10 rounded-[1.5rem] p-6 shadow-sm flex flex-col justify-between cursor-grab active:cursor-grabbing transition-all duration-300 ${s.monto === 0 ? 'opacity-50 hover:opacity-100' : ''}">
+                    <div class="flex justify-between items-start mb-6">
+                        <div class="flex flex-col min-w-0 pr-2">
+                            <span class="font-semibold text-base text-white truncate leading-tight">${s.nombre}</span>
+                        </div>
+                        <span class="text-[11px] font-semibold text-koda-steel bg-white/5 px-2 py-0.5 rounded-md">${porc}%</span>
+                    </div>
+
+                    <div>
+                        <h4 class="text-3xl font-semibold mb-1 text-white tracking-tight">$${s.monto.toLocaleString()}</h4>
+                        <p class="text-[11.5px] font-normal text-koda-steel mb-6">of $${s.meta.toLocaleString()}</p>
+                        <div class="w-full h-1.5 bg-koda-darkBg rounded-full overflow-hidden mb-3">
+                            <div class="h-full ${colorBarra} rounded-full transition-all duration-500" style="width: ${porc}%"></div>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            ${txtFooter}
+                        </div>
+                    </div>
+                </div>`;
+            });
+
+            if (typeof Sortable !== 'undefined') {
+                new Sortable(grid, {
+                    animation: 150, 
+                    ghostClass: 'koda-sortable-ghost',
+                    chosenClass: 'koda-sortable-chosen',
+                    dragClass: 'koda-sortable-drag',
+                    delay: 50,
+                    delayOnTouchOnly: true,
+                    onEnd: function () {
+                        const items = grid.querySelectorAll('[data-id]');
+                        items.forEach((item, index) => { 
+                            const idObj = parseInt(item.getAttribute('data-id')); 
+                            const obj = sobresDB.find(s => s.id === idObj); 
+                            if(obj) obj.orden = index; 
+                        });
+                    }
+                });
+            }
+        }
+
+        // 2. SORT POPOVER
+        function togglePopoverOrden(e) {
+            e.stopPropagation();
+            document.getElementById('popover-orden-sobres').classList.toggle('hidden');
+        }
+
+        function cerrarPopoverOrden() {
+            const p = document.getElementById('popover-orden-sobres');
+            if (p) p.classList.add('hidden');
+        }
+
+        function aplicarOrdenSobres(criterio, etiqueta) {
+            document.querySelectorAll('.item-orden').forEach(btn => {
+                btn.className = 'item-orden w-full px-3 py-2 rounded-xl text-left text-[11.5px] font-semibold text-koda-steel hover:text-white hover:bg-white/5 flex items-center justify-between transition-colors cursor-pointer outline-none';
+                const icon = btn.querySelector('.material-symbols-outlined');
+                if (icon) icon.classList.add('opacity-0');
+            });
+
+            const activo = event.currentTarget;
+            activo.className = 'item-orden w-full px-3 py-2 rounded-xl text-left text-[11.5px] font-semibold text-koda-blue bg-koda-blue/10 flex items-center justify-between transition-colors cursor-pointer outline-none';
+            const iconActivo = activo.querySelector('.material-symbols-outlined');
+            if (iconActivo) iconActivo.classList.remove('opacity-0');
+
+            document.getElementById('label-orden-activo').innerText = etiqueta;
+
+            if (criterio === 'lleno') {
+                sobresDB.sort((a, b) => (b.monto / b.meta) - (a.monto / a.meta));
+            } else if (criterio === 'vacio') {
+                sobresDB.sort((a, b) => (a.monto / a.meta) - (b.monto / b.meta));
+            } else if (criterio === 'alfabetico') {
+                sobresDB.sort((a, b) => a.nombre.localeCompare(b.nombre));
+            }
+
+            renderizarPaginaSobres();
+            cerrarPopoverOrden();
+        }
+
+        // 3. CONTEXT MENU
+        function abrirMenuSobre(e, btn, id) {
+            e.stopPropagation();
+            sobreContextualId = id;
+            const menu = document.getElementById('koda-menu-contextual');
+            const rect = btn.getBoundingClientRect();
+            menu.style.top = `${rect.bottom + 6}px`;
+            menu.style.left = `${rect.right - 176}px`;
+            menu.classList.remove('hidden');
+        }
+
+        function cerrarMenuContextual() {
+            const menu = document.getElementById('koda-menu-contextual');
+            if (menu) menu.classList.add('hidden');
+        }
+
+        function ejecutarAccionContextualSobre(accion) {
+            cerrarMenuContextual();
+            if (accion === 'editar') {
+                abrirModalEditarSobre(sobreContextualId);
+            } else if (accion === 'fondear') {
+                abrirModalFondeoDirecto(sobreContextualId);
+            } else if (accion === 'eliminar') {
+                sobresDB = sobresDB.filter(s => s.id !== sobreContextualId);
+                renderizarPaginaSobres();
+            }
+        }
+
+        // DIRECT FUNDING CALL
+        function abrirModalFondeoDirecto(id) {
+            const sobre = sobresDB.find(s => s.id === id);
+            if (!sobre) return;
+
+            if (typeof abrirModalMovimiento === 'function') {
+                abrirModalMovimiento();
+                
+                setTimeout(() => {
+                    const tabs = document.querySelectorAll('.tab-item');
+                    if (tabs.length >= 4) {
+                        animarTab(tabs[3], 'pagar');
+                        
+                        const subpagos = document.querySelectorAll('.btn-subpago');
+                        if (subpagos.length >= 3) {
+                            setSubtipoPago('sobres', subpagos[2]);
+                            
+                            setTimeout(() => {
+                                document.querySelectorAll('.pill-pagar-item').forEach(b => {
+                                    if (b.innerText.trim() === sobre.nombre) {
+                                        b.click();
+                                    }
+                                });
+                            }, 50);
+                        }
+                    }
+                }, 100);
+            }
+        }
+
+        // 4. DETALLE KODA CON REDIRECCIÓN DE EDICIÓN DE MOVIMIENTOS
+       let limiteHistorialSobre = 6;
+
+function abrirDetalleSobre(id, resetLimite = true) {
+    sobreAbiertoId = id;
+    if (resetLimite) limiteHistorialSobre = 6;
+
+    const sobre = sobresDB.find(s => s.id === id);
+    if (!sobre) return;
+
+    document.getElementById('det-sobre-nombre').innerText = sobre.nombre;
+    
+    // Si el monto es negativo, mostrar -$X
+    const displayMonto = sobre.monto < 0 
+        ? `-$${Math.abs(sobre.monto).toLocaleString()}` 
+        : `$${sobre.monto.toLocaleString()}`;
+    document.getElementById('det-sobre-monto').innerText = displayMonto;
+    document.getElementById('det-sobre-meta').innerText = `of $${sobre.meta.toLocaleString()}`;
+    
+    // Porcentaje y Barra
+    let porc = Math.min(100, Math.max(0, Math.round((sobre.monto / sobre.meta) * 100)));
+    document.getElementById('det-sobre-progreso').innerText = sobre.monto < 0 ? `Deficit` : `${porc}% funded`;
+    
+    const barra = document.getElementById('det-sobre-barra');
+    if (sobre.monto < 0) {
+        barra.style.width = '100%';
+        barra.className = 'h-full rounded-full transition-all duration-500 bg-koda-steel/40';
+    } else {
+        barra.style.width = `${porc}%`;
+        barra.className = `h-full rounded-full transition-all duration-500 ${porc >= 100 ? 'bg-koda-gold' : 'bg-koda-blue'}`;
+    }
+
+    // Insight dinámico
+    const insightEl = document.getElementById('det-sobre-insight');
+    const btnCubrir = document.getElementById('btn-cubrir-excedente');
+
+    if (sobre.monto < 0) {
+        insightEl.innerText = `Alert: Overspent by $${Math.abs(sobre.monto).toLocaleString()}. Cover this deficit to balance your cash flow.`;
+        if (btnCubrir) btnCubrir.classList.remove('hidden');
+    } else if (porc >= 100) {
+        insightEl.innerText = 'This envelope is fully funded for this period.';
+        if (btnCubrir) btnCubrir.classList.add('hidden');
+    } else {
+        insightEl.innerText = `$${(sobre.meta - sobre.monto).toLocaleString()} remaining to hit your target.`;
+        if (btnCubrir) btnCubrir.classList.add('hidden');
+    }
+
+    // Historial con Scroll Limitado y botón "Load more" para listas largas (ej. Dieta)
+    const listHist = document.getElementById('det-sobre-historial');
+    listHist.innerHTML = '';
+    
+    let histFiltrado = historialDB.filter(m => m.categoria === sobre.nombre || m.sobre === sobre.nombre);
+    // Ordenar del más reciente al más antiguo
+    histFiltrado.sort((a,b) => new Date(b.fechaStr) - new Date(a.fechaStr));
+
+    if (histFiltrado.length === 0) {
+        listHist.innerHTML = `<p class="text-[11.5px] font-medium text-koda-steel text-center py-4">No transactions found.</p>`;
+    } else {
+        const visibles = histFiltrado.slice(0, limiteHistorialSobre);
+
+        visibles.forEach(m => {
+            const esIngreso = m.tipo === 'Ingreso' || m.tipo === 'Fondeo de Sobre';
+            listHist.innerHTML += `
+            <div onclick="abrirEdicionMovimientoDesdeSobre(${m.id})" class="flex justify-between items-center p-3 bg-[#0A0D12] hover:bg-white/5 rounded-2xl border border-white/5 transition-colors cursor-pointer group">
+                <div class="flex flex-col min-w-0 pr-2">
+                    <span class="text-xs font-semibold text-white group-hover:text-koda-blue transition-colors truncate">${m.desc}</span>
+                    <span class="text-[11px] font-medium text-koda-steel">${formatearFechaUI(m.fechaStr)}</span>
+                </div>
+                <span class="text-xs font-semibold ${esIngreso ? 'text-koda-blue' : 'text-white'}">${esIngreso ? '+' : '-'}$${Math.abs(m.monto).toLocaleString()}</span>
+            </div>`;
+        });
+
+        // Si hay más transacciones que las visibles, inyectar botón para expandir
+        if (histFiltrado.length > limiteHistorialSobre) {
+            listHist.innerHTML += `
+            <button onclick="cargarMasTransaccionesSobre()" class="w-full py-2 text-[11px] font-semibold text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
+                Show more (${histFiltrado.length - limiteHistorialSobre} remaining)
+            </button>`;
+        }
+    }
+
+function cargarMasTransaccionesSobre() {
+    limiteHistorialSobre += 10;
+    abrirDetalleSobre(sobreAbiertoId, false);
+}
+
+    const m = document.getElementById('modal-detalle-sobre');
+    const c = document.getElementById('card-detalle-sobre');
+    m.classList.remove('opacity-0', 'pointer-events-none');
+    m.classList.add('opacity-100', 'pointer-events-auto');
+    c.classList.remove('scale-95');
+    c.classList.add('scale-100');
+}
+        function abrirEdicionMovimientoDesdeSobre(idMovimiento) {
+            cerrarDetalleSobre();
+            setTimeout(() => {
+                if (typeof abrirModalEdicion === 'function') {
+                    abrirModalEdicion(idMovimiento);
+                }
+            }, 250);
+        }
+
+        function cerrarDetalleSobre() {
+            const m = document.getElementById('modal-detalle-sobre');
+            const c = document.getElementById('card-detalle-sobre');
+            m.classList.remove('opacity-100', 'pointer-events-auto');
+            m.classList.add('opacity-0', 'pointer-events-none');
+            c.classList.remove('scale-100');
+            c.classList.add('scale-95');
+        }
+
+        function editarSobreDesdeDetalle() {
+            cerrarDetalleSobre();
+            abrirModalEditarSobre(sobreAbiertoId);
+        }
+
+        // 5. CREATE / EDIT ENVELOPE
+        function abrirModalCrearSobre() {
+            sobreEditandoId = null;
+            document.getElementById('sobre-id-edicion').value = '';
+            document.getElementById('sobre-nombre').value = '';
+            document.getElementById('sobre-techo').value = '';
+            document.getElementById('sobre-q1').value = '';
+            document.getElementById('sobre-q2').value = '';
+            document.getElementById('titulo-modal-form-sobre').innerText = "New envelope";
+            document.getElementById('btn-eliminar-sobre').classList.add('hidden');
+
+            const m = document.getElementById('modal-form-sobre');
+            const c = document.getElementById('card-form-sobre');
+            m.classList.remove('opacity-0', 'pointer-events-none');
+            m.classList.add('opacity-100', 'pointer-events-auto');
+            c.classList.remove('scale-95');
+            c.classList.add('scale-100');
+        }
+
+        function abrirModalEditarSobre(id) {
+            sobreEditandoId = id;
+            const sobre = sobresDB.find(s => s.id === id);
+            if (!sobre) return;
+
+            document.getElementById('sobre-id-edicion').value = sobre.id;
+            document.getElementById('sobre-nombre').value = sobre.nombre;
+            document.getElementById('sobre-techo').value = sobre.meta;
+            document.getElementById('sobre-q1').value = sobre.q1 || '';
+            document.getElementById('sobre-q2').value = sobre.q2 || '';
+            document.getElementById('titulo-modal-form-sobre').innerText = "Edit envelope";
+            document.getElementById('btn-eliminar-sobre').classList.remove('hidden');
+
+            const m = document.getElementById('modal-form-sobre');
+            const c = document.getElementById('card-form-sobre');
+            m.classList.remove('opacity-0', 'pointer-events-none');
+            m.classList.add('opacity-100', 'pointer-events-auto');
+            c.classList.remove('scale-95');
+            c.classList.add('scale-100');
+        }
+
+        function cerrarModalFormSobre() {
+            const m = document.getElementById('modal-form-sobre');
+            const c = document.getElementById('card-form-sobre');
+            m.classList.remove('opacity-100', 'pointer-events-auto');
+            m.classList.add('opacity-0', 'pointer-events-none');
+            c.classList.remove('scale-100');
+            c.classList.add('scale-95');
+        }
+
+        function guardarSobre() {
+            const nombre = document.getElementById('sobre-nombre').value.trim();
+            const meta = parseFloat(document.getElementById('sobre-techo').value) || 0;
+            const q1 = parseFloat(document.getElementById('sobre-q1').value) || 0;
+            const q2 = parseFloat(document.getElementById('sobre-q2').value) || 0;
+
+            if (!nombre || meta <= 0) return;
+
+            if (sobreEditandoId) {
+                const s = sobresDB.find(x => x.id === sobreEditandoId);
+                if (s) { s.nombre = nombre; s.meta = meta; s.q1 = q1; s.q2 = q2; }
+            } else {
+                sobresDB.push({
+                    id: Date.now(),
+                    nombre: nombre,
+                    monto: 0,
+                    meta: meta,
+                    q1: q1,
+                    q2: q2,
+                    orden: sobresDB.length
+                });
+            }
+
+            cerrarModalFormSobre();
+            renderizarPaginaSobres();
+        }
+
+        function eliminarSobre() {
+            if (sobreEditandoId) {
+                sobresDB = sobresDB.filter(s => s.id !== sobreEditandoId);
+                cerrarModalFormSobre();
+                renderizarPaginaSobres();
+            }
+        }
+
+        // 6. COVER OVERSPENDING
+        function abrirModalCubrir() {
+            cerrarDetalleSobre();
+            const lista = document.getElementById('lista-sobres-cubrir');
+            lista.innerHTML = '';
+            
+            const disponibles = sobresDB.filter(s => s.monto > 0 && s.id !== sobreAbiertoId);
+            if (disponibles.length === 0) {
+                lista.innerHTML = `<p class="text-xs text-koda-steel py-4 text-center">No available funds in other envelopes.</p>`;
+            } else {
+                disponibles.forEach(s => {
+                    lista.innerHTML += `
+                    <button type="button" onclick="ejecutarTraspaso(${s.id})" class="flex justify-between items-center p-3 rounded-xl hover:bg-white/5 transition-colors cursor-pointer text-left outline-none">
+                        <span class="text-xs font-semibold text-white">${s.nombre}</span>
+                        <span class="text-xs font-semibold text-koda-blue">$${s.monto.toLocaleString()}</span>
+                    </button>`;
+                });
+            }
+
+            const m = document.getElementById('modal-cubrir');
+            const c = document.getElementById('card-cubrir');
+            m.classList.remove('opacity-0', 'pointer-events-none');
+            m.classList.add('opacity-100', 'pointer-events-auto');
+            c.classList.remove('scale-95');
+            c.classList.add('scale-100');
+        }
+
+        function cerrarModalCubrir() {
+            const m = document.getElementById('modal-cubrir');
+            const c = document.getElementById('card-cubrir');
+            m.classList.remove('opacity-100', 'pointer-events-auto');
+            m.classList.add('opacity-0', 'pointer-events-none');
+            c.classList.remove('scale-100');
+            c.classList.add('scale-95');
+        }
+
+        // COBERTURA DE EXCEDENTE: Actualiza el saldo en tiempo real y refresca el drawer
+function ejecutarTraspaso(idOrigen) {
+    const origen = sobresDB.find(s => s.id === idOrigen);
+    const destino = sobresDB.find(s => s.id === sobreAbiertoId);
+    if (!origen || !destino) return;
+
+    let deficit = Math.abs(destino.monto);
+    let montoTransferido = Math.min(origen.monto, deficit);
+
+    origen.monto -= montoTransferido;
+    destino.monto += montoTransferido; // El sobre negativo sube hacia 0 o positivo
+
+    // Registrar la auditoría contable en el historial
+    historialDB.push({
+        id: Date.now(),
+        tipo: 'Transferencia',
+        monto: montoTransferido,
+        desc: `Cover: ${origen.nombre} → ${destino.nombre}`,
+        categoria: destino.nombre,
+        sobre: destino.nombre,
+        cuentaOrigen: `Envelope ${origen.nombre}`,
+        fechaStr: new Date().toISOString()
+    });
+
+    cerrarModalCubrir();
+    renderizarPaginaSobres();
+
+    // Refrescar inmediatamente el drawer del sobre para ver que quedó en 0 o positivo
+    setTimeout(() => {
+        abrirDetalleSobre(sobreAbiertoId);
+    }, 150);
+}
+
+        // Global Event Listeners
+        document.addEventListener('click', () => {
+            cerrarPopoverOrden();
+            cerrarMenuContextual();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === "Escape") {
+                cerrarPopoverOrden();
+                cerrarMenuContextual();
+                cerrarDetalleSobre();
+                cerrarModalFormSobre();
+                cerrarModalCubrir();
+            }
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderizarPaginaSobres();
+            // Enlace directo desde el Dashboard: sobres.html?sobre=ID
+            const id = parseInt(new URLSearchParams(window.location.search).get('sobre'));
+            if (id && sobresDB.some(x => x.id === id)) abrirDetalleSobre(id);
+        });
+    </script>
+</body>
+</html> 

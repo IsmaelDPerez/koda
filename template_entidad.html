@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KODA - Template Entidad</title>
+    
+    <!-- Fuentes e Iconos -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Maven+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    
+    <!-- Tailwind CSS y Configuración KODA -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { 
+            darkMode: 'class', 
+            theme: { 
+                extend: { 
+                    fontFamily: { sans: ['"Maven Pro"', 'sans-serif'] }, 
+                    colors: { 
+                        koda: { 
+                            darkBg: '#131722', 
+                            darkCard: '#1E222D', 
+                            darkBorder: '#2A2E39', 
+                            textMuted: '#B2B5BE', 
+                            white: '#F8F9FA', 
+                            blue: '#66A5AD', 
+                            gold: '#C1A35F', 
+                            steel: '#787886' 
+                        } 
+                    } 
+                } 
+            } 
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { display: none !important; }
+        * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
+    </style>
+</head>
+<body class="bg-koda-darkBg font-sans flex items-center justify-center min-h-screen p-4">
+
+    <!-- Botón de prueba -->
+    <button onclick="abrirModalEntidad()" class="px-7 py-3.5 bg-koda-gold text-[#131722] font-black text-sm rounded-full outline-none hover:bg-[#d8b86d] transition-colors cursor-pointer">
+        Gestionar Cuenta
+    </button>
+
+    <!-- ==========================================
+         [TEMPLATE] MODAL MAESTRO DE ENTIDADES
+         ========================================== -->
+    <div id="modal-entidad" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
+
+        <div id="card-entidad" class="relative w-full max-w-[460px] bg-[#141820] border border-white/10 rounded-[32px] p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] flex flex-col gap-4 transform scale-95 transition-all duration-300 ease-out max-h-[92vh] overflow-y-auto">
+
+            <!-- 1. HEADER -->
+            <div class="flex items-center justify-between">
+                <h3 class="text-2xl font-black tracking-tight text-white" id="titulo-modal-entidad">Cuenta</h3>
+                <button type="button" onclick="cerrarModalEntidad()" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[18px]">close</span>
+                </button>
+            </div>
+
+            <form class="flex flex-col gap-4" onsubmit="event.preventDefault(); guardarEntidad();">
+                <input type="hidden" id="entidad-id" value="">
+
+                <!-- 2. TIPO DE CUENTA (SEGMENTED TABS) -->
+                <div class="relative flex items-center bg-[#0A0D12] p-1 rounded-2xl border border-white/5">
+                    <div id="tab-slider-entidad" class="absolute top-1 bottom-1 left-1 bg-white/10 rounded-xl transition-all duration-300 ease-out pointer-events-none" style="width: calc(50% - 4px); transform: translateX(0%);"></div>
+                    <button type="button" onclick="setTipoEntidad(this, 0, 'Banco')" class="tab-item-ent relative z-10 flex-1 py-2 text-xs font-bold text-white transition-colors text-center cursor-pointer outline-none">Banco</button>
+                    <button type="button" onclick="setTipoEntidad(this, 1, 'Tarjeta')" class="tab-item-ent relative z-10 flex-1 py-2 text-xs font-bold text-koda-steel transition-colors text-center cursor-pointer outline-none">Tarjeta Crédito</button>
+                </div>
+
+                <!-- 3. APODO -->
+                <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex items-center gap-3 transition-colors">
+                    <span class="material-symbols-outlined text-[20px] text-koda-steel">edit_note</span>
+                    <input type="text" id="entidad-apodo" placeholder="Apodo" class="w-full bg-transparent text-sm text-white placeholder:text-koda-steel font-semibold border-none outline-none">
+                </div>
+
+                <!-- 4. SELECTOR DE BANCO ESCALABLE (SMART POPOVER) -->
+                <div class="relative flex flex-col gap-1.5">
+                    <button type="button" id="btn-trigger-banco" onclick="togglePopoverBancos(event)" class="w-full bg-[#0A0D12] border border-white/5 hover:border-white/10 rounded-2xl px-4 py-3.5 flex items-center justify-between text-left transition-colors cursor-pointer outline-none">
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-outlined text-[20px] text-koda-steel">account_balance</span>
+                            <span id="texto-banco-seleccionado" class="text-sm font-semibold text-koda-steel">Seleccionar banco...</span>
+                        </div>
+                        <span class="material-symbols-outlined text-[18px] text-koda-steel">expand_more</span>
+                    </button>
+
+                    <!-- Popover desplegable con scroll oculto y creador rápido -->
+                    <div id="popover-lista-bancos" class="hidden absolute left-0 right-0 top-full mt-2 z-30 bg-[#141820] border border-white/10 rounded-2xl shadow-2xl p-3 flex flex-col gap-2 backdrop-blur-md" onclick="event.stopPropagation()">
+                        <div class="flex items-center gap-2 bg-[#0A0D12] border border-white/5 rounded-xl px-3 py-2">
+                            <input type="text" id="input-nuevo-banco" placeholder="Escribir otro banco..." class="w-full bg-transparent text-xs font-semibold text-white outline-none placeholder:text-koda-steel" onkeydown="if(event.key === 'Enter') { event.preventDefault(); agregarBancoAlVuelo(); }">
+                            <button type="button" onclick="agregarBancoAlVuelo()" class="text-koda-gold hover:text-[#d8b86d] transition-colors cursor-pointer flex items-center justify-center">
+                                <span class="material-symbols-outlined text-[18px]">add_circle</span>
+                            </button>
+                        </div>
+                        <div id="contenedor-items-bancos" class="flex flex-col gap-1 max-h-[160px] overflow-y-auto">
+                            <button type="button" onclick="elegirBanco('Popular', 'BPD')" class="text-left px-3 py-2 rounded-xl text-xs font-bold text-gray-300 hover:text-white hover:bg-white/5 transition-colors flex items-center justify-between cursor-pointer">
+                                <span>Popular</span>
+                                <span class="text-[10px] text-koda-steel">BPD</span>
+                            </button>
+                            <button type="button" onclick="elegirBanco('Banreservas', 'BR')" class="text-left px-3 py-2 rounded-xl text-xs font-bold text-gray-300 hover:text-white hover:bg-white/5 transition-colors flex items-center justify-between cursor-pointer">
+                                <span>Banreservas</span>
+                                <span class="text-[10px] text-koda-steel">BR</span>
+                            </button>
+                            <button type="button" onclick="elegirBanco('BHD', 'BHD')" class="text-left px-3 py-2 rounded-xl text-xs font-bold text-gray-300 hover:text-white hover:bg-white/5 transition-colors flex items-center justify-between cursor-pointer">
+                                <span>BHD</span>
+                                <span class="text-[10px] text-koda-steel">BHD</span>
+                            </button>
+                            <button type="button" onclick="elegirBanco('Scotiabank', 'SB')" class="text-left px-3 py-2 rounded-xl text-xs font-bold text-gray-300 hover:text-white hover:bg-white/5 transition-colors flex items-center justify-between cursor-pointer">
+                                <span>Scotiabank</span>
+                                <span class="text-[10px] text-koda-steel">SB</span>
+                            </button>
+                            <button type="button" onclick="elegirBanco('Qik', 'QIK')" class="text-left px-3 py-2 rounded-xl text-xs font-bold text-gray-300 hover:text-white hover:bg-white/5 transition-colors flex items-center justify-between cursor-pointer">
+                                <span>Qik</span>
+                                <span class="text-[10px] text-koda-steel">QIK</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SIGLA (ANCHO COMPLETO, MINIMALISTA) -->
+<div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex items-center transition-colors">
+    <input type="text" id="entidad-sigla" placeholder="Siglas" maxlength="5" class="w-full bg-transparent text-xs text-white placeholder:text-koda-steel font-bold border-none outline-none uppercase text-center tracking-wider">
+</div>
+
+                <!-- 6. MONTO HERO -->
+                <div class="bg-[#0A0D12] border border-white/5 focus-within:border-koda-gold/40 rounded-2xl p-4 flex flex-col items-center justify-center gap-1 transition-colors">
+                    <span class="text-[10px] font-bold tracking-widest uppercase text-koda-steel" id="label-monto">SALDO INICIAL</span>
+                    <input type="number" id="entidad-monto" placeholder="0" class="w-full bg-transparent text-4xl font-black text-white text-center placeholder:text-white/20 border-none outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]">
+                </div>
+
+                <!-- 7. BOTONES DE ACCIÓN -->
+                <div class="flex items-center justify-end gap-3 pt-2 border-t border-white/5">
+                    <button type="button" id="btn-eliminar-entidad" onclick="eliminarEntidad()" class="hidden w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-koda-gold transition-colors cursor-pointer mr-auto outline-none">
+                        <span class="material-symbols-outlined text-[18px]">delete</span>
+                    </button>
+                    <button type="button" onclick="cerrarModalEntidad()" class="px-5 py-2.5 text-xs font-bold text-koda-steel hover:text-white rounded-full hover:bg-white/5 transition-colors cursor-pointer outline-none">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="px-8 py-3 text-xs font-black rounded-full bg-koda-gold text-[#131722] hover:bg-[#d8b86d] transition-colors cursor-pointer outline-none">
+                        Confirmar
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <!-- MOTOR JAVASCRIPT DEL COMPONENTE -->
+    <script>
+        let tipoActual = 'Banco';
+        let bancoSeleccionado = '';
+
+        function abrirModalEntidad() {
+            const m = document.getElementById('modal-entidad');
+            const c = document.getElementById('card-entidad');
+            m.classList.remove('opacity-0', 'pointer-events-none');
+            m.classList.add('opacity-100', 'pointer-events-auto');
+            c.classList.remove('scale-95');
+            c.classList.add('scale-100');
+        }
+
+        function cerrarModalEntidad() {
+            const m = document.getElementById('modal-entidad');
+            const c = document.getElementById('card-entidad');
+            m.classList.remove('opacity-100', 'pointer-events-auto');
+            m.classList.add('opacity-0', 'pointer-events-none');
+            c.classList.remove('scale-100');
+            c.classList.add('scale-95');
+            cerrarPopoverBancos();
+        }
+
+        function setTipoEntidad(btn, index, tipo) {
+            tipoActual = tipo;
+            const slider = document.getElementById('tab-slider-entidad');
+            slider.style.transform = `translateX(${index * 100}%)`;
+            
+            document.querySelectorAll('.tab-item-ent').forEach(b => {
+                b.classList.remove('text-white');
+                b.classList.add('text-koda-steel');
+            });
+            btn.classList.remove('text-koda-steel');
+            btn.classList.add('text-white');
+
+            document.getElementById('label-monto').innerText = tipo === 'Banco' ? 'SALDO INICIAL' : 'LÍMITE CRÉDITO';
+        }
+
+        function togglePopoverBancos(e) {
+            e.stopPropagation();
+            const p = document.getElementById('popover-lista-bancos');
+            p.classList.toggle('hidden');
+        }
+
+        function cerrarPopoverBancos() {
+            const p = document.getElementById('popover-lista-bancos');
+            if (p) p.classList.add('hidden');
+        }
+
+        function elegirBanco(nombre, siglaSugerida = '') {
+            bancoSeleccionado = nombre;
+            const txt = document.getElementById('texto-banco-seleccionado');
+            txt.innerText = nombre;
+            txt.classList.remove('text-koda-steel');
+            txt.classList.add('text-white');
+
+            const inputSigla = document.getElementById('entidad-sigla');
+            if (inputSigla && !inputSigla.value.trim() && siglaSugerida) {
+                inputSigla.value = siglaSugerida;
+            }
+            cerrarPopoverBancos();
+        }
+
+        function agregarBancoAlVuelo() {
+            const input = document.getElementById('input-nuevo-banco');
+            const nombre = input.value.trim();
+            if (!nombre) return;
+
+            const cont = document.getElementById('contenedor-items-bancos');
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'text-left px-3 py-2 rounded-xl text-xs font-bold text-gray-300 hover:text-white hover:bg-white/5 transition-colors flex items-center justify-between cursor-pointer';
+            btn.onclick = () => elegirBanco(nombre);
+            btn.innerHTML = `<span>${nombre}</span><span class="text-[10px] text-koda-steel">NUEVO</span>`;
+            
+            cont.prepend(btn);
+            elegirBanco(nombre);
+            input.value = '';
+        }
+
+        function guardarEntidad() {
+            // Conexión directa hacia backend Apps Script o estado local
+            cerrarModalEntidad();
+        }
+
+        function eliminarEntidad() {
+            // Lógica de eliminación
+            cerrarModalEntidad();
+        }
+
+        // Cierre contextual al hacer clic fuera del popover
+        document.addEventListener('click', (e) => {
+            const popover = document.getElementById('popover-lista-bancos');
+            const trigger = document.getElementById('btn-trigger-banco');
+            if (popover && !popover.classList.contains('hidden')) {
+                if (!popover.contains(e.target) && !trigger.contains(e.target)) {
+                    cerrarPopoverBancos();
+                }
+            }
+        });
+
+        // Cierre con Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === "Escape") {
+                const modal = document.getElementById('modal-entidad');
+                if (!modal.classList.contains('opacity-0')) {
+                    cerrarModalEntidad();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KODA - Template Menú Contextual & Hover</title>
+    
+    <!-- Fuentes e Iconos -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Maven+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    
+    <!-- SortableJS para probar la física de arrastre -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { 
+            darkMode: 'class', 
+            theme: { 
+                extend: { 
+                    fontFamily: { sans: ['"Maven Pro"', 'sans-serif'] }, 
+                    colors: { 
+                        koda: { 
+                            darkBg: '#131722', 
+                            darkCard: '#1E222D', 
+                            darkBorder: '#2A2E39', 
+                            textMuted: '#B2B5BE', 
+                            white: '#F8F9FA', 
+                            blue: '#66A5AD', 
+                            gold: '#C1A35F', 
+                            steel: '#787886' 
+                        } 
+                    } 
+                } 
+            } 
+        }
+    </script>
+
+    <style>
+        ::-webkit-scrollbar { display: none !important; }
+        * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
+
+        /* Física unificada Dark Zen para Drag & Drop */
+        .koda-sortable-ghost {
+            opacity: 0.25 !important;
+            border: 1.5px dashed rgba(193, 163, 95, 0.4) !important;
+            background-color: transparent !important;
+        }
+        .koda-sortable-chosen {
+            background-color: #1A2027 !important;
+        }
+        .koda-sortable-drag {
+            opacity: 0.95 !important;
+            transform: scale(1.02);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85) !important;
+            cursor: grabbing !important;
+        }
+
+        /* Comportamiento del botón 3 puntos en hover */
+        .fila-koda .btn-koda-opciones {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @media (hover: hover) {
+            .fila-koda:hover .btn-koda-opciones,
+            .fila-koda.menu-activo .btn-koda-opciones {
+                opacity: 1;
+                pointer-events: auto;
+            }
+        }
+        @media (hover: none) {
+            .fila-koda .btn-koda-opciones {
+                opacity: 1;
+                pointer-events: auto;
+            }
+        }
+    </style>
+</head>
+<body class="bg-koda-darkBg font-sans flex flex-col items-center justify-center min-h-screen p-6 text-white relative">
+
+    <div class="w-full max-w-md flex flex-col gap-3">
+        <p class="text-[11.5px] font-bold text-koda-steel uppercase tracking-widest px-1">Pasa el cursor encima o arrastra para mover</p>
+        
+        <!-- Contenedor de prueba para probar Drag & Drop y Hover -->
+        <div id="lista-prueba-orden" class="flex flex-col gap-2.5">
+            
+            <!-- Elemento 1 -->
+            <div class="fila-koda group relative flex justify-between items-center p-3.5 bg-koda-darkCard border border-koda-darkBorder hover:border-white/10 rounded-2xl cursor-grab active:cursor-grabbing transition-colors duration-200">
+                <div class="flex items-center gap-3 min-w-0 pr-2">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 text-white font-bold text-xs flex-shrink-0">
+                        BP
+                    </div>
+                    <div class="flex flex-col min-w-0">
+                        <span class="text-sm font-bold text-white truncate leading-tight">Nómina Principal</span>
+                        <span class="text-[11.5px] font-bold text-koda-steel truncate leading-tight mt-0.5">Popular · DOP</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <span class="text-sm font-bold text-white tracking-tight">RD$48,500</span>
+                    <button type="button" onclick="abrirMenuContextual(event, this, 'Nómina Principal')" class="btn-koda-opciones w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white cursor-pointer outline-none">
+                        <span class="material-symbols-outlined text-[18px]">more_vert</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Elemento 2 -->
+            <div class="fila-koda group relative flex justify-between items-center p-3.5 bg-koda-darkCard border border-koda-darkBorder hover:border-white/10 rounded-2xl cursor-grab active:cursor-grabbing transition-colors duration-200">
+                <div class="flex items-center gap-3 min-w-0 pr-2">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 text-white font-bold text-xs flex-shrink-0">
+                        BR
+                    </div>
+                    <div class="flex flex-col min-w-0">
+                        <span class="text-sm font-bold text-white truncate leading-tight">Ahorros Reserva</span>
+                        <span class="text-[11.5px] font-bold text-koda-steel truncate leading-tight mt-0.5">Banreservas · DOP</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <span class="text-sm font-bold text-white tracking-tight">RD$25,000</span>
+                    <button type="button" onclick="abrirMenuContextual(event, this, 'Ahorros Reserva')" class="btn-koda-opciones w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white cursor-pointer outline-none">
+                        <span class="material-symbols-outlined text-[18px]">more_vert</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ==========================================
+         [TEMPLATE] MENÚ CONTEXTUAL FLOTANTE
+         ========================================== -->
+    <div id="koda-menu-contextual" class="hidden fixed z-50 w-44 bg-[#141820] border border-white/10 rounded-2xl shadow-2xl p-1.5 flex flex-col gap-0.5 backdrop-blur-md" onclick="event.stopPropagation()">
+        <button type="button" onclick="accionMenu('editar')" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-gray-300 hover:text-white hover:bg-white/5 transition-colors cursor-pointer outline-none w-full text-left">
+            <span class="material-symbols-outlined text-[16px] text-koda-steel">edit</span>
+            Editar
+        </button>
+        <button type="button" onclick="accionMenu('transferir')" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-gray-300 hover:text-white hover:bg-white/5 transition-colors cursor-pointer outline-none w-full text-left">
+            <span class="material-symbols-outlined text-[16px] text-koda-steel">swap_horiz</span>
+            Transferir
+        </button>
+        <div class="w-full h-px bg-white/5 my-1"></div>
+        <button type="button" onclick="accionMenu('eliminar')" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-koda-gold hover:bg-koda-gold/10 transition-colors cursor-pointer outline-none w-full text-left">
+            <span class="material-symbols-outlined text-[16px] text-koda-gold">delete</span>
+            Eliminar
+        </button>
+    </div>
+
+    <script>
+        const menu = document.getElementById('koda-menu-contextual');
+        let triggerActivo = null;
+
+        // 1. Inicializar Drag & Drop con física fluida
+        new Sortable(document.getElementById('lista-prueba-orden'), {
+            animation: 150,
+            ghostClass: 'koda-sortable-ghost',
+            chosenClass: 'koda-sortable-chosen',
+            dragClass: 'koda-sortable-drag',
+            delay: 50,
+            delayOnTouchOnly: true
+        });
+
+        // 2. Controlador de apertura y posicionamiento del menú flotante
+        function abrirMenuContextual(e, triggerBtn, nombreItem) {
+            e.stopPropagation();
+            
+            if (!menu.classList.contains('hidden') && triggerActivo === triggerBtn) {
+                cerrarMenu();
+                return;
+            }
+
+            cerrarMenu();
+            triggerActivo = triggerBtn;
+
+            const fila = triggerBtn.closest('.fila-koda');
+            if (fila) fila.classList.add('menu-activo');
+
+            const rect = triggerBtn.getBoundingClientRect();
+            menu.style.top = `${rect.bottom + 6}px`;
+            menu.style.left = `${rect.right - 176}px`; // 176px coincide con w-44
+
+            menu.classList.remove('hidden');
+        }
+
+        function cerrarMenu() {
+            if (menu) menu.classList.add('hidden');
+            document.querySelectorAll('.fila-koda').forEach(f => f.classList.remove('menu-activo'));
+            triggerActivo = null;
+        }
+
+        function accionMenu(tipo) {
+            cerrarMenu();
+        }
+
+        // Cierre contextual global
+        document.addEventListener('click', (e) => {
+            if (!menu.classList.contains('hidden') && !menu.contains(e.target)) {
+                cerrarMenu();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') cerrarMenu();
+        });
+    </script>
+</body>
+</html>

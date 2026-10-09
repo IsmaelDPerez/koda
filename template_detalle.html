@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KODA - Template Detalle</title>
+    
+    <!-- Tipografía e Iconos -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Maven+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { 
+            darkMode: 'class', 
+            theme: { 
+                extend: { 
+                    fontFamily: { sans: ['"Maven Pro"', 'sans-serif'] }, 
+                    colors: { 
+                        koda: { 
+                            darkBg: '#131722', darkCard: '#1E222D', darkBorder: '#2A2E39', textMuted: '#B2B5BE', 
+                            white: '#F8F9FA', blue: '#66A5AD', gold: '#C1A35F', steel: '#787886' 
+                        } 
+                    } 
+                } 
+            } 
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { display: none !important; }
+        * { -ms-overflow-style: none !important; scrollbar-width: none !important; }
+    </style>
+</head>
+<body class="bg-koda-darkBg font-sans flex items-center justify-center min-h-screen">
+
+    <button onclick="abrirDetalleKoda()" class="px-6 py-3 bg-white/10 text-white font-bold rounded-xl outline-none hover:bg-white/20 transition-colors">
+        Abrir Detalle de Movimiento
+    </button>
+
+    <!-- ==========================================
+         [TEMPLATE C] MODAL MAESTRO DE DETALLE 
+         ========================================== -->
+    <div id="modal-detalle-koda" class="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
+        
+        <div id="card-detalle-koda" class="relative w-full max-w-[420px] bg-[#141820] border border-white/5 rounded-[32px] p-8 shadow-2xl flex flex-col transform scale-95 transition-all duration-300 ease-out">
+            
+            <!-- 1. HEADER (Sin icono, directo al texto) -->
+            <div class="flex items-start justify-between mb-8">
+                <div>
+                    <h3 class="text-xl font-black text-white leading-tight mb-1">Uber al trabajo</h3>
+                    <p class="text-[11px] font-bold text-koda-steel tracking-widest uppercase">Transporte</p>
+                </div>
+                <button type="button" onclick="cerrarDetalleKoda()" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors cursor-pointer outline-none flex-shrink-0">
+                    <span class="material-symbols-outlined text-[18px]">close</span>
+                </button>
+            </div>
+
+            <!-- 2. HERO METRIC -->
+            <div class="flex flex-col items-center justify-center bg-[#0A0D12] border border-white/5 rounded-2xl py-8 mb-6">
+                <p class="text-[10px] font-bold text-koda-steel tracking-widest uppercase mb-1">Monto Registrado</p>
+                <h2 class="text-5xl font-black text-white tracking-tight">RD$850</h2>
+            </div>
+
+            <!-- 3. LISTA DE ATRIBUTOS (Limpios) -->
+            <div class="flex flex-col gap-4 mb-8 px-2">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-semibold text-koda-textMuted">Fecha</span>
+                    <span class="text-xs font-bold text-white">15 Oct 2026, 08:30 AM</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-semibold text-koda-textMuted">Cuenta Origen</span>
+                    <span class="text-xs font-bold text-koda-blue">Nómina Popular</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-semibold text-koda-textMuted">Afecta Sobre</span>
+                    <span class="text-xs font-bold text-white">Ninguno</span>
+                </div>
+            </div>
+
+            <!-- 4. ACCIONES SECUNDARIAS -->
+            <div class="flex gap-3">
+                <button type="button" class="w-12 h-12 rounded-2xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[20px]">delete</span>
+                </button>
+                
+                <!-- Al hacer clic, cierra este modal y abre el Modal de Movimientos (Template A) en modo edición -->
+                <button type="button" onclick="editarMovimientoDesdeDetalle()" class="flex-1 py-3 rounded-2xl bg-white/10 hover:bg-white/15 text-white text-sm font-black transition-colors cursor-pointer outline-none">
+                    Editar Movimiento
+                </button>
+            </div>
+            
+        </div>
+    </div>
+
+    <!-- Lógica del Componente -->
+    <script>
+        function abrirDetalleKoda() {
+            const modal = document.getElementById('modal-detalle-koda');
+            const card = document.getElementById('card-detalle-koda');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modal.classList.add('opacity-100', 'pointer-events-auto');
+            card.classList.remove('scale-95');
+            card.classList.add('scale-100');
+        }
+
+        function cerrarDetalleKoda() {
+            const modal = document.getElementById('modal-detalle-koda');
+            const card = document.getElementById('card-detalle-koda');
+            modal.classList.remove('opacity-100', 'pointer-events-auto');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            card.classList.remove('scale-100');
+            card.classList.add('scale-95');
+        }
+
+        // Lógica para el botón "Editar"
+        function editarMovimientoDesdeDetalle() {
+            cerrarDetalleKoda();
+            
+            // Aquí llamarías a tu función existente en app.js pasándole el ID real.
+            // Ejemplo simulado:
+            setTimeout(() => {
+                // abrirModalEdicion(id_del_movimiento); 
+                alert("Aquí se abre el Template A (Modal de Registro) con los datos precargados para editar.");
+            }, 300);
+        }
+
+        // Escuchar la tecla ESC para cerrar
+        document.addEventListener('keydown', function(event) {
+            if (event.key === "Escape") {
+                const modal = document.getElementById('modal-detalle-koda');
+                // Solo ejecutamos si el modal está visible
+                if (!modal.classList.contains('opacity-0')) {
+                    cerrarDetalleKoda();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

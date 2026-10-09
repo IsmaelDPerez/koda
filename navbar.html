@@ -1,0 +1,44 @@
+<!-- [NAV-01] BARRA DE NAVEGACIÓN ALINEADA -->
+<nav class="w-full max-w-[1500px] flex justify-between items-center mb-8 relative mx-auto px-2">
+    
+    <!-- Logo e Identidad (CSS Puro, Maven Pro Black) -->
+    <div class="flex items-center cursor-pointer select-none" onclick="navegarA('dashboard')">
+        <span class="text-gray-900 dark:text-white text-3xl md:text-4xl" style="font-family: 'Maven Pro', sans-serif; font-weight: 900; letter-spacing: -0.05em;">
+            KODA<span class="text-koda-blue">.</span>
+        </span>
+    </div>
+
+    <!-- Menú Central Flotante (Apple Sliding Pill Style) -->
+    <div class="hidden md:flex relative bg-koda-lightCard dark:bg-koda-darkCard border border-gray-200 dark:border-koda-darkBorder rounded-full p-1 shadow-sm items-center">
+        
+        <!-- El Slider Animado (La píldora de fondo) -->
+        <div id="nav-slider" class="absolute top-1 bottom-1 left-0 bg-gray-200 dark:bg-koda-darkBg rounded-full transition-all duration-300 ease-out pointer-events-none" style="width: 0px; transform: translateX(0px);"></div>
+
+        <!-- Enlaces / Pestañas -->
+        <button id="nav-btn-dashboard" onclick="animarYNavegar(this, 'dashboard')" class="nav-item relative z-10 px-6 py-2 text-sm font-semibold text-koda-textMuted hover:text-gray-900 dark:hover:text-white transition-colors duration-300">Dashboard</button>
+        <button id="nav-btn-sobres" onclick="animarYNavegar(this, 'sobres')" class="nav-item relative z-10 px-6 py-2 text-sm font-semibold text-koda-textMuted hover:text-gray-900 dark:hover:text-white transition-colors duration-300">Envelopes</button>
+        <button id="nav-btn-compromisos" onclick="animarYNavegar(this, 'compromisos')" class="nav-item relative z-10 px-6 py-2 text-sm font-semibold text-koda-textMuted hover:text-gray-900 dark:hover:text-white transition-colors duration-300">Obligations</button>
+        <button id="nav-btn-metas" onclick="animarYNavegar(this, 'metas')" class="nav-item relative z-10 px-6 py-2 text-sm font-semibold text-koda-textMuted hover:text-gray-900 dark:hover:text-white transition-colors duration-300">Goals</button>
+        <button id="nav-btn-checkpay" onclick="animarYNavegar(this, 'checkpay')" class="nav-item relative z-10 px-6 py-2 text-sm font-semibold text-koda-textMuted hover:text-gray-900 dark:hover:text-white transition-colors duration-300">Check Pay</button>
+    </div>
+
+    <!-- Acciones de la Derecha (Solo Notificaciones) -->
+    <div class="flex items-center gap-4">
+        <div class="relative">
+            <button onclick="toggleNotificaciones()" class="w-10 h-10 bg-koda-lightCard dark:bg-koda-darkCard border border-gray-200 dark:border-koda-darkBorder rounded-full flex items-center justify-center relative hover:scale-110 transition-transform">
+                <span class="material-symbols-outlined text-gray-600 dark:text-gray-300">notifications</span>
+                <span id="badge-notif" class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-koda-blue rounded-full border-2 border-white dark:border-koda-darkBg hidden animate-pulse"></span>
+            </button>
+            <div id="panel-notificaciones" class="hidden absolute right-0 mt-3 w-80 bg-[#141820] border border-white/10 rounded-2xl shadow-2xl p-3 z-50 backdrop-blur-md" onclick="event.stopPropagation()">
+                <div class="flex items-center justify-between pb-2 mb-2 border-b border-white/5 px-1">
+                    <span class="text-[11.5px] font-semibold text-koda-steel">Notifications</span>
+                    <div class="flex items-center gap-3">
+                        <button type="button" onclick="marcarNotificacionesLeidas()" class="text-[11px] font-semibold text-koda-blue hover:text-white transition-colors cursor-pointer outline-none">Mark all read</button>
+                        <button type="button" onclick="limpiarNotificaciones()" class="text-[11px] font-semibold text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">Clear</button>
+                    </div>
+                </div>
+                <div id="lista-notificaciones" class="flex flex-col gap-1 max-h-[360px] overflow-y-auto no-scrollbar"></div>
+            </div>
+        </div>
+    </div>
+</nav>

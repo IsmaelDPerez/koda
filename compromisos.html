@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KODA - Obligations</title>
+
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Maven+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' font-family='sans-serif' font-weight='900' fill='%2366A5AD'>K.</text></svg>">
+
+    <!-- Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+    <!-- Tailwind & Config -->
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="tailwind-config.js"></script>
+
+    <style>
+        /* Corrección de VS Code warning y estilos base */
+        input, select, textarea, button { font-family: inherit; color-scheme: dark; }
+        
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] { 
+            -moz-appearance: textfield; 
+            appearance: textfield; 
+        }
+
+        /* Utilidad para custom scrollbar en popovers */
+        .koda-scrollbar::-webkit-scrollbar { width: 4px; }
+        .koda-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .koda-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+    </style>
+</head>
+<body class="font-sans min-h-screen flex flex-col items-center p-4 md:p-6 bg-koda-darkBg text-white transition-colors duration-300 relative select-none">
+
+    <div id="contenedor-navbar" class="w-full max-w-[1500px]"></div>
+
+    <main class="w-full max-w-[1500px] flex flex-col pb-32 pt-2">
+
+        <!-- HEADER -->
+        <div class="flex items-center justify-between mb-8">
+            <div class="flex items-center gap-4">
+                <button onclick="navegarA('dashboard')" class="w-10 h-10 bg-koda-darkCard border border-koda-darkBorder rounded-full flex items-center justify-center text-koda-steel hover:text-white transition-all shadow-sm cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+                </button>
+                <h2 class="text-3xl font-semibold tracking-tight">Obligations</h2>
+            </div>
+
+            <button type="button" onclick="accionAgregarContextual()" class="px-6 py-2.5 bg-koda-blue text-[#131722] font-semibold rounded-full text-xs hover:bg-[#7ab5bd] transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer outline-none">
+                <span class="material-symbols-outlined text-[18px]">add</span>
+                <span id="cmp-btn-add-txt">Add bill</span>
+            </button>
+        </div>
+
+        <!-- KPIs -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="bg-koda-darkCard border border-koda-darkBorder rounded-[1.5rem] p-6 shadow-sm">
+                <p class="text-[11.5px] font-semibold text-koda-steel mb-2">Fixed bills</p>
+                <h4 class="text-3xl font-semibold text-koda-blue" id="cmp-kpi-fijos">$0</h4>
+                <p class="text-[11.5px] font-medium text-koda-steel mt-1" id="cmp-kpi-fijos-sub">0% of income</p>
+            </div>
+            <div class="bg-koda-darkCard border border-koda-darkBorder rounded-[1.5rem] p-6 shadow-sm">
+                <p class="text-[11.5px] font-semibold text-koda-steel mb-2">Total debts</p>
+                <h4 class="text-3xl font-semibold text-white" id="cmp-kpi-deudas">$0</h4>
+                <p class="text-[11.5px] font-medium text-koda-steel mt-1" id="cmp-kpi-deudas-sub">0 debts</p>
+            </div>
+            <div class="bg-koda-darkCard border border-koda-darkBorder rounded-[1.5rem] p-6 shadow-sm">
+                <p class="text-[11.5px] font-semibold text-koda-steel mb-2">Receivables</p>
+                <h4 class="text-3xl font-semibold text-white" id="cmp-kpi-cobrar">$0</h4>
+                <p class="text-[11.5px] font-medium text-koda-steel mt-1" id="cmp-kpi-cobrar-sub">0 active</p>
+            </div>
+        </div>
+
+        <!-- TABS -->
+        <div class="flex mb-8">
+            <div id="cmp-tabs" class="relative inline-flex items-center bg-koda-darkCard border border-koda-darkBorder rounded-full p-1 shadow-sm">
+                <div id="cmp-tab-slider" class="absolute top-1 bottom-1 left-0 bg-koda-darkBg rounded-full transition-all duration-300 ease-out pointer-events-none" style="width: 0px; transform: translateX(0px);"></div>
+                <button type="button" id="cmp-tab-fijo" onclick="renderizarPaginaCompromisos('fijo')">Fixed bills <span id="cmp-badge-fijo">0</span></button>
+                <button type="button" id="cmp-tab-deuda" onclick="renderizarPaginaCompromisos('deuda')">Debts <span id="cmp-badge-deuda">0</span></button>
+                <button type="button" id="cmp-tab-prestamo" onclick="renderizarPaginaCompromisos('prestamo')">Receivables <span id="cmp-badge-prestamo">0</span></button>
+            </div>
+        </div>
+
+        <!-- ACTION BAR -->
+        <div class="flex justify-between items-center mb-6">
+            <p class="text-[12px] font-semibold text-koda-steel" id="cmp-caption">Recurring payments</p>
+
+            <div class="relative">
+                <button type="button" id="cmp-btn-orden" onclick="togglePopoverOrdenComp(event)" class="flex items-center gap-2 h-9 px-4 rounded-full border border-white/10 hover:border-white/20 text-[11.5px] font-semibold text-white transition-colors cursor-pointer outline-none bg-transparent">
+                    <span class="material-symbols-outlined text-[16px] text-koda-steel">filter_list</span>
+                    <span id="cmp-label-orden">Custom order</span>
+                </button>
+
+                <div id="cmp-popover-orden" class="hidden absolute right-0 top-full mt-2 w-[220px] bg-[#141820] border border-white/10 rounded-2xl shadow-2xl z-30 p-3 flex flex-col gap-1 backdrop-blur-md" onclick="event.stopPropagation()">
+                    <div class="flex items-center justify-between pb-1 mb-1 border-b border-white/5">
+                        <span class="text-[11.5px] font-semibold text-koda-steel">Sort by</span>
+                        <button type="button" onclick="cerrarPopoverOrdenComp()" class="text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
+                            <span class="material-symbols-outlined text-[14px]">close</span>
+                        </button>
+                    </div>
+                    <div id="cmp-lista-orden" class="flex flex-col gap-1"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTENIDO DE LA PESTAÑA -->
+        <div id="cmp-vista"></div>
+    </main>
+
+    <!-- ==========================================
+         [CMP-03] MODAL: FIXED BILL (new / edit)
+         ========================================== -->
+    <div id="cmp-modal-bill" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
+        <div class="relative w-full max-w-[460px] bg-[#141820] border border-white/10 rounded-[32px] p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] flex flex-col gap-4 transform scale-95 transition-all duration-300 ease-out max-h-[92vh] overflow-y-auto">
+            <div class="flex items-center justify-between">
+                <h3 class="text-2xl font-semibold tracking-tight text-white" id="cmp-bill-titulo">New bill</h3>
+                <button type="button" onclick="cmpCerrar('cmp-modal-bill')" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[18px]">close</span>
+                </button>
+            </div>
+
+            <form class="flex flex-col gap-4" onsubmit="event.preventDefault(); guardarBill();">
+                <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                    <span class="text-[11.5px] font-semibold text-koda-steel">Name</span>
+                    <input type="text" id="cmp-bill-nombre" autocomplete="off" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none select-text">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                        <span class="text-[11.5px] font-semibold text-koda-steel">Paycheck 1 amount</span>
+                        <input type="number" id="cmp-bill-q1" onwheel="this.blur()" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none">
+                    </div>
+                    <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                        <span class="text-[11.5px] font-semibold text-koda-steel">Paycheck 2 amount</span>
+                        <input type="number" id="cmp-bill-q2" onwheel="this.blur()" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none">
+                    </div>
+                </div>
+
+                <label class="bg-[#0A0D12] border border-white/5 rounded-2xl px-4 py-3.5 flex items-center justify-between cursor-pointer">
+                    <span class="text-xs font-semibold text-white">Affects net available</span>
+                    <span class="relative inline-flex items-center">
+                        <input type="checkbox" id="cmp-bill-afecta" class="peer sr-only" checked>
+                        <span class="block w-10 h-6 rounded-full bg-white/10 peer-checked:bg-koda-blue transition-colors duration-300"></span>
+                        <span class="absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-transform duration-300 peer-checked:translate-x-4"></span>
+                    </span>
+                </label>
+
+                <div class="flex items-center justify-end gap-3 pt-2 border-t border-white/5">
+                    <button type="button" id="cmp-bill-eliminar" onclick="cmpArmarEliminar(this, eliminarBill)" class="hidden w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer mr-auto outline-none">
+                        <span class="material-symbols-outlined text-[18px]">delete</span>
+                    </button>
+                    <button type="button" onclick="cmpCerrar('cmp-modal-bill')" class="px-5 py-2.5 text-xs font-semibold text-koda-steel hover:text-white rounded-full hover:bg-white/5 transition-colors cursor-pointer outline-none">Cancel</button>
+                    <button type="submit" class="px-8 py-3 text-xs font-semibold rounded-full bg-koda-blue text-[#131722] hover:bg-[#7ab5bd] transition-colors cursor-pointer outline-none">Confirm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         [CMP-04] MODAL: DEBT (new / edit)
+         ========================================== -->
+    <div id="cmp-modal-debt" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
+        <div class="relative w-full max-w-[500px] bg-[#141820] border border-white/10 rounded-[32px] p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] flex flex-col gap-4 transform scale-95 transition-all duration-300 ease-out max-h-[92vh] overflow-y-auto">
+            <div class="flex items-center justify-between">
+                <h3 class="text-2xl font-semibold tracking-tight text-white" id="cmp-debt-titulo">New debt</h3>
+                <button type="button" onclick="cmpCerrar('cmp-modal-debt')" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[18px]">close</span>
+                </button>
+            </div>
+
+            <form class="flex flex-col gap-4" onsubmit="event.preventDefault(); guardarDebt();">
+                <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                    <span class="text-[11.5px] font-semibold text-koda-steel">Name</span>
+                    <input type="text" id="cmp-debt-nombre" autocomplete="off" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none select-text">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                        <span class="text-[11.5px] font-semibold text-koda-steel">Total debt</span>
+                        <input type="number" id="cmp-debt-total" onwheel="this.blur()" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none">
+                    </div>
+                    <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                        <span class="text-[11.5px] font-semibold text-koda-steel">Remaining balance</span>
+                        <input type="number" id="cmp-debt-actual" onwheel="this.blur()" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                        <span class="text-[11.5px] font-semibold text-koda-steel">Paycheck 1 payment</span>
+                        <input type="number" id="cmp-debt-q1" onwheel="this.blur()" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none">
+                    </div>
+                    <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                        <span class="text-[11.5px] font-semibold text-koda-steel">Paycheck 2 payment</span>
+                        <input type="number" id="cmp-debt-q2" onwheel="this.blur()" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none">
+                    </div>
+                </div>
+
+                <label class="bg-[#0A0D12] border border-white/5 rounded-2xl px-4 py-3.5 flex items-center justify-between cursor-pointer">
+                    <span class="text-xs font-semibold text-white">Affects net available</span>
+                    <span class="relative inline-flex items-center">
+                        <input type="checkbox" id="cmp-debt-afecta" class="peer sr-only" checked>
+                        <span class="block w-10 h-6 rounded-full bg-white/10 peer-checked:bg-koda-blue transition-colors duration-300"></span>
+                        <span class="absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-transform duration-300 peer-checked:translate-x-4"></span>
+                    </span>
+                </label>
+
+                <!-- Payment history (solo al editar una deuda existente) -->
+                <div id="cmp-debt-historial-wrap" class="hidden flex flex-col gap-2">
+                    <span class="text-[11.5px] font-semibold text-koda-steel px-1">Payment history</span>
+                    <div class="overflow-x-auto rounded-2xl border border-white/5 bg-[#0A0D12] max-h-[220px] overflow-y-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-white/5">
+                                    <th class="py-2.5 px-4 text-[11.5px] font-semibold text-koda-steel">Date / time</th>
+                                    <th class="py-2.5 px-4 text-[11.5px] font-semibold text-koda-steel text-right">Paid</th>
+                                    <th class="py-2.5 px-4 text-[11.5px] font-semibold text-koda-steel text-right">Remaining</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cmp-debt-historial"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-2 border-t border-white/5">
+                    <button type="button" id="cmp-debt-eliminar" onclick="cmpArmarEliminar(this, eliminarDebt)" class="hidden w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer mr-auto outline-none">
+                        <span class="material-symbols-outlined text-[18px]">delete</span>
+                    </button>
+                    <button type="button" onclick="cmpCerrar('cmp-modal-debt')" class="px-5 py-2.5 text-xs font-semibold text-koda-steel hover:text-white rounded-full hover:bg-white/5 transition-colors cursor-pointer outline-none">Cancel</button>
+                    <button type="submit" class="px-8 py-3 text-xs font-semibold rounded-full bg-koda-blue text-[#131722] hover:bg-[#7ab5bd] transition-colors cursor-pointer outline-none">Confirm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         [CMP-05] MODAL: NEW LOAN (receivable)
+         ========================================== -->
+    <div id="cmp-modal-loan" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
+        <div class="relative w-full max-w-[460px] bg-[#141820] border border-white/10 rounded-[32px] p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] flex flex-col gap-4 transform scale-95 transition-all duration-300 ease-out max-h-[92vh] overflow-y-auto">
+            <div class="flex items-center justify-between">
+                <h3 class="text-2xl font-semibold tracking-tight text-white">New loan</h3>
+                <button type="button" onclick="cmpCerrar('cmp-modal-loan')" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[18px]">close</span>
+                </button>
+            </div>
+
+            <form class="flex flex-col gap-4" onsubmit="event.preventDefault(); guardarNuevoPrestamo();">
+                <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                    <span class="text-[11.5px] font-semibold text-koda-steel">Who borrowed it</span>
+                    <input type="text" id="cmp-loan-nombre" autocomplete="off" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none select-text">
+                </div>
+
+                <div class="bg-[#0A0D12] border border-white/5 focus-within:border-koda-blue/40 rounded-2xl p-4 flex flex-col items-center justify-center gap-1 transition-colors">
+                    <span class="text-[11.5px] font-semibold text-koda-steel">Amount lent</span>
+                    <input type="number" id="cmp-loan-monto" onwheel="this.blur()" class="w-full bg-transparent text-4xl font-semibold text-white text-center placeholder:text-white/20 border-none outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    
+                    <!-- KODA CUSTOM POPOVER: FROM ACCOUNT -->
+                    <div class="relative bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors" id="wrap-loan-cuenta">
+                        <span class="text-[11.5px] font-semibold text-koda-steel">From account</span>
+                        <input type="hidden" id="cmp-loan-cuenta">
+                        <button type="button" onclick="kodaUiToggle('dropdown-loan-cuenta')" id="btn-loan-cuenta" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none flex justify-between items-center text-left cursor-pointer">
+                            <span>Select account</span>
+                            <span class="material-symbols-outlined text-[16px] text-koda-steel">expand_more</span>
+                        </button>
+                        <!-- Se cambia a bottom-full mb-2 para abrir hacia arriba -->
+                        <div id="dropdown-loan-cuenta" class="koda-dropdown hidden absolute bottom-full left-0 right-0 mb-2 bg-[#1B212B] border border-white/10 rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto koda-scrollbar py-1">
+                            <!-- Inyectado por JS -->
+                        </div>
+                    </div>
+
+                    <!-- KODA CUSTOM CALENDAR: DATE -->
+                    <div class="relative bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors" id="wrap-loan-fecha">
+                        <span class="text-[11.5px] font-semibold text-koda-steel">Date</span>
+                        <input type="hidden" id="cmp-loan-fecha">
+                        <button type="button" onclick="kodaUiToggle('dropdown-loan-fecha'); kodaRenderizarCalModal('dropdown-loan-fecha', 'cmp-loan-fecha', 'btn-loan-fecha')" id="btn-loan-fecha" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none flex justify-between items-center text-left cursor-pointer">
+                            <span>Today</span>
+                            <span class="material-symbols-outlined text-[16px] text-koda-steel">calendar_today</span>
+                        </button>
+                        <!-- Se cambia a bottom-full mb-2 para abrir hacia arriba -->
+                        <div id="dropdown-loan-fecha" class="koda-dropdown hidden absolute bottom-full right-0 mb-2 w-[260px] bg-[#1B212B] border border-white/10 rounded-xl shadow-xl z-50 p-4" onclick="event.stopPropagation()">
+                            <div class="flex justify-between items-center mb-3">
+                                <span id="cal-mes-loan" class="text-sm font-semibold text-white">Month Year</span>
+                                <div class="flex gap-1">
+                                    <button type="button" onclick="kodaNavCalModal(-1)" class="text-koda-steel hover:text-white outline-none"><span class="material-symbols-outlined text-[18px]">arrow_upward</span></button>
+                                    <button type="button" onclick="kodaNavCalModal(1)" class="text-koda-steel hover:text-white outline-none"><span class="material-symbols-outlined text-[18px]">arrow_downward</span></button>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-7 text-center text-[11.5px] font-semibold text-koda-steel mb-2">
+                                <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+                            </div>
+                            <div id="cal-grid-loan" class="grid grid-cols-7 gap-y-1"></div>
+                            <div class="flex justify-between mt-3 pt-3 border-t border-white/5">
+                                <button type="button" onclick="kodaClearCalModal()" class="text-xs text-koda-blue hover:text-white transition-colors font-semibold outline-none">Clear</button>
+                                <button type="button" onclick="kodaTodayCalModal()" class="text-xs text-koda-blue hover:text-white transition-colors font-semibold outline-none">Today</button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-2 border-t border-white/5">
+                    <button type="button" onclick="cmpCerrar('cmp-modal-loan')" class="px-5 py-2.5 text-xs font-semibold text-koda-steel hover:text-white rounded-full hover:bg-white/5 transition-colors cursor-pointer outline-none">Cancel</button>
+                    <button type="submit" class="px-8 py-3 text-xs font-semibold rounded-full bg-koda-blue text-[#131722] hover:bg-[#7ab5bd] transition-colors cursor-pointer outline-none">Confirm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         [CMP-06] MODAL: LOAN LEDGER (estado de cuenta)
+         ========================================== -->
+    <div id="cmp-modal-ledger" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
+        <div class="relative w-full max-w-3xl bg-[#141820] border border-white/10 rounded-[32px] p-6 sm:p-8 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] flex flex-col gap-5 transform scale-95 transition-all duration-300 ease-out max-h-[92vh] overflow-y-auto">
+            <div class="flex items-start justify-between gap-4">
+                <div class="flex flex-col gap-3 w-full">
+                    <input type="text" id="cmp-led-nombre" onchange="cmpRenombrarPrestamo(this.value)" autocomplete="off" class="w-full bg-transparent text-2xl font-semibold text-white border-none outline-none select-text">
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="abrirModalMovPrestamo('otorgar')" class="bg-white/5 hover:bg-white/10 text-white px-3.5 py-2 rounded-xl text-[11.5px] font-semibold transition-colors cursor-pointer outline-none">+ Lend more</button>
+                        <button type="button" onclick="abrirModalMovPrestamo('cobrar')" class="bg-koda-blue/10 hover:bg-koda-blue/20 text-koda-blue px-3.5 py-2 rounded-xl text-[11.5px] font-semibold transition-colors cursor-pointer outline-none">+ Record payment</button>
+                    </div>
+                </div>
+                <button type="button" onclick="cerrarModalDetallePrestamo()" class="w-8 h-8 flex-shrink-0 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[18px]">close</span>
+                </button>
+            </div>
+
+            <span class="text-[11.5px] font-semibold text-koda-steel -mb-2 px-1">Notes</span>
+            <textarea id="cmp-led-notas" onchange="guardarNotasGlobalesPrestamo(this.value)" rows="2" class="w-full bg-[#0A0D12] border border-white/5 focus:border-white/20 rounded-2xl px-4 py-3 text-xs text-white placeholder:text-koda-steel font-medium outline-none resize-none transition-colors select-text"></textarea>
+
+            <div class="overflow-x-auto rounded-2xl border border-white/5 bg-[#0A0D12]">
+                <table class="w-full text-left border-collapse min-w-[560px]">
+                    <thead>
+                        <tr class="border-b border-white/5">
+                            <th class="py-3 px-4 text-[11.5px] font-semibold text-koda-steel">Date / time</th>
+                            <th class="py-3 px-4 text-[11.5px] font-semibold text-koda-steel">Description</th>
+                            <th class="py-3 px-4 text-[11.5px] font-semibold text-koda-steel text-right">Lent (+)</th>
+                            <th class="py-3 px-4 text-[11.5px] font-semibold text-koda-steel text-right">Paid (-)</th>
+                            <th class="py-3 px-4 text-[11.5px] font-semibold text-koda-steel text-right">Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cmp-led-body"></tbody>
+                </table>
+            </div>
+
+            <div class="flex items-center justify-between pt-4 border-t border-white/5">
+                <div class="flex flex-col gap-2 items-start">
+                    <span id="cmp-led-inicio" class="text-[11.5px] font-semibold text-koda-steel">Start: N/A</span>
+                    <button type="button" onclick="cmpArmarEliminar(this, eliminarPrestamoActual)" class="text-[11px] font-semibold text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">Delete loan</button>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="text-[11.5px] font-semibold text-koda-steel">Outstanding:</span>
+                    <span class="text-3xl font-semibold text-white" id="cmp-led-total">$0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         [CMP-07] MODAL: LEND MORE / RECORD PAYMENT (/ edit transaction)
+         ========================================== -->
+    <div id="cmp-modal-mov" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
+        <div class="relative w-full max-w-[460px] bg-[#141820] border border-white/10 rounded-[32px] p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] flex flex-col gap-4 transform scale-95 transition-all duration-300 ease-out max-h-[92vh] overflow-y-auto">
+            <div class="flex items-center justify-between">
+                <h3 class="text-2xl font-semibold tracking-tight text-white" id="cmp-mov-titulo">Lend more</h3>
+                <button type="button" onclick="cerrarModalMovPrestamo()" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[18px]">close</span>
+                </button>
+            </div>
+
+            <form class="flex flex-col gap-4" onsubmit="event.preventDefault(); guardarMovPrestamo();">
+                <input type="hidden" id="cmp-mov-tipo">
+
+                <div class="bg-[#0A0D12] border border-white/5 focus-within:border-koda-blue/40 rounded-2xl p-4 flex flex-col items-center justify-center gap-1 transition-colors">
+                    <span class="text-[11.5px] font-semibold text-koda-steel">Amount</span>
+                    <input type="number" id="cmp-mov-monto" onwheel="this.blur()" class="w-full bg-transparent text-4xl font-semibold text-white text-center placeholder:text-white/20 border-none outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    
+                    <!-- KODA CUSTOM POPOVER: FROM ACCOUNT (MOV) -->
+                    <div class="relative bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors" id="wrap-mov-cuenta">
+                        <span class="text-[11.5px] font-semibold text-koda-steel">Account</span>
+                        <input type="hidden" id="cmp-mov-cuenta">
+                        <button type="button" onclick="kodaUiToggle('dropdown-mov-cuenta')" id="btn-mov-cuenta" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none flex justify-between items-center text-left cursor-pointer">
+                            <span>Select account</span>
+                            <span class="material-symbols-outlined text-[16px] text-koda-steel">expand_more</span>
+                        </button>
+                        <!-- Se cambia a bottom-full mb-2 para abrir hacia arriba -->
+                        <div id="dropdown-mov-cuenta" class="koda-dropdown hidden absolute bottom-full left-0 right-0 mb-2 bg-[#1B212B] border border-white/10 rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto koda-scrollbar py-1">
+                            <!-- Inyectado por JS -->
+                        </div>
+                    </div>
+
+                    <!-- KODA CUSTOM CALENDAR: DATE (MOV) -->
+                    <div class="relative bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors" id="wrap-mov-fecha">
+                        <span class="text-[11.5px] font-semibold text-koda-steel">Date</span>
+                        <input type="hidden" id="cmp-mov-fecha">
+                        <button type="button" onclick="kodaUiToggle('dropdown-mov-fecha'); kodaRenderizarCalModal('dropdown-mov-fecha', 'cmp-mov-fecha', 'btn-mov-fecha')" id="btn-mov-fecha" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none flex justify-between items-center text-left cursor-pointer">
+                            <span>Today</span>
+                            <span class="material-symbols-outlined text-[16px] text-koda-steel">calendar_today</span>
+                        </button>
+                        <!-- Se cambia a bottom-full mb-2 para abrir hacia arriba -->
+                        <div id="dropdown-mov-fecha" class="koda-dropdown hidden absolute bottom-full right-0 mb-2 w-[260px] bg-[#1B212B] border border-white/10 rounded-xl shadow-xl z-50 p-4" onclick="event.stopPropagation()">
+                            <div class="flex justify-between items-center mb-3">
+                                <span id="cal-mes-mov" class="text-sm font-semibold text-white">Month Year</span>
+                                <div class="flex gap-1">
+                                    <button type="button" onclick="kodaNavCalModal(-1)" class="text-koda-steel hover:text-white outline-none"><span class="material-symbols-outlined text-[18px]">arrow_upward</span></button>
+                                    <button type="button" onclick="kodaNavCalModal(1)" class="text-koda-steel hover:text-white outline-none"><span class="material-symbols-outlined text-[18px]">arrow_downward</span></button>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-7 text-center text-[11.5px] font-semibold text-koda-steel mb-2">
+                                <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+                            </div>
+                            <div id="cal-grid-mov" class="grid grid-cols-7 gap-y-1"></div>
+                            <div class="flex justify-between mt-3 pt-3 border-t border-white/5">
+                                <button type="button" onclick="kodaClearCalModal()" class="text-xs text-koda-blue hover:text-white transition-colors font-semibold outline-none">Clear</button>
+                                <button type="button" onclick="kodaTodayCalModal()" class="text-xs text-koda-blue hover:text-white transition-colors font-semibold outline-none">Today</button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                    <span class="text-[11.5px] font-semibold text-koda-steel">Description</span>
+                    <input type="text" id="cmp-mov-desc" autocomplete="off" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none select-text">
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-2 border-t border-white/5">
+                    <button type="button" id="cmp-mov-eliminar" onclick="cmpArmarEliminar(this, eliminarMovPrestamo)" class="hidden w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer mr-auto outline-none">
+                        <span class="material-symbols-outlined text-[18px]">delete</span>
+                    </button>
+                    <button type="button" onclick="cerrarModalMovPrestamo()" class="px-5 py-2.5 text-xs font-semibold text-koda-steel hover:text-white rounded-full hover:bg-white/5 transition-colors cursor-pointer outline-none">Cancel</button>
+                    <button type="submit" class="px-8 py-3 text-xs font-semibold rounded-full bg-koda-blue text-[#131722] hover:bg-[#7ab5bd] transition-colors cursor-pointer outline-none">Confirm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- [CMP-08] GLOBAL POPUP INJECTOR -->
+    <div id="contenedor-modal"></div>
+
+    <script src="koda-api.js"></script>
+    <script src="app.js"></script>
+    <script>
+        // ==========================================
+        // LÓGICA DE LA PÁGINA (KODA OBLIGATIONS)
+        // ==========================================
+        const CMP_ORDEN_DEFAULT = 'Custom order';
+        const CMP_OPCIONES_ORDEN = {
+            fijo:     [['mayor', 'Highest amount'], ['menor', 'Lowest amount'], ['alfabetico', 'Alphabetical A-Z']],
+            deuda:    [['mayor', 'Highest balance'], ['menor', 'Lowest balance'], ['progreso', 'Most paid'], ['alfabetico', 'Alphabetical A-Z']],
+            prestamo: [['mayor', 'Highest balance'], ['menor', 'Lowest balance'], ['alfabetico', 'Alphabetical A-Z']]
+        };
+        const CMP_TEXTOS = {
+            fijo:     { boton: 'Add bill', caption: 'Recurring payments' },
+            deuda:    { boton: 'Add debt', caption: 'Active debts' },
+            prestamo: { boton: 'Add loan', caption: 'Money owed to you' }
+        };
+
+        let cmpTab = 'fijo';
+        let cmpEditId = null;       
+        let cmpLoanId = null;       
+        let cmpMovEditId = null;    
+        let cmpSliderListo = false;
+        let cmpTimerEliminar = null;
+        const cmpOrdenEtiqueta = { fijo: CMP_ORDEN_DEFAULT, deuda: CMP_ORDEN_DEFAULT, prestamo: CMP_ORDEN_DEFAULT };
+
+        // ---------- UTILIDADES UI / DROPDOWNS ----------
+        const cmpEl = (id) => document.getElementById(id);
+        const cmpMoney = (n) => `$${(Number(n) || 0).toLocaleString()}`;
+        const cmpEsc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const cmpBalance = (p) => (p.montoPrestado || 0) - (p.montoPagado || 0);
+        const cmpEsCobro = (m) => (m.categoria || '').includes('Cobro');
+
+        function cmpHoyISO() {
+            const d = new Date();
+            const p = (n) => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+        }
+        function cmpHoraActual() { return new Date().toTimeString().split(' ')[0]; }
+
+        function cmpAlerta(titulo, desc) {
+            if (typeof mostrarAlertaKoda === 'function' && cmpEl('modal-alerta-koda')) mostrarAlertaKoda(titulo, desc);
+            else alert(desc);
+        }
+
+        function cmpPctDeuda(d) {
+            const total = d.deudaTotal || 0;
+            if (total <= 0) return 0;
+            return Math.min(100, Math.max(0, Math.round(((total - (d.deudaActual || 0)) / total) * 100)));
+        }
+
+        function cmpSiguienteOrden(lista) {
+            return lista.reduce((mx, it) => Math.max(mx, (it.orden ?? -1)), -1) + 1;
+        }
+
+        // Sincronización de saldos
+        function cmpSincronizarPrestamos() {
+            prestamosDB.forEach(p => {
+                let prestado = 0, pagado = 0;
+                historialDB.forEach(m => {
+                    if (m.tipo === 'Préstamo' && m.prestamoId === p.id) {
+                        if (cmpEsCobro(m)) pagado += Math.abs(m.monto); else prestado += Math.abs(m.monto);
+                    }
+                });
+                p.montoPrestado = prestado;
+                p.montoPagado = pagado;
+            });
+        }
+
+        // Gestión de modales
+        function cmpAbrir(id) {
+            const m = cmpEl(id);
+            if (!m) return;
+            m.classList.remove('opacity-0', 'pointer-events-none');
+            m.classList.add('opacity-100', 'pointer-events-auto');
+            const c = m.firstElementChild;
+            c.classList.remove('scale-95');
+            c.classList.add('scale-100');
+        }
+        function cmpCerrar(id) {
+            const m = cmpEl(id);
+            if (!m) return;
+            m.classList.remove('opacity-100', 'pointer-events-auto');
+            m.classList.add('opacity-0', 'pointer-events-none');
+            const c = m.firstElementChild;
+            c.classList.remove('scale-100');
+            c.classList.add('scale-95');
+            cmpResetEliminar();
+            kodaCerrarDropdowns(); // Limpia dropdowns al cerrar modal
+        }
+
+        // Eliminar en dos pasos
+        // Eliminar siempre pasa por la confirmación estándar de KODA
+        function cmpArmarEliminar(btn, accion) {
+            const nombres = { eliminarBill: 'this bill', eliminarDebt: 'this debt', eliminarPrestamoActual: 'this loan', eliminarMovPrestamo: 'this transaction' };
+            kodaConfirmarEliminar(nombres[accion.name] || 'this item', accion);
+        }
+        function cmpResetEliminar() {}
+
+        // ==========================================
+        // CUSTOM KODA UI: DROPDOWNS & CALENDAR
+        // ==========================================
+        
+        // Manejador global de dropdowns KODA
+        function kodaUiToggle(idDropdown) {
+            const drop = cmpEl(idDropdown);
+            const isHidden = drop.classList.contains('hidden');
+            kodaCerrarDropdowns();
+            if(isHidden) drop.classList.remove('hidden');
+        }
+
+        function kodaCerrarDropdowns() {
+            document.querySelectorAll('.koda-dropdown').forEach(d => d.classList.add('hidden'));
+        }
+
+        // Llenar el Dropdown de cuentas
+        function cmpLlenarCuentas(dropdownId, inputId, btnId) {
+            const cont = cmpEl(dropdownId);
+            if(!cont) return;
+            cont.innerHTML = cuentasDB.map(c => `
+                <div onclick="kodaSeleccionarCuenta('${inputId}', '${btnId}', ${c.id}, '${cmpEsc(c.apodo)}')" class="px-4 py-2 hover:bg-white/5 text-sm text-white font-medium cursor-pointer transition-colors">
+                    ${cmpEsc(c.apodo)} <span class="text-koda-steel">(${cmpMoney(c.saldo)})</span>
+                </div>
+            `).join('');
+        }
+
+        function kodaSeleccionarCuenta(inputId, btnId, id, apodo) {
+            cmpEl(inputId).value = id;
+            cmpEl(btnId).innerHTML = `<span>${apodo}</span><span class="material-symbols-outlined text-[16px] text-koda-steel">expand_more</span>`;
+            kodaCerrarDropdowns();
+        }
+
+        // Reset de selects
+        function kodaResetSelect(inputId, btnId, defaultText) {
+            cmpEl(inputId).value = '';
+            cmpEl(btnId).innerHTML = `<span>${defaultText}</span><span class="material-symbols-outlined text-[16px] text-koda-steel">expand_more</span>`;
+        }
+
+        // Mini Motor Calendario KODA
+        let kodaCalActivo = { dropId: '', inputId: '', btnId: '', d: new Date() };
+        const kodaMeses = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        
+        function kodaRenderizarCalModal(dropId, inputId, btnId) {
+            kodaCalActivo.dropId = dropId;
+            kodaCalActivo.inputId = inputId;
+            kodaCalActivo.btnId = btnId;
+            kodaPintarGrillaCal();
+        }
+
+        function kodaPintarGrillaCal() {
+            const d = kodaCalActivo.d;
+            const prefix = kodaCalActivo.dropId.includes('loan') ? 'loan' : 'mov';
+            
+            cmpEl(`cal-mes-${prefix}`).innerText = `${kodaMeses[d.getMonth()]} ${d.getFullYear()}`;
+            const grid = cmpEl(`cal-grid-${prefix}`);
+            grid.innerHTML = '';
+            
+            const primDia = new Date(d.getFullYear(), d.getMonth(), 1).getDay();
+            const totDias = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+            const hoy = new Date();
+
+            let valSel = cmpEl(kodaCalActivo.inputId).value;
+            let dSel = valSel ? new Date(valSel + 'T12:00:00') : null;
+
+            for (let i = 0; i < primDia; i++) grid.innerHTML += `<div></div>`;
+            for (let day = 1; day <= totDias; day++) {
+                const esHoy = (day === hoy.getDate() && d.getMonth() === hoy.getMonth() && d.getFullYear() === hoy.getFullYear());
+                const esSel = dSel && (day === dSel.getDate() && d.getMonth() === dSel.getMonth() && d.getFullYear() === dSel.getFullYear());
+                
+                let cls = 'text-white hover:bg-white/10';
+                if(esSel) cls = 'bg-koda-blue text-[#131722] font-semibold shadow-md';
+                else if(esHoy) cls = 'border border-koda-blue/40 text-koda-blue font-semibold bg-koda-blue/10';
+                
+                grid.innerHTML += `<div onclick="kodaSetCalDate(${d.getFullYear()}, ${d.getMonth()}, ${day})" class="w-7 h-7 mx-auto rounded-full flex items-center justify-center text-xs transition-colors cursor-pointer ${cls}">${day}</div>`;
+            }
+        }
+
+        function kodaNavCalModal(dir) {
+            kodaCalActivo.d.setMonth(kodaCalActivo.d.getMonth() + dir);
+            kodaPintarGrillaCal();
+        }
+
+        function kodaSetCalDate(y, m, d) {
+            const p = (n) => String(n).padStart(2, '0');
+            const iso = `${y}-${p(m+1)}-${p(d)}`;
+            const display = `${p(m+1)}/${p(d)}/${y}`;
+            
+            cmpEl(kodaCalActivo.inputId).value = iso;
+            cmpEl(kodaCalActivo.btnId).innerHTML = `<span>${display}</span><span class="material-symbols-outlined text-[16px] text-koda-steel">calendar_today</span>`;
+            kodaCerrarDropdowns();
+        }
+
+        function kodaClearCalModal() {
+            cmpEl(kodaCalActivo.inputId).value = '';
+            cmpEl(kodaCalActivo.btnId).innerHTML = `<span>Select date</span><span class="material-symbols-outlined text-[16px] text-koda-steel">calendar_today</span>`;
+            kodaCerrarDropdowns();
+        }
+
+        function kodaTodayCalModal() {
+            const h = new Date();
+            kodaCalActivo.d = new Date();
+            kodaSetCalDate(h.getFullYear(), h.getMonth(), h.getDate());
+        }
+
+        function kodaSyncCalInicio(inputId, btnId, valISO) {
+            cmpEl(inputId).value = valISO;
+            if(valISO) {
+                const parts = valISO.split('-');
+                cmpEl(btnId).innerHTML = `<span>${parts[1]}/${parts[2]}/${parts[0]}</span><span class="material-symbols-outlined text-[16px] text-koda-steel">calendar_today</span>`;
+            } else {
+                kodaTodayCalModal(); // fallback
+            }
+        }
+
+
+        // ==========================================
+        // RENDER PRINCIPAL
+        // ==========================================
+        function renderizarPaginaCompromisos(filtro = null) {
+            if (filtro) cmpTab = filtro;
+            if (!cmpEl('cmp-vista')) return; 
+            cmpSincronizarPrestamos();
+
+            const ingresos = historialDB.filter(m => m.tipo === 'Ingreso').reduce((s, m) => s + m.monto, 0) || 1;
+            const fijos = compromisosDB.filter(c => c.tipo === 'fijo');
+            const deudas = compromisosDB.filter(c => c.tipo === 'deuda');
+            const activos = prestamosDB.filter(p => cmpBalance(p) > 0);
+
+            const totFijos = fijos.reduce((s, c) => s + (c.montoQ1 || 0) + (c.montoQ2 || 0), 0);
+            const totDeudas = deudas.reduce((s, c) => s + (c.deudaActual || 0), 0);
+            const totCobrar = activos.reduce((s, p) => s + cmpBalance(p), 0);
+            const pctFijos = Math.round((totFijos / ingresos) * 100);
+            const pctDeudas = Math.round((totDeudas / ingresos) * 100);
+
+            cmpEl('cmp-kpi-fijos').innerText = cmpMoney(totFijos);
+            cmpEl('cmp-kpi-fijos-sub').innerText = `${pctFijos}% of income`;
+            cmpEl('cmp-kpi-deudas').innerText = cmpMoney(totDeudas);
+            cmpEl('cmp-kpi-deudas-sub').innerText = `${deudas.length} ${deudas.length === 1 ? 'debt' : 'debts'} · ${pctDeudas}% of income`;
+            cmpEl('cmp-kpi-cobrar').innerText = cmpMoney(totCobrar);
+            cmpEl('cmp-kpi-cobrar-sub').innerText = `${activos.length} active`;
+
+            const conteos = { fijo: fijos.length, deuda: deudas.length, prestamo: prestamosDB.length };
+            ['fijo', 'deuda', 'prestamo'].forEach(t => {
+                const on = t === cmpTab;
+                cmpEl('cmp-tab-' + t).className = `relative z-10 px-5 py-2 rounded-full text-[13px] flex items-center gap-2 transition-colors duration-300 cursor-pointer outline-none ${on ? 'text-white font-semibold' : 'text-koda-textMuted hover:text-white font-semibold'}`;
+                const badge = cmpEl('cmp-badge-' + t);
+                badge.className = `px-2 py-[1px] rounded-full text-[10px] font-semibold ${on ? 'bg-white/10 text-white' : 'bg-white/5 text-koda-textMuted'}`;
+                badge.innerText = conteos[t];
+            });
+
+            cmpEl('cmp-btn-add-txt').innerText = CMP_TEXTOS[cmpTab].boton;
+            cmpEl('cmp-caption').innerText = CMP_TEXTOS[cmpTab].caption;
+            cmpEl('cmp-label-orden').innerText = cmpOrdenEtiqueta[cmpTab];
+            cmpRenderListaOrden();
+
+            const vista = cmpEl('cmp-vista');
+            if (cmpTab === 'fijo') vista.innerHTML = cmpHtmlFijos(cmpItemsTab('fijo'), pctFijos);
+            else if (cmpTab === 'deuda') vista.innerHTML = cmpHtmlDeudas(cmpItemsTab('deuda'));
+            else vista.innerHTML = cmpHtmlPrestamos(cmpItemsTab('prestamo'));
+
+            ['cmp-lista-fijos', 'cmp-grid-deudas', 'cmp-grid-prestamos'].forEach(id => {
+                const el = cmpEl(id);
+                if (el && typeof Sortable !== 'undefined') {
+                    new Sortable(el, {
+                        animation: 150,
+                        ghostClass: 'koda-sortable-ghost', chosenClass: 'koda-sortable-chosen', dragClass: 'koda-sortable-drag',
+                        delay: 50, delayOnTouchOnly: true,
+                        onEnd: () => cmpGuardarOrdenDOM(el)
+                    });
+                }
+            });
+
+            cmpPosicionarSlider(cmpSliderListo);
+            cmpSliderListo = true;
+        }
+
+        function cmpItemsTab(tab) {
+            const base = tab === 'prestamo' ? prestamosDB : compromisosDB.filter(c => c.tipo === tab);
+            return base.slice().sort((a, b) => (a.orden ?? 9999) - (b.orden ?? 9999));
+        }
+
+        function cmpVacio(texto) {
+            return `<div class="p-10 text-center text-koda-steel text-xs font-semibold border border-dashed border-white/10 rounded-[1.5rem]">${texto}</div>`;
+        }
+
+        function cmpHtmlFijos(items, pctIngreso) {
+            if (!items.length) return cmpVacio('No fixed bills yet. Use "Add bill" to create the first one.');
+            let total = 0;
+            const filas = items.map(it => {
+                const q1 = it.montoQ1 || 0, q2 = it.montoQ2 || 0, cuota = q1 + q2;
+                total += cuota;
+                return `
+                <div data-id="${it.id}" onclick="abrirModalBill(${it.id})" class="fila-koda px-6 py-4 flex justify-between items-center hover:bg-white/5 transition-colors cursor-pointer">
+                    <span class="text-[14.5px] font-semibold text-white truncate pr-3">${cmpEsc(it.nombre)}</span>
+                    <span class="text-[15px] font-semibold text-white">${cmpMoney(cuota)}</span>
+                </div>`;
+            }).join('');
+            return `
+            <div class="bg-koda-darkCard border border-koda-darkBorder rounded-[1.5rem] shadow-sm overflow-hidden">
+                <div id="cmp-lista-fijos" class="divide-y divide-white/5">${filas}</div>
+                <div class="px-6 py-4 bg-[#141820] flex justify-between items-center border-t border-white/5">
+                    <span class="text-[11.5px] font-semibold text-koda-steel">Total (${pctIngreso}% of income)</span>
+                    <span class="text-base font-semibold text-koda-blue">${cmpMoney(total)}</span>
+                </div>
+            </div>`;
+        }
+
+        function cmpHtmlDeudas(items) {
+            if (!items.length) return cmpVacio('No debts yet. Use "Add debt" to create the first one.');
+            const cards = items.map(d => {
+                const pct = cmpPctDeuda(d);
+                const actual = d.deudaActual || 0;
+                const cuota = (d.montoQ1 || 0) + (d.montoQ2 || 0);
+                const saldada = actual <= 0 && (d.deudaTotal || 0) > 0;
+                const footer = saldada
+                    ? `<span class="text-koda-gold font-semibold text-[11.5px]">Paid off</span>`
+                    : `<span class="text-koda-steel font-medium text-[11.5px]">${cuota > 0 ? `${cmpMoney(cuota)} monthly` : 'No monthly payment'}</span>`;
+                return `
+                <div data-id="${d.id}" onclick="abrirModalDebt(${d.id})" class="fila-koda group relative bg-koda-darkCard border border-koda-darkBorder hover:border-white/10 rounded-[1.5rem] p-6 shadow-sm flex flex-col justify-between cursor-pointer transition-colors duration-200">
+                    <div class="flex justify-between items-start mb-6">
+                        <span class="font-semibold text-base text-white truncate leading-tight pr-2">${cmpEsc(d.nombre)}</span>
+                        <span class="text-[11px] font-semibold text-koda-steel bg-white/5 px-2 py-0.5 rounded-md flex-shrink-0">${pct}%</span>
+                    </div>
+                    <div>
+                        <h4 class="text-3xl font-semibold mb-1 text-white tracking-tight">${cmpMoney(actual)}</h4>
+                        <p class="text-[11.5px] font-normal text-koda-steel mb-6">of ${cmpMoney(d.deudaTotal)}</p>
+                        <div class="w-full h-1.5 bg-koda-darkBg rounded-full overflow-hidden mb-3">
+                            <div class="h-full ${saldada ? 'bg-koda-gold' : 'bg-koda-blue'} rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                        </div>
+                        ${footer}
+                    </div>
+                </div>`;
+            }).join('');
+            return `<div id="cmp-grid-deudas" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">${cards}</div>`;
+        }
+
+        function cmpHtmlPrestamos(items) {
+            if (!items.length) return cmpVacio('No receivables yet. Use "Add loan" to register money you lent.');
+            const cards = items.map(p => {
+                const prestado = p.montoPrestado || 0, pagado = p.montoPagado || 0, balance = cmpBalance(p);
+                const pct = prestado > 0 ? Math.min(100, Math.round((pagado / prestado) * 100)) : 0;
+                const saldado = prestado > 0 && balance <= 0;
+                const footer = saldado
+                    ? `<span class="text-koda-gold font-semibold text-[11.5px]">Settled</span>`
+                    : `<span class="text-koda-steel font-medium text-[11.5px]">${cmpMoney(pagado)} paid</span>`;
+                return `
+                <div data-id="${p.id}" onclick="abrirModalDetallePrestamo(${p.id})" class="fila-koda group relative bg-koda-darkCard border border-koda-darkBorder hover:border-white/10 rounded-[1.5rem] p-6 shadow-sm flex flex-col justify-between cursor-pointer transition-colors duration-200">
+                    <div class="flex justify-between items-start mb-6">
+                        <span class="font-semibold text-base text-white truncate leading-tight pr-2">${cmpEsc(p.nombre)}</span>
+                        <span class="text-[11px] font-semibold text-koda-steel bg-white/5 px-2 py-0.5 rounded-md flex-shrink-0">${pct}%</span>
+                    </div>
+                    <div>
+                        <h4 class="text-3xl font-semibold mb-1 text-white tracking-tight">${cmpMoney(Math.max(balance, 0))}</h4>
+                        <p class="text-[11.5px] font-normal text-koda-steel mb-6">of ${cmpMoney(prestado)} lent</p>
+                        <div class="w-full h-1.5 bg-koda-darkBg rounded-full overflow-hidden mb-3">
+                            <div class="h-full ${saldado ? 'bg-koda-gold' : 'bg-koda-blue'} rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                        </div>
+                        ${footer}
+                    </div>
+                </div>`;
+            }).join('');
+            return `<div id="cmp-grid-prestamos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">${cards}</div>`;
+        }
+
+        function cmpPosicionarSlider(animar = true) {
+            const btn = cmpEl('cmp-tab-' + cmpTab), s = cmpEl('cmp-tab-slider');
+            if (!btn || !s) return;
+            if (!animar) s.style.transition = 'none';
+            s.style.width = `${btn.offsetWidth}px`;
+            s.style.transform = `translateX(${btn.offsetLeft}px)`;
+            if (!animar) { void s.offsetWidth; s.style.transition = ''; }
+        }
+
+        // ==========================================
+        // SORT POPOVER
+        // ==========================================
+        function cmpRenderListaOrden() {
+            cmpEl('cmp-lista-orden').innerHTML = CMP_OPCIONES_ORDEN[cmpTab].map(([clave, etiqueta]) => {
+                const activo = cmpOrdenEtiqueta[cmpTab] === etiqueta;
+                return `
+                <button type="button" onclick="aplicarOrdenCompromisos('${clave}', '${etiqueta}')" class="w-full px-3 py-2 rounded-xl text-left text-[11.5px] font-semibold ${activo ? 'text-koda-blue bg-koda-blue/10' : 'text-koda-steel hover:text-white hover:bg-white/5'} flex items-center justify-between transition-colors cursor-pointer outline-none">
+                    <span>${etiqueta}</span>
+                    <span class="material-symbols-outlined text-[16px] ${activo ? '' : 'opacity-0'}">check</span>
+                </button>`;
+            }).join('');
+        }
+
+        function togglePopoverOrdenComp(e) {
+            e.stopPropagation();
+            cmpEl('cmp-popover-orden').classList.toggle('hidden');
+        }
+        function cerrarPopoverOrdenComp() {
+            const p = cmpEl('cmp-popover-orden');
+            if (p) p.classList.add('hidden');
+        }
+
+        function aplicarOrdenCompromisos(criterio, etiqueta) {
+            const lista = cmpItemsTab(cmpTab);
+            const valor = (it) => cmpTab === 'fijo' ? (it.montoQ1 || 0) + (it.montoQ2 || 0)
+                                : cmpTab === 'deuda' ? (it.deudaActual || 0) : cmpBalance(it);
+
+            if (criterio === 'mayor') lista.sort((a, b) => valor(b) - valor(a));
+            else if (criterio === 'menor') lista.sort((a, b) => valor(a) - valor(b));
+            else if (criterio === 'progreso') lista.sort((a, b) => cmpPctDeuda(b) - cmpPctDeuda(a));
+            else if (criterio === 'alfabetico') lista.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+            lista.forEach((it, i) => { it.orden = i; }); 
+            cmpOrdenEtiqueta[cmpTab] = etiqueta;
+            cerrarPopoverOrdenComp();
+            renderizarPaginaCompromisos();
+        }
+
+        function cmpGuardarOrdenDOM(cont) {
+            cont.querySelectorAll('[data-id]').forEach((nodo, i) => {
+                const id = parseInt(nodo.dataset.id);
+                const obj = cmpTab === 'prestamo' ? prestamosDB.find(p => p.id === id) : compromisosDB.find(c => c.id === id);
+                if (obj) obj.orden = i;
+            });
+            cmpOrdenEtiqueta[cmpTab] = CMP_ORDEN_DEFAULT;
+            cmpEl('cmp-label-orden').innerText = CMP_ORDEN_DEFAULT;
+            cmpRenderListaOrden();
+        }
+
+        // ==========================================
+        // FIXED BILL (new / edit)
+        // ==========================================
+        function accionAgregarContextual() {
+            if (cmpTab === 'fijo') abrirModalBill();
+            else if (cmpTab === 'deuda') abrirModalDebt();
+            else abrirModalNuevoPrestamo();
+        }
+
+        function abrirModalBill(id = null) {
+            const it = id !== null ? compromisosDB.find(c => c.id === id && c.tipo === 'fijo') : null;
+            if (id !== null && !it) return;
+            cmpEditId = it ? it.id : null;
+            cmpEl('cmp-bill-titulo').innerText = it ? 'Edit bill' : 'New bill';
+            cmpEl('cmp-bill-nombre').value = it ? it.nombre : '';
+            cmpEl('cmp-bill-q1').value = it && it.montoQ1 ? it.montoQ1 : '';
+            cmpEl('cmp-bill-q2').value = it && it.montoQ2 ? it.montoQ2 : '';
+            cmpEl('cmp-bill-afecta').checked = it ? it.afectaDisponible !== false : true;
+            cmpEl('cmp-bill-eliminar').classList.toggle('hidden', !it);
+            cmpResetEliminar();
+            cmpAbrir('cmp-modal-bill');
+            if (!it) setTimeout(() => cmpEl('cmp-bill-nombre').focus(), 80);
+        }
+
+        function guardarBill() {
+            const nombre = cmpEl('cmp-bill-nombre').value.trim();
+            const q1 = parseFloat(cmpEl('cmp-bill-q1').value) || 0;
+            const q2 = parseFloat(cmpEl('cmp-bill-q2').value) || 0;
+            const afecta = cmpEl('cmp-bill-afecta').checked;
+
+            if (!nombre || q1 < 0 || q2 < 0 || q1 + q2 <= 0) return cmpAlerta('Missing info', 'Add a name and an amount for at least one paycheck.');
+
+            if (cmpEditId !== null) {
+                const it = compromisosDB.find(c => c.id === cmpEditId);
+                if (it) Object.assign(it, { nombre, montoQ1: q1, montoQ2: q2, afectaDisponible: afecta });
+            } else {
+                compromisosDB.push({
+                    id: Date.now(), nombre, tipo: 'fijo', montoQ1: q1, montoQ2: q2, afectaDisponible: afecta,
+                    orden: cmpSiguienteOrden(cmpItemsTab('fijo'))
+                });
+            }
+            cmpCerrar('cmp-modal-bill');
+            renderizarPaginaCompromisos();
+        }
+
+        function eliminarBill() {
+            if (cmpEditId === null) return;
+            const i = compromisosDB.findIndex(c => c.id === cmpEditId);
+            if (i >= 0) compromisosDB.splice(i, 1);
+            cmpCerrar('cmp-modal-bill');
+            renderizarPaginaCompromisos();
+        }
+
+        // ==========================================
+        // DEBT (new / edit)
+        // ==========================================
+        function abrirModalDebt(id = null) {
+            const it = id !== null ? compromisosDB.find(c => c.id === id && c.tipo === 'deuda') : null;
+            if (id !== null && !it) return;
+            cmpEditId = it ? it.id : null;
+            cmpEl('cmp-debt-titulo').innerText = it ? 'Edit debt' : 'New debt';
+            cmpEl('cmp-debt-nombre').value = it ? it.nombre : '';
+            cmpEl('cmp-debt-total').value = it && it.deudaTotal ? it.deudaTotal : '';
+            cmpEl('cmp-debt-actual').value = it ? (it.deudaActual ?? '') : '';
+            cmpEl('cmp-debt-q1').value = it && it.montoQ1 ? it.montoQ1 : '';
+            cmpEl('cmp-debt-q2').value = it && it.montoQ2 ? it.montoQ2 : '';
+            cmpEl('cmp-debt-afecta').checked = it ? it.afectaDisponible !== false : true;
+            cmpEl('cmp-debt-eliminar').classList.toggle('hidden', !it);
+            cmpRenderHistorialDeuda(it ? it.id : null);
+            cmpResetEliminar();
+            cmpAbrir('cmp-modal-debt');
+            if (!it) setTimeout(() => cmpEl('cmp-debt-nombre').focus(), 80);
+        }
+
+        // Historial de pagos de una deuda (misma lógica que el ledger de Loans)
+        function cmpRenderHistorialDeuda(id) {
+            const wrap = cmpEl('cmp-debt-historial-wrap');
+            if (!wrap) return;
+            const d = id !== null ? compromisosDB.find(c => c.id === id) : null;
+            wrap.classList.toggle('hidden', !d);
+            if (!d) return;
+
+            const pagos = historialDB
+                .filter(m => m.tipo === 'Pago de Deuda' && m.deudaId === id)
+                .sort((a, b) => new Date(b.fechaStr) - new Date(a.fechaStr));   // más reciente primero
+
+            if (!pagos.length) {
+                cmpEl('cmp-debt-historial').innerHTML = `<tr><td colspan="3" class="py-6 text-center text-[11.5px] text-koda-steel font-medium">No payments yet.</td></tr>`;
+                return;
+            }
+            // Saldo pendiente después de cada pago = saldo actual + pagos posteriores
+            let restante = d.deudaActual || 0;
+            cmpEl('cmp-debt-historial').innerHTML = pagos.map(m => {
+                const t = formatearFechaHoraUI(m.fechaStr);
+                const fila = `
+                <tr onclick="abrirModalEdicion(${m.id})" class="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors cursor-pointer">
+                    <td class="py-3 px-4 text-[11px] font-semibold text-koda-steel">${t.fecha}, ${t.hora}</td>
+                    <td class="py-3 px-4 text-[11.5px] font-semibold text-koda-blue text-right">${cmpMoney(m.monto)}</td>
+                    <td class="py-3 px-4 text-[11.5px] font-semibold text-white text-right">${cmpMoney(restante)}</td>
+                </tr>`;
+                restante += m.monto;
+                return fila;
+            }).join('');
+        }
+        // Lo llama kodaRefrescarVistas() tras registrar o editar un pago
+        function cmpRefrescarDetalleDeuda() {
+            if (cmpEditId !== null && cmpEl('cmp-modal-debt')?.classList.contains('opacity-100')) {
+                const d = compromisosDB.find(c => c.id === cmpEditId && c.tipo === 'deuda');
+                if (d) { cmpEl('cmp-debt-actual').value = d.deudaActual ?? ''; cmpRenderHistorialDeuda(d.id); }
+            }
+        }
+
+        function guardarDebt() {
+            const nombre = cmpEl('cmp-debt-nombre').value.trim();
+            const total = parseFloat(cmpEl('cmp-debt-total').value) || 0;
+            const actualRaw = cmpEl('cmp-debt-actual').value;
+            const actual = actualRaw === '' ? total : (parseFloat(actualRaw) || 0);   
+            const q1 = parseFloat(cmpEl('cmp-debt-q1').value) || 0;
+            const q2 = parseFloat(cmpEl('cmp-debt-q2').value) || 0;
+            const afecta = cmpEl('cmp-debt-afecta').checked;
+
+            if (!nombre || total <= 0) return cmpAlerta('Missing info', 'Add a name and the total amount of the debt.');
+            if (actual < 0 || actual > total) return cmpAlerta('Check the balance', "The remaining balance can't be negative or higher than the total debt.");
+            if (q1 < 0 || q2 < 0) return cmpAlerta('Check the payments', "Payments can't be negative.");
+
+            if (cmpEditId !== null) {
+                const it = compromisosDB.find(c => c.id === cmpEditId);
+                if (it) Object.assign(it, { nombre, deudaTotal: total, deudaActual: actual, montoQ1: q1, montoQ2: q2, afectaDisponible: afecta });
+            } else {
+                compromisosDB.push({
+                    id: Date.now(), nombre, tipo: 'deuda', deudaTotal: total, deudaActual: actual, montoQ1: q1, montoQ2: q2, afectaDisponible: afecta,
+                    orden: cmpSiguienteOrden(cmpItemsTab('deuda'))
+                });
+            }
+            cmpCerrar('cmp-modal-debt');
+            renderizarPaginaCompromisos();
+        }
+
+        function eliminarDebt() {
+            if (cmpEditId === null) return;
+            const i = compromisosDB.findIndex(c => c.id === cmpEditId);
+            if (i >= 0) compromisosDB.splice(i, 1);
+            cmpCerrar('cmp-modal-debt');
+            renderizarPaginaCompromisos();
+        }
+
+        function cerrarModalCompromiso() {
+            ['cmp-modal-bill', 'cmp-modal-debt', 'cmp-modal-loan'].forEach(cmpCerrar);
+            cerrarPopoverOrdenComp();
+        }
+
+        // ==========================================
+        // NEW LOAN (receivable)
+        // ==========================================
+        function abrirModalNuevoPrestamo() {
+            cmpEl('cmp-loan-nombre').value = '';
+            cmpEl('cmp-loan-monto').value = '';
+            
+            // Custom Calendar init
+            kodaCalActivo.d = new Date();
+            kodaSyncCalInicio('cmp-loan-fecha', 'btn-loan-fecha', cmpHoyISO());
+            
+            // Custom Account init
+            cmpLlenarCuentas('dropdown-loan-cuenta', 'cmp-loan-cuenta', 'btn-loan-cuenta');
+            kodaResetSelect('cmp-loan-cuenta', 'btn-loan-cuenta', 'Select account');
+            
+            cmpAbrir('cmp-modal-loan');
+            setTimeout(() => cmpEl('cmp-loan-nombre').focus(), 80);
+        }
+
+        function guardarNuevoPrestamo() {
+            const nombre = cmpEl('cmp-loan-nombre').value.trim();
+            const monto = parseFloat(cmpEl('cmp-loan-monto').value) || 0;
+            const cuentaId = parseInt(cmpEl('cmp-loan-cuenta').value);
+            const fecha = cmpEl('cmp-loan-fecha').value || cmpHoyISO();
+            const cta = cuentasDB.find(c => c.id === cuentaId);
+
+            if (!nombre) return cmpAlerta('Missing info', 'Enter the name of the person who borrowed the money.');
+            if (monto <= 0) return cmpAlerta('Missing info', 'Enter the amount you lent.');
+            if (!cta) return cmpAlerta('Missing info', 'Select the account the money came from.');
+
+            const id = Date.now();
+            prestamosDB.push({ id, nombre, montoPrestado: monto, montoPagado: 0, notasGlobales: '', orden: cmpSiguienteOrden(prestamosDB) });
+            cta.saldo -= monto;
+            historialDB.push({
+                id: id + 1, tipo: 'Préstamo', monto, desc: 'Initial transfer', notas: '',
+                categoria: `Loan to ${nombre}`, sobre: null, cuentaOrigen: cta.apodo, cuentaId: cta.id,
+                prestamoId: id, fechaStr: `${fecha}T${cmpHoraActual()}`
+            });
+
+            cmpCerrar('cmp-modal-loan');
+            renderizarPaginaCompromisos();
+        }
+
+        // ==========================================
+        // LOAN LEDGER (estado de cuenta)
+        // ==========================================
+        function abrirModalDetallePrestamo(id) {
+            const p = prestamosDB.find(x => x.id === id);
+            if (!p) return;
+            cmpLoanId = id;
+            cmpSincronizarPrestamos();
+
+            const movs = historialDB
+                .filter(m => m.tipo === 'Préstamo' && m.prestamoId === id)
+                .sort((a, b) => new Date(a.fechaStr) - new Date(b.fechaStr));
+
+            let filas = '', acumulado = 0;
+            if (!movs.length) {
+                filas = `<tr><td colspan="5" class="py-8 text-center text-[11.5px] text-koda-steel font-medium">No transactions yet.</td></tr>`;
+                cmpEl('cmp-led-inicio').innerText = 'Start: N/A';
+            } else {
+                cmpEl('cmp-led-inicio').innerText = 'Start: ' + new Date(movs[0].fechaStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                movs.forEach(m => {
+                    const cobro = cmpEsCobro(m);
+                    const lent = cobro ? 0 : m.monto;
+                    const paid = cobro ? m.monto : 0;
+                    acumulado += lent - paid;
+                    const t = formatearFechaHoraUI(m.fechaStr);
+                    filas += `
+                    <tr onclick="abrirModalMovPrestamo(null, ${m.id})" class="border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors cursor-pointer group">
+                        <td class="py-3 px-4 text-[11px] font-semibold text-koda-steel">${t.fecha}, ${t.hora}</td>
+                        <td class="py-3 px-4 text-[11.5px] font-semibold text-white">${cmpEsc(m.desc || 'No description')}</td>
+                        <td class="py-3 px-4 text-[11.5px] font-semibold text-white text-right">${lent > 0 ? cmpMoney(lent) : '-'}</td>
+                        <td class="py-3 px-4 text-[11.5px] font-semibold text-koda-blue text-right">${paid > 0 ? cmpMoney(paid) : '-'}</td>
+                        <td class="py-3 px-4 text-[11.5px] font-semibold text-white text-right">${cmpMoney(acumulado)}</td>
+                    </tr>`;
+                });
+            }
+
+            cmpEl('cmp-led-nombre').value = p.nombre;
+            cmpEl('cmp-led-notas').value = p.notasGlobales || '';
+            cmpEl('cmp-led-body').innerHTML = filas;
+            cmpEl('cmp-led-total').innerText = cmpMoney(cmpBalance(p));
+            cmpAbrir('cmp-modal-ledger');
+        }
+
+        function cerrarModalDetallePrestamo() {
+            cmpCerrar('cmp-modal-ledger');
+            cmpCerrar('cmp-modal-mov');
+            cmpLoanId = null;
+        }
+
+        function guardarNotasGlobalesPrestamo(texto) {
+            const p = prestamosDB.find(x => x.id === cmpLoanId);
+            if (p) p.notasGlobales = texto;
+        }
+
+        function cmpRenombrarPrestamo(valor) {
+            const p = prestamosDB.find(x => x.id === cmpLoanId);
+            const nuevo = valor.trim();
+            if (!p) return;
+            if (!nuevo) { cmpEl('cmp-led-nombre').value = p.nombre; return; }
+            const viejo = p.nombre;
+            p.nombre = nuevo;
+            historialDB.forEach(m => {
+                if (m.tipo === 'Préstamo' && m.prestamoId === p.id && m.categoria) m.categoria = m.categoria.replace(viejo, nuevo);
+            });
+            renderizarPaginaCompromisos();
+        }
+
+        function eliminarPrestamoActual() {
+            const p = prestamosDB.find(x => x.id === cmpLoanId);
+            if (!p) return;
+            historialDB.filter(m => m.tipo === 'Préstamo' && m.prestamoId === p.id).forEach(m => revertirMovimientoContable(m.id));
+            for (let i = historialDB.length - 1; i >= 0; i--) {
+                if (historialDB[i].tipo === 'Préstamo' && historialDB[i].prestamoId === p.id) historialDB.splice(i, 1);
+            }
+            prestamosDB.splice(prestamosDB.indexOf(p), 1);
+            cerrarModalDetallePrestamo();
+            renderizarPaginaCompromisos();
+        }
+
+        // ==========================================
+        // LEND MORE / RECORD PAYMENT / EDIT TRANSACTION
+        // ==========================================
+        function abrirModalMovPrestamo(tipo, idEdicion = null) {
+            cmpLlenarCuentas('dropdown-mov-cuenta', 'cmp-mov-cuenta', 'btn-mov-cuenta');
+            cmpMovEditId = idEdicion;
+
+            if (idEdicion !== null) {
+                const m = historialDB.find(x => x.id === idEdicion);
+                if (!m) return;
+                cmpEl('cmp-mov-tipo').value = cmpEsCobro(m) ? 'cobrar' : 'otorgar';
+                cmpEl('cmp-mov-titulo').innerText = 'Edit transaction';
+                cmpEl('cmp-mov-monto').value = m.monto;
+                
+                // Account preset
+                const cta = cuentasDB.find(c => c.id === m.cuentaId);
+                if(cta) kodaSeleccionarCuenta('cmp-mov-cuenta', 'btn-mov-cuenta', cta.id, cta.apodo);
+                
+                // Date preset
+                const fechaISO = m.fechaStr.split('T')[0];
+                kodaCalActivo.d = new Date(fechaISO + 'T12:00:00');
+                kodaSyncCalInicio('cmp-mov-fecha', 'btn-mov-fecha', fechaISO);
+
+                cmpEl('cmp-mov-desc').value = m.desc || '';
+                cmpEl('cmp-mov-eliminar').classList.remove('hidden');
+            } else {
+                cmpEl('cmp-mov-tipo').value = tipo;
+                cmpEl('cmp-mov-titulo').innerText = tipo === 'cobrar' ? 'Record payment' : 'Lend more';
+                cmpEl('cmp-mov-monto').value = '';
+                
+                kodaResetSelect('cmp-mov-cuenta', 'btn-mov-cuenta', 'Select account');
+                
+                kodaCalActivo.d = new Date();
+                kodaSyncCalInicio('cmp-mov-fecha', 'btn-mov-fecha', cmpHoyISO());
+
+                cmpEl('cmp-mov-desc').value = tipo === 'cobrar' ? 'Payment' : 'Additional loan';
+                cmpEl('cmp-mov-eliminar').classList.add('hidden');
+            }
+            cmpResetEliminar();
+            cmpAbrir('cmp-modal-mov');
+            setTimeout(() => cmpEl('cmp-mov-monto').focus(), 80);
+        }
+
+        function cerrarModalMovPrestamo() { cmpCerrar('cmp-modal-mov'); }
+
+        function guardarMovPrestamo() {
+            const tipo = cmpEl('cmp-mov-tipo').value;                     
+            const monto = parseFloat(cmpEl('cmp-mov-monto').value) || 0;
+            const cuentaId = parseInt(cmpEl('cmp-mov-cuenta').value);
+            const fecha = cmpEl('cmp-mov-fecha').value || cmpHoyISO();
+            const desc = cmpEl('cmp-mov-desc').value.trim() || (tipo === 'cobrar' ? 'Payment' : 'Additional loan');
+            const p = prestamosDB.find(x => x.id === cmpLoanId);
+            const cta = cuentasDB.find(c => c.id === cuentaId);
+
+            if (!p) return;
+            if (monto <= 0) return cmpAlerta('Missing info', 'Enter a valid amount.');
+            if (!cta) return cmpAlerta('Missing info', 'Select an account.');
+
+            if (tipo === 'cobrar') {
+                let pendiente = 0;
+                historialDB.forEach(m => {
+                    if (m.tipo === 'Préstamo' && m.prestamoId === p.id && m.id !== cmpMovEditId) pendiente += cmpEsCobro(m) ? -m.monto : m.monto;
+                });
+                if (monto > pendiente) return cmpAlerta('Amount too high', `This payment is higher than the outstanding balance (${cmpMoney(pendiente)}).`);
+            }
+
+            let hora = cmpHoraActual();
+            if (cmpMovEditId !== null) {
+                const orig = historialDB.find(x => x.id === cmpMovEditId);
+                if (orig) {
+                    hora = (orig.fechaStr.split('T')[1]) || hora;
+                    revertirMovimientoContable(orig.id);
+                    historialDB.splice(historialDB.indexOf(orig), 1);
+                }
+            }
+
+            if (tipo === 'otorgar') cta.saldo -= monto; else cta.saldo += monto;
+            historialDB.push({
+                id: cmpMovEditId !== null ? cmpMovEditId : Date.now(),
+                tipo: 'Préstamo', monto, desc, notas: '',
+                categoria: tipo === 'otorgar' ? `Loan to ${p.nombre}` : `Cobro de ${p.nombre}`,
+                sobre: null, cuentaOrigen: cta.apodo, cuentaId: cta.id, prestamoId: p.id,
+                fechaStr: `${fecha}T${hora}`
+            });
+
+            cerrarModalMovPrestamo();
+            abrirModalDetallePrestamo(p.id);
+            renderizarPaginaCompromisos();
+        }
+
+        function eliminarMovPrestamo() {
+            if (cmpMovEditId === null) return;
+            const m = historialDB.find(x => x.id === cmpMovEditId);
+            if (m) {
+                revertirMovimientoContable(m.id);
+                historialDB.splice(historialDB.indexOf(m), 1);
+            }
+            cerrarModalMovPrestamo();
+            if (cmpLoanId !== null) abrirModalDetallePrestamo(cmpLoanId);
+            renderizarPaginaCompromisos();
+        }
+
+        // ==========================================
+        // INIT & LISTENERS GLOBALES (APP.JS / CMP.JS)
+        // ==========================================
+        document.addEventListener('click', (e) => {
+            const p = cmpEl('cmp-popover-orden'), t = cmpEl('cmp-btn-orden');
+            if (p && !p.classList.contains('hidden') && !p.contains(e.target) && !t.contains(e.target)) cerrarPopoverOrdenComp();
+            
+            // Cierra popovers KODA personalizados (Cuentas, Calendario)
+            if(!e.target.closest('.koda-dropdown') && !e.target.closest('button[id^="btn-"]')) {
+                kodaCerrarDropdowns();
+            }
+        });
+        document.addEventListener('keydown', (e) => { 
+            if (e.key === 'Escape') {
+                cerrarPopoverOrdenComp();
+                kodaCerrarDropdowns();
+            }
+        });
+        window.addEventListener('resize', () => cmpPosicionarSlider(false));
+        window.addEventListener('DOMContentLoaded', () => {
+            renderizarPaginaCompromisos('fijo');
+            // Enlace directo desde el Dashboard: compromisos.html?debt=ID
+            const debtId = parseInt(new URLSearchParams(window.location.search).get('debt'));
+            if (debtId && compromisosDB.some(c => c.id === debtId && c.tipo === 'deuda')) {
+                renderizarPaginaCompromisos('deuda');
+                abrirModalDebt(debtId);
+            }
+            if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => cmpPosicionarSlider(false));
+        });
+    </script>
+</body>
+</html>
