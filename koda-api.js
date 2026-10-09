@@ -7,6 +7,12 @@
         const conectado = !!(c && c.url && c.token);
         // Sin sesión: todas las páginas (menos login.html) llevan al inicio de sesión
         if (!conectado && !window.KODA_PUBLICA) { location.replace('login.html'); return; }
+        // En un teléfono se usa siempre la app móvil (?web=1 para forzar la versión de escritorio)
+        try {
+            if (new URLSearchParams(location.search).get('web') === '1') sessionStorage.setItem('koda_web', '1');
+            const esTelefono = matchMedia('(max-width: 820px)').matches && matchMedia('(pointer: coarse)').matches;
+            if (conectado && esTelefono && !window.KODA_PUBLICA && !window.KODA_SIN_NUBE && sessionStorage.getItem('koda_web') !== '1') { location.replace('movil.html'); return; }
+        } catch (e) {}
         if (window.KODA_SIN_NUBE || !conectado) return;
         if (localStorage.getItem('koda_copia')) return;   // hay copia local: la página se muestra al instante
         const st = document.createElement('style');
