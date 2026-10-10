@@ -737,7 +737,7 @@
             helperUI.innerHTML = `Suggested: <span class="text-koda-blue font-semibold">$${cuotaSugerida.toLocaleString()}</span> per paycheck`;
         }
 
-        function saveNewGoal() {
+        async function saveNewGoal() {
             const nombre = document.getElementById('new-goal-name').value;
             const total = parseFloat(document.getElementById('new-goal-total').value);
             const acumulado = parseFloat(document.getElementById('new-goal-saved').value) || 0;
@@ -762,8 +762,8 @@
                 currentGoalId = nuevaMeta.id; 
             }
             
-            closeModal('modal-create-goal');
             initGlobalDashboard();
+            await kodaConfirmarYCerrar('modal-create-goal', () => closeModal('modal-create-goal'));
         }
 
         function renderAllGoals() {

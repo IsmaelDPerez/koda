@@ -1181,6 +1181,24 @@ function kodaBotonCargando(btn, cargando) {
         btn.style.minWidth = '';
     }
 }
+// Espera a que lo anotado quede guardado de verdad en Google Sheets (si KODA está conectado)
+async function kodaEsperarGuardado(maxMs = 15000) {
+    if (typeof kodaNubeActiva === 'undefined' || !kodaNubeActiva) return true;   // sin conexión a la hoja: no hay nada que esperar
+    const pendiente = () => Object.keys(KODA_TABLAS_NUBE).some(t => JSON.stringify(kodaNubeSerializar(t)) !== kodaNubeSnapshot[t]);
+    const t0 = Date.now();
+    while (pendiente() && Date.now() - t0 < maxMs) {
+        if (kodaNubeSincronizando) await new Promise(r => setTimeout(r, 120));
+        else { await kodaNubeSync(); if (pendiente()) await new Promise(r => setTimeout(r, 500)); }
+    }
+    return !pendiente();
+}
+// El botón Confirm gira y la ventana sigue abierta hasta que el cambio está guardado; luego se cierra
+async function kodaConfirmarYCerrar(modalId, cerrar) {
+    const btn = document.querySelector('#' + modalId + ' button[type="submit"]');
+    kodaBotonCargando(btn, true);
+    try { await kodaEsperarGuardado(); }
+    finally { cerrar(); setTimeout(() => kodaBotonCargando(btn, false), 350); }
+}
 // Compatibilidad con código anterior
 function toggleLoaderBoton(btn, estado) { kodaBotonCargando(btn, estado === 'loading'); }
 
@@ -1551,9 +1569,10 @@ async function confirmarMovimiento() {
         }
         idEdicionActual = null;
 
+        kodaRefrescarVistas();
+        await kodaEsperarGuardado();   // el botón sigue girando hasta que quede guardado en la hoja
         movimientoEnCurso = false;
         cerrarModalMovimiento();
-        kodaRefrescarVistas();
         setTimeout(() => kodaBotonCargando(btn, false), 350);
     } catch (error) {
         console.error('Error guardando movimiento:', error);

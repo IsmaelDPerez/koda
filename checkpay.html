@@ -529,9 +529,10 @@
                     lista.push({ id: cpNuevoId(), tipoOrigen: cpTipo, refId: refFinal, nombre, monto });
                 }
 
-                cpCerrar('cp-modal-item');
                 renderizarPaginaCheckpay();
                 renderizarListaSetupCP();
+                await kodaEsperarGuardado();
+                cpCerrar('cp-modal-item');
             } catch (e) {
                 cpAlerta('Something went wrong', 'The payment could not be saved.');
             } finally {

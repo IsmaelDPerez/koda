@@ -584,7 +584,7 @@ function cargarMasTransaccionesSobre() {
             c.classList.add('scale-95');
         }
 
-        function guardarSobre() {
+        async function guardarSobre() {
             const nombre = document.getElementById('sobre-nombre').value.trim();
             const meta = parseFloat(document.getElementById('sobre-techo').value) || 0;
             const q1 = parseFloat(document.getElementById('sobre-q1').value) || 0;
@@ -607,8 +607,8 @@ function cargarMasTransaccionesSobre() {
                 });
             }
 
-            cerrarModalFormSobre();
             renderizarPaginaSobres();
+            await kodaConfirmarYCerrar('modal-form-sobre', cerrarModalFormSobre);
         }
 
         function eliminarSobre() {

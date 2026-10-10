@@ -901,7 +901,7 @@
             if (!it) setTimeout(() => cmpEl('cmp-bill-nombre').focus(), 80);
         }
 
-        function guardarBill() {
+        async function guardarBill() {
             const nombre = cmpEl('cmp-bill-nombre').value.trim();
             const q1 = parseFloat(cmpEl('cmp-bill-q1').value) || 0;
             const q2 = parseFloat(cmpEl('cmp-bill-q2').value) || 0;
@@ -918,8 +918,8 @@
                     orden: cmpSiguienteOrden(cmpItemsTab('fijo'))
                 });
             }
-            cmpCerrar('cmp-modal-bill');
             renderizarPaginaCompromisos();
+            await kodaConfirmarYCerrar('cmp-modal-bill', () => cmpCerrar('cmp-modal-bill'));
         }
 
         function eliminarBill() {
@@ -989,7 +989,7 @@
             }
         }
 
-        function guardarDebt() {
+        async function guardarDebt() {
             const nombre = cmpEl('cmp-debt-nombre').value.trim();
             const total = parseFloat(cmpEl('cmp-debt-total').value) || 0;
             const actualRaw = cmpEl('cmp-debt-actual').value;
@@ -1011,8 +1011,8 @@
                     orden: cmpSiguienteOrden(cmpItemsTab('deuda'))
                 });
             }
-            cmpCerrar('cmp-modal-debt');
             renderizarPaginaCompromisos();
+            await kodaConfirmarYCerrar('cmp-modal-debt', () => cmpCerrar('cmp-modal-debt'));
         }
 
         function eliminarDebt() {
@@ -1047,7 +1047,7 @@
             setTimeout(() => cmpEl('cmp-loan-nombre').focus(), 80);
         }
 
-        function guardarNuevoPrestamo() {
+        async function guardarNuevoPrestamo() {
             const nombre = cmpEl('cmp-loan-nombre').value.trim();
             const monto = parseFloat(cmpEl('cmp-loan-monto').value) || 0;
             const cuentaId = parseInt(cmpEl('cmp-loan-cuenta').value);
@@ -1067,8 +1067,8 @@
                 prestamoId: id, fechaStr: `${fecha}T${cmpHoraActual()}`
             });
 
-            cmpCerrar('cmp-modal-loan');
             renderizarPaginaCompromisos();
+            await kodaConfirmarYCerrar('cmp-modal-loan', () => cmpCerrar('cmp-modal-loan'));
         }
 
         // ==========================================
@@ -1195,7 +1195,7 @@
 
         function cerrarModalMovPrestamo() { cmpCerrar('cmp-modal-mov'); }
 
-        function guardarMovPrestamo() {
+        async function guardarMovPrestamo() {
             const tipo = cmpEl('cmp-mov-tipo').value;                     
             const monto = parseFloat(cmpEl('cmp-mov-monto').value) || 0;
             const cuentaId = parseInt(cmpEl('cmp-mov-cuenta').value);
@@ -1235,9 +1235,9 @@
                 fechaStr: `${fecha}T${hora}`
             });
 
-            cerrarModalMovPrestamo();
-            abrirModalDetallePrestamo(p.id);
             renderizarPaginaCompromisos();
+            await kodaConfirmarYCerrar('cmp-modal-mov', cerrarModalMovPrestamo);
+            abrirModalDetallePrestamo(p.id);
         }
 
         function eliminarMovPrestamo() {

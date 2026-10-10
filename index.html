@@ -421,7 +421,7 @@
             renderizarCuentas();
         }
 
-        function guardarNuevaCuentaDashboard() {
+        async function guardarNuevaCuentaDashboard() {
             const idEdicion = document.getElementById('cuenta-id-edicion').value;
             const apodo = document.getElementById('nueva-cuenta-apodo').value.trim();
             const banco = document.getElementById('nueva-cuenta-banco').value.trim();
@@ -461,8 +461,8 @@
                 }
                 cuentasDB.push(nuevaCuenta);
             }
-            cerrarModalCrearCuenta();
             renderizarCuentas();
+            await kodaConfirmarYCerrar('modal-crear-cuenta', cerrarModalCrearCuenta);
         }
     </script>
 
