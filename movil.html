@@ -56,6 +56,10 @@
         body.sheet-on .sheet-bg, body.ed-on .sheet-bg { opacity: 1; pointer-events: auto; } body.sheet-on #sh-add, body.ed-on #sh-ed { transform: none; }
         .filt { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } .cnt { color: var(--mut); font-size: 12.5px; margin: 10px 2px 0; }
         .icon-btn.on { color: var(--cy); background: var(--card); } .icon-btn.dot2 { position: relative; } .icon-btn.dot2::after { content: ''; position: absolute; top: 8px; right: 8px; width: 7px; height: 7px; border-radius: 50%; background: var(--gold); }
+        .bc { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 18px 18px 16px; margin-bottom: 10px; }
+        .bc .top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; } .bc .nm { font-size: 17px; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .bc .vl { font-size: 22px; font-weight: 800; white-space: nowrap; }
+        .bc .bar { height: 9px; margin-top: 14px; } .bc .sb { color: var(--mut); font-size: 13px; margin-top: 8px; display: flex; justify-content: space-between; gap: 8px; }
+        .more { width: 100%; padding: 12px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); color: var(--cy); font-weight: 700; font-size: 14px; margin-bottom: 4px; } .more:active { background: var(--card2); }
         .item.tap:active { background: var(--card2); } .ro { color: var(--mut); font-size: 13px; margin: 2px 2px 0; }
         .grab { width: 40px; height: 4px; border-radius: 9px; background: rgba(255,255,255,.18); margin: 0 auto 14px; }
         .field { display: block; margin-top: 12px; } .field > span { display: block; font-size: 12.5px; color: var(--mut); font-weight: 600; margin: 0 2px 6px; }
@@ -114,8 +118,8 @@
             </div>
             <div class="queue" id="h-cola"><span class="ms" style="color:var(--gold)">schedule</span><span id="h-cola-txt"></span><button onclick="enviarCola(true)">Send now</button></div>
             <h2>Accounts</h2><div class="card" id="l-cuentas"></div>
-            <h2>Envelopes</h2><div class="card" id="l-sobres"></div>
-            <h2>Goals</h2><div class="card" id="l-metas"></div>
+            <h2>Envelopes</h2><div id="l-sobres"></div><div id="m-sobres"></div>
+            <h2>Goals</h2><div id="l-metas"></div><div id="m-metas"></div>
             <div class="pull" id="h-sync"></div>
         </section>
 
@@ -179,6 +183,7 @@
         <div class="grab"></div>
         <div class="lbl" id="e-info" style="font-size:15px;font-weight:700;color:var(--txt)"></div>
         <div class="ro" id="e-info2"></div>
+        <label class="field" id="e-wmonto"><span>Amount</span><input id="e-monto" class="inp" type="number" inputmode="decimal" step="0.01" min="0" style="font-size:22px;font-weight:800"></label>
         <label class="field"><span>Description</span><input id="e-desc" class="inp" type="text" maxlength="120" autocomplete="off"></label>
         <label class="field" id="e-wcat"><span>Category</span><select id="e-cat" class="inp"></select></label>
         <label class="field" id="e-wsob"><span>Envelope</span><select id="e-sob" class="inp"></select></label>
@@ -312,6 +317,7 @@ async function cargar(manual) {
     } finally { setTimeout(() => { ic.style.transition = 'none'; ic.style.transform = ''; }, 850); cargando = false; }
 }
 
+const verTodo = { sobres: false, metas: false };
 const TIPO_EN = { Gasto: 'Expense', Ingreso: 'Income', Transferencia: 'Transfer', 'Préstamo': 'Loan' };
 const tipoEn = t => TIPO_EN[t] || t || '';
 function panel(w) {
@@ -341,15 +347,21 @@ function pintar() {
         return `<div class="item"><div class="dot"><span class="ms">${esTarjeta(c) ? 'credit_card' : 'account_balance'}</span></div><div class="main"><div class="t">${esc(c.apodo)}</div><div class="s">${esc(sub)}</div></div><div class="amt ${s < 0 ? 'neg' : ''}">${money(s)}</div></div>`;
     }).join('') : '<div class="empty">No accounts yet. Add them from KODA on your computer.</div>';
 
-    $('l-sobres').innerHTML = so.length ? so.map(s => {
-        const m = Number(s.monto) || 0, g = Number(s.meta) || 0, p = g ? Math.max(0, Math.min(100, m / g * 100)) : 0;
-        return `<div class="item"><div class="main"><div style="display:flex;justify-content:space-between;gap:8px"><div class="t">${esc(s.nombre)}</div><div class="amt">${money(m)}</div></div>${g ? `<div class="bar"><div style="width:${p}%"></div></div>` : ''}</div></div>`;
-    }).join('') : '<div class="empty">No envelopes yet.</div>';
-
-    $('l-metas').innerHTML = me.length ? me.map(m => {
-        const a = Number(m.montoActual) || 0, t = Number(m.metaTotal) || 0, p = t ? Math.min(100, a / t * 100) : 0;
-        return `<div class="item"><div class="main"><div style="display:flex;justify-content:space-between;gap:8px"><div class="t">${esc(m.nombre)}</div><div class="s" style="margin:0">${money(a)} of ${money(t)}</div></div><div class="bar"><div style="width:${p}%"></div></div></div></div>`;
-    }).join('') : '<div class="empty">No goals yet.</div>';
+    // Sobres y metas: solo las 3 más cercanas a completarse; el botón despliega todas
+    const pct = (a, t) => t > 0 ? Math.max(0, Math.min(100, a / t * 100)) : 0;
+    const lista = (idL, idM, arr, tarjeta, clave, vacio, plural) => {
+        const ord = arr.slice().sort((x, y) => y._p - x._p), todos = verTodo[clave], vis = todos ? ord : ord.slice(0, 3);
+        $(idL).innerHTML = ord.length ? vis.map(tarjeta).join('') : `<div class="card"><div class="empty">${vacio}</div></div>`;
+        $(idM).innerHTML = ord.length > 3 ? `<button class="more" onclick="verTodo.${clave} = !verTodo.${clave}; pintar()">${todos ? 'Show less' : `Show all ${plural} (${ord.length})`}</button>` : '';
+    };
+    lista('l-sobres', 'm-sobres', so.map(s => Object.assign({}, s, { _p: (Number(s.monto) || 0) < 0 ? -1 : pct(Number(s.monto) || 0, Number(s.meta) || 0) })), s => {
+        const m = Number(s.monto) || 0, g = Number(s.meta) || 0, p = pct(m, g);
+        return `<div class="bc"><div class="top"><div class="nm">${esc(s.nombre)}</div><div class="vl">${money(m)}</div></div>${g ? `<div class="bar"><div style="width:${p}%"></div></div><div class="sb"><span>${Math.round(p)}% of ${money(g)}</span><span>${m >= g ? 'Full' : money(g - m) + ' to go'}</span></div>` : ''}</div>`;
+    }, 'sobres', 'No envelopes yet.', 'envelopes');
+    lista('l-metas', 'm-metas', me.map(m => Object.assign({}, m, { _p: pct(Number(m.montoActual) || 0, Number(m.metaTotal) || 0) })), m => {
+        const a = Number(m.montoActual) || 0, t = Number(m.metaTotal) || 0, p = pct(a, t);
+        return `<div class="bc"><div class="top"><div class="nm">${esc(m.nombre)}</div><div class="vl">${money(a)}</div></div><div class="bar"><div style="width:${p}%"></div></div><div class="sb"><span>${Math.round(p)}% of ${money(t)}</span><span>${a >= t ? 'Done' : money(t - a) + ' to go'}</span></div></div>`;
+    }, 'metas', 'No goals yet.', 'goals');
 
     // Filtro de la actividad
     const sel = $('q-cta'), prev = sel.value;
@@ -413,8 +425,9 @@ function abrirEd(id) {
     const m = (D.historial || []).find(x => String(x.id) === String(id)); if (!m) return;
     edId = m.id;
     const fe = String(m.fechaStr || ''), f = fe ? new Date(fe).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
-    $('e-info').textContent = `${m.tipo === 'Ingreso' ? '+' : ''}${money(m.monto)}`;
+    $('e-info').textContent = tipoEn(m.tipo);
     $('e-info2').textContent = `${f} · ${m.cuentaOrigen || ''}`;
+    $('e-monto').value = m.monto; $('e-wmonto').style.display = (m.tipo === 'Gasto' || m.tipo === 'Ingreso') ? '' : 'none';
     $('e-desc').value = m.desc || '';
     const cats = (D.categorias || []).map(c => c.nombre).filter(Boolean); if (!cats.length) cats.push('General');
     if (m.categoria && !m.sobre && !cats.includes(m.categoria)) cats.push(m.categoria);
@@ -427,11 +440,14 @@ function abrirEd(id) {
     document.body.classList.add('ed-on'); setTimeout(() => $('e-desc').focus(), 280);
 }
 async function guardarEd() {
-    const btn = $('e-ok'); btn.disabled = true;
+    const btn = $('e-ok'), monto = parseFloat($('e-monto').value);
+    if ($('e-wmonto').style.display !== 'none' && !(monto > 0)) { $('e-err').textContent = 'Enter an amount greater than zero.'; return; }
+    btn.disabled = true;
     try {
-        const r = await api('editarMovimiento', { id: edId, desc: $('e-desc').value.trim(), categoria: $('e-cat').value, sobre: $('e-sob').value });
+        const r = await api('editarMovimiento', { id: edId, monto: $('e-wmonto').style.display === 'none' ? undefined : monto, desc: $('e-desc').value.trim(), categoria: $('e-cat').value, sobre: $('e-sob').value });
         const i = (D.historial || []).findIndex(x => String(x.id) === String(edId)); if (i >= 0) D.historial[i] = r.mov;
         if (r.sobres) D.sobres = r.sobres;
+        if (r.cuentas) D.cuentas = r.cuentas;
         cacheD(); cerrarHoja(); pintar(); toast('Saved');
     } catch (e) { $('e-err').textContent = e.red ? 'You need a connection to edit an entry.' : e.message; }
     finally { btn.disabled = false; }
