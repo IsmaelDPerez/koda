@@ -53,7 +53,9 @@
         .fab .ms { font-size: 28px; }
         .sheet-bg { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.55); opacity: 0; pointer-events: none; transition: opacity .2s; }
         .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 41; background: #1A1F2B; border-radius: 26px 26px 0 0; border-top: 1px solid var(--line); padding: 10px 18px calc(18px + env(safe-area-inset-bottom)); transform: translateY(105%); transition: transform .26s cubic-bezier(.2,.8,.2,1); max-height: 92dvh; overflow: auto; }
-        body.sheet-on .sheet-bg { opacity: 1; pointer-events: auto; } body.sheet-on .sheet { transform: none; }
+        body.sheet-on .sheet-bg, body.ed-on .sheet-bg { opacity: 1; pointer-events: auto; } body.sheet-on #sh-add, body.ed-on #sh-ed { transform: none; }
+        .filt { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } .cnt { color: var(--mut); font-size: 12.5px; margin: 10px 2px 0; }
+        .item.tap:active { background: var(--card2); } .ro { color: var(--mut); font-size: 13px; margin: 2px 2px 0; }
         .grab { width: 40px; height: 4px; border-radius: 9px; background: rgba(255,255,255,.18); margin: 0 auto 14px; }
         .field { display: block; margin-top: 12px; } .field > span { display: block; font-size: 12.5px; color: var(--mut); font-weight: 600; margin: 0 2px 6px; }
         .inp { width: 100%; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 13px 14px; font-size: 16px; outline: none; }
@@ -118,7 +120,14 @@
 
         <!-- Actividad -->
         <section class="view" id="v-act">
-            <h2 style="margin-top:8px">Recent activity</h2><div class="card" id="l-hist"></div>
+            <h2 style="margin-top:8px">Activity</h2>
+            <label class="field" style="margin-top:0"><span>Search</span><input id="q-txt" class="inp" type="search" autocomplete="off" oninput="pintar()"></label>
+            <div class="filt">
+                <label class="field"><span>Type</span><select id="q-tipo" class="inp" onchange="pintar()"><option value="">All</option><option>Gasto</option><option>Ingreso</option><option>Transferencia</option></select></label>
+                <label class="field"><span>Account</span><select id="q-cta" class="inp" onchange="pintar()"></select></label>
+            </div>
+            <div class="cnt" id="q-cnt"></div>
+            <div class="card" id="l-hist" style="margin-top:10px"></div>
         </section>
 
         <!-- Pagos -->
@@ -148,7 +157,7 @@
     </div></nav>
 
     <div class="sheet-bg" onclick="cerrarHoja()"></div>
-    <div class="sheet" role="dialog" aria-label="Add entry">
+    <div class="sheet" id="sh-add" role="dialog" aria-label="Add entry">
         <div class="grab"></div>
         <div class="seg"><button class="on" id="s-gasto" onclick="setTipo('Gasto')">Expense</button><button id="s-ingreso" onclick="setTipo('Ingreso')">Income</button></div>
         <label class="field"><span>Amount</span><input id="f-monto" class="inp" type="number" inputmode="decimal" step="0.01" min="0" style="font-size:26px;font-weight:800"></label>
@@ -158,6 +167,16 @@
         <label class="field" id="w-sobre"><span>Envelope</span><select id="f-sobre" class="inp"></select></label>
         <div class="err" id="f-err"></div>
         <button class="btn" id="f-ok" onclick="guardar()">Save</button>
+    </div>
+    <div class="sheet" id="sh-ed" role="dialog" aria-label="Edit entry">
+        <div class="grab"></div>
+        <div class="lbl" id="e-info" style="font-size:15px;font-weight:700;color:var(--txt)"></div>
+        <div class="ro" id="e-info2"></div>
+        <label class="field"><span>Description</span><input id="e-desc" class="inp" type="text" maxlength="120" autocomplete="off"></label>
+        <label class="field" id="e-wcat"><span>Category</span><select id="e-cat" class="inp"></select></label>
+        <label class="field" id="e-wsob"><span>Envelope</span><select id="e-sob" class="inp"></select></label>
+        <div class="err" id="e-err"></div>
+        <button class="btn" id="e-ok" onclick="guardarEd()">Save changes</button>
     </div>
     <div id="toast"></div>
 
@@ -317,14 +336,22 @@ function pintar() {
         return `<div class="item"><div class="main"><div style="display:flex;justify-content:space-between;gap:8px"><div class="t">${esc(m.nombre)}</div><div class="s" style="margin:0">${money(a)} of ${money(t)}</div></div><div class="bar"><div style="width:${p}%"></div></div></div></div>`;
     }).join('') : '<div class="empty">No goals yet.</div>';
 
-    const ult = hi.slice().sort((a, b) => String(b.fechaStr || '').localeCompare(String(a.fechaStr || ''))).slice(0, 60);
+    // Filtro de la actividad
+    const sel = $('q-cta'), prev = sel.value;
+    sel.innerHTML = '<option value="">All</option>' + cu.map(c => `<option>${esc(c.apodo)}</option>`).join(''); sel.value = prev;
+    const q = ($('q-txt').value || '').trim().toLowerCase(), ft = $('q-tipo').value, fc = sel.value;
+    const todos = hi.slice().sort((a, b) => String(b.fechaStr || '').localeCompare(String(a.fechaStr || '')));
+    const filtrado = todos.filter(m => (!ft || m.tipo === ft) && (!fc || m.cuentaOrigen === fc) &&
+        (!q || [m.desc, m.categoria, m.sobre, m.cuentaOrigen, m.tipo, String(m.monto)].some(v => String(v == null ? '' : v).toLowerCase().includes(q))));
+    const hayFiltro = !!(q || ft || fc), ult = filtrado.slice(0, hayFiltro ? 200 : 60);
+    $('q-cnt').textContent = hayFiltro ? `${filtrado.length} found` : '';
     $('l-hist').innerHTML = ult.length ? ult.map(m => {
         const ing = m.tipo === 'Ingreso', fe = String(m.fechaStr || '');
         const f = fe ? new Date(fe).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
         const marca = m.pendiente ? (m.fallo ? ` · <span class="tag">Not sent: ${esc(m.fallo)}</span>` : ' · <span class="tag">Pending</span>') : '';
-        const clic = m.pendiente && m.fallo ? ` onclick="descartar('${esc(m.cid)}')"` : '';
-        return `<div class="item"${clic}><div class="dot"><span class="ms">${m.pendiente ? 'schedule' : ing ? 'south_west' : m.tipo === 'Transferencia' ? 'swap_horiz' : 'north_east'}</span></div><div class="main"><div class="t">${esc(m.desc || m.tipo)}</div><div class="s">${esc(f)} · ${esc(m.cuentaOrigen || '')}${m.categoria ? ' · ' + esc(m.categoria) : ''}${marca}</div></div><div class="amt ${ing ? 'pos' : ''}">${ing ? '+' : ''}${money(m.monto)}</div></div>`;
-    }).join('') : '<div class="empty">No activity yet.</div>';
+        const clic = m.pendiente ? (m.fallo ? ` onclick="descartar('${esc(m.cid)}')"` : ` onclick="toast('Waiting to be sent')"`) : (m.tipo === 'Préstamo' ? '' : ` onclick="abrirEd('${esc(m.id)}')"`);
+        return `<div class="item tap"${clic}><div class="dot"><span class="ms">${m.pendiente ? 'schedule' : ing ? 'south_west' : m.tipo === 'Transferencia' ? 'swap_horiz' : 'north_east'}</span></div><div class="main"><div class="t">${esc(m.desc || m.tipo)}</div><div class="s">${esc(f)} · ${esc(m.cuentaOrigen || '')}${m.categoria ? ' · ' + esc(m.categoria) : ''}${marca}</div></div><div class="amt ${ing ? 'pos' : ''}">${ing ? '+' : ''}${money(m.monto)}</div></div>`;
+    }).join('') : `<div class="empty">${hayFiltro ? 'Nothing matches.' : 'No activity yet.'}</div>`;
 
     $('l-comp').innerHTML = co.length ? co.map(c => {
         const mens = (Number(c.montoQ1) || 0) + (Number(c.montoQ2) || 0), deuda = c.tipo === 'deuda';
@@ -352,7 +379,7 @@ function abrirHoja() {
     $('f-monto').value = ''; $('f-desc').value = ''; $('f-err').textContent = ''; setTipo('Gasto');
     document.body.classList.add('sheet-on'); setTimeout(() => $('f-monto').focus(), 280);
 }
-function cerrarHoja() { document.body.classList.remove('sheet-on'); document.activeElement && document.activeElement.blur(); }
+function cerrarHoja() { document.body.classList.remove('sheet-on', 'ed-on'); document.activeElement && document.activeElement.blur(); }
 async function guardar() {
     const monto = parseFloat($('f-monto').value);
     if (!(monto > 0)) { $('f-err').textContent = 'Enter an amount greater than zero.'; return; }
@@ -362,6 +389,36 @@ async function guardar() {
     await enviarCola();
     const q = cola.find(x => x.cid === it.cid);
     toast(!q ? (tipo === 'Gasto' ? 'Expense saved' : 'Income saved') : q.fallo ? 'Not sent: ' + q.fallo : 'Saved on this phone. It will be sent when you have a connection.');
+}
+
+/* ---- Editar un movimiento (necesita conexión: se cambia directo en la hoja) ---- */
+let edId = null;
+function abrirEd(id) {
+    const m = (D.historial || []).find(x => String(x.id) === String(id)); if (!m) return;
+    edId = m.id;
+    const fe = String(m.fechaStr || ''), f = fe ? new Date(fe).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+    $('e-info').textContent = `${m.tipo === 'Ingreso' ? '+' : ''}${money(m.monto)}`;
+    $('e-info2').textContent = `${f} · ${m.cuentaOrigen || ''}`;
+    $('e-desc').value = m.desc || '';
+    const cats = (D.categorias || []).map(c => c.nombre).filter(Boolean); if (!cats.length) cats.push('General');
+    if (m.categoria && !m.sobre && !cats.includes(m.categoria)) cats.push(m.categoria);
+    $('e-cat').innerHTML = cats.map(c => `<option>${esc(c)}</option>`).join(''); if (m.categoria && !m.sobre) $('e-cat').value = m.categoria;
+    $('e-sob').innerHTML = '<option value="">None</option>' + (D.sobres || []).map(s => `<option>${esc(s.nombre)}</option>`).join(''); $('e-sob').value = m.sobre || '';
+    const gasto = m.tipo === 'Gasto';
+    $('e-wsob').style.display = gasto && (D.sobres || []).length ? '' : 'none';
+    $('e-wcat').style.display = gasto || m.tipo === 'Ingreso' ? '' : 'none';
+    $('e-err').textContent = '';
+    document.body.classList.add('ed-on'); setTimeout(() => $('e-desc').focus(), 280);
+}
+async function guardarEd() {
+    const btn = $('e-ok'); btn.disabled = true;
+    try {
+        const r = await api('editarMovimiento', { id: edId, desc: $('e-desc').value.trim(), categoria: $('e-cat').value, sobre: $('e-sob').value });
+        const i = (D.historial || []).findIndex(x => String(x.id) === String(edId)); if (i >= 0) D.historial[i] = r.mov;
+        if (r.sobres) D.sobres = r.sobres;
+        cacheD(); cerrarHoja(); pintar(); toast('Saved');
+    } catch (e) { $('e-err').textContent = e.red ? 'You need a connection to edit an entry.' : e.message; }
+    finally { btn.disabled = false; }
 }
 
 /* ---- Chat ---- */
