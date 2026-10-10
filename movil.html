@@ -55,6 +55,7 @@
         .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 41; background: #1A1F2B; border-radius: 26px 26px 0 0; border-top: 1px solid var(--line); padding: 10px 18px calc(18px + env(safe-area-inset-bottom)); transform: translateY(105%); transition: transform .26s cubic-bezier(.2,.8,.2,1); max-height: 92dvh; overflow: auto; }
         body.sheet-on .sheet-bg, body.ed-on .sheet-bg { opacity: 1; pointer-events: auto; } body.sheet-on #sh-add, body.ed-on #sh-ed { transform: none; }
         .filt { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } .cnt { color: var(--mut); font-size: 12.5px; margin: 10px 2px 0; }
+        .icon-btn.on { color: var(--cy); background: var(--card); } .icon-btn.dot2 { position: relative; } .icon-btn.dot2::after { content: ''; position: absolute; top: 8px; right: 8px; width: 7px; height: 7px; border-radius: 50%; background: var(--gold); }
         .item.tap:active { background: var(--card2); } .ro { color: var(--mut); font-size: 13px; margin: 2px 2px 0; }
         .grab { width: 40px; height: 4px; border-radius: 9px; background: rgba(255,255,255,.18); margin: 0 auto 14px; }
         .field { display: block; margin-top: 12px; } .field > span { display: block; font-size: 12.5px; color: var(--mut); font-weight: 600; margin: 0 2px 6px; }
@@ -120,11 +121,17 @@
 
         <!-- Actividad -->
         <section class="view" id="v-act">
-            <h2 style="margin-top:8px">Activity</h2>
-            <label class="field" style="margin-top:0"><span>Search</span><input id="q-txt" class="inp" type="search" autocomplete="off" oninput="pintar()"></label>
-            <div class="filt">
-                <label class="field"><span>Type</span><select id="q-tipo" class="inp" onchange="pintar()"><option value="">All</option><option>Gasto</option><option>Ingreso</option><option>Transferencia</option></select></label>
-                <label class="field"><span>Account</span><select id="q-cta" class="inp" onchange="pintar()"></select></label>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin:8px 2px 0">
+                <h2 style="margin:0">Activity</h2>
+                <div style="display:flex;gap:2px">
+                    <button class="icon-btn" id="b-q" onclick="panel('q')" aria-label="Search"><span class="ms">search</span></button>
+                    <button class="icon-btn" id="b-f" onclick="panel('f')" aria-label="Filters"><span class="ms">tune</span></button>
+                </div>
+            </div>
+            <div id="p-q" style="display:none"><label class="field" style="margin-top:6px"><span>Search</span><input id="q-txt" class="inp" type="search" autocomplete="off" oninput="pintar()"></label></div>
+            <div id="p-f" style="display:none" class="filt">
+                <label class="field" style="margin-top:6px"><span>Type</span><select id="q-tipo" class="inp" onchange="pintar()"><option value="">All</option><option value="Gasto">Expense</option><option value="Ingreso">Income</option><option value="Transferencia">Transfer</option></select></label>
+                <label class="field" style="margin-top:6px"><span>Account</span><select id="q-cta" class="inp" onchange="pintar()"></select></label>
             </div>
             <div class="cnt" id="q-cnt"></div>
             <div class="card" id="l-hist" style="margin-top:10px"></div>
@@ -305,6 +312,14 @@ async function cargar(manual) {
     } finally { setTimeout(() => { ic.style.transition = 'none'; ic.style.transform = ''; }, 850); cargando = false; }
 }
 
+const TIPO_EN = { Gasto: 'Expense', Ingreso: 'Income', Transferencia: 'Transfer', 'Préstamo': 'Loan' };
+const tipoEn = t => TIPO_EN[t] || t || '';
+function panel(w) {
+    const p = $('p-' + w), abrir = p.style.display === 'none';
+    p.style.display = abrir ? (w === 'f' ? 'grid' : 'block') : 'none';
+    $('b-' + w).classList.toggle('on', abrir);
+    if (abrir && w === 'q') setTimeout(() => $('q-txt').focus(), 50);
+}
 const esTarjeta = c => c.tipo === 'Tarjeta Crédito';
 function pintar() {
     const P = conPendientes();
@@ -342,15 +357,16 @@ function pintar() {
     const q = ($('q-txt').value || '').trim().toLowerCase(), ft = $('q-tipo').value, fc = sel.value;
     const todos = hi.slice().sort((a, b) => String(b.fechaStr || '').localeCompare(String(a.fechaStr || '')));
     const filtrado = todos.filter(m => (!ft || m.tipo === ft) && (!fc || m.cuentaOrigen === fc) &&
-        (!q || [m.desc, m.categoria, m.sobre, m.cuentaOrigen, m.tipo, String(m.monto)].some(v => String(v == null ? '' : v).toLowerCase().includes(q))));
+        (!q || [m.desc, m.categoria, m.sobre, m.cuentaOrigen, tipoEn(m.tipo), String(m.monto)].some(v => String(v == null ? '' : v).toLowerCase().includes(q))));
     const hayFiltro = !!(q || ft || fc), ult = filtrado.slice(0, hayFiltro ? 200 : 60);
+    $('b-q').classList.toggle('dot2', !!q); $('b-f').classList.toggle('dot2', !!(ft || fc));
     $('q-cnt').textContent = hayFiltro ? `${filtrado.length} found` : '';
     $('l-hist').innerHTML = ult.length ? ult.map(m => {
         const ing = m.tipo === 'Ingreso', fe = String(m.fechaStr || '');
         const f = fe ? new Date(fe).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
         const marca = m.pendiente ? (m.fallo ? ` · <span class="tag">Not sent: ${esc(m.fallo)}</span>` : ' · <span class="tag">Pending</span>') : '';
         const clic = m.pendiente ? (m.fallo ? ` onclick="descartar('${esc(m.cid)}')"` : ` onclick="toast('Waiting to be sent')"`) : (m.tipo === 'Préstamo' ? '' : ` onclick="abrirEd('${esc(m.id)}')"`);
-        return `<div class="item tap"${clic}><div class="dot"><span class="ms">${m.pendiente ? 'schedule' : ing ? 'south_west' : m.tipo === 'Transferencia' ? 'swap_horiz' : 'north_east'}</span></div><div class="main"><div class="t">${esc(m.desc || m.tipo)}</div><div class="s">${esc(f)} · ${esc(m.cuentaOrigen || '')}${m.categoria ? ' · ' + esc(m.categoria) : ''}${marca}</div></div><div class="amt ${ing ? 'pos' : ''}">${ing ? '+' : ''}${money(m.monto)}</div></div>`;
+        return `<div class="item tap"${clic}><div class="dot"><span class="ms">${m.pendiente ? 'schedule' : ing ? 'south_west' : m.tipo === 'Transferencia' ? 'swap_horiz' : 'north_east'}</span></div><div class="main"><div class="t">${esc(m.desc || tipoEn(m.tipo))}</div><div class="s">${esc(f)} · ${esc(m.cuentaOrigen || '')}${m.categoria ? ' · ' + esc(m.categoria) : ''}${marca}</div></div><div class="amt ${ing ? 'pos' : ''}">${ing ? '+' : ''}${money(m.monto)}</div></div>`;
     }).join('') : `<div class="empty">${hayFiltro ? 'Nothing matches.' : 'No activity yet.'}</div>`;
 
     $('l-comp').innerHTML = co.length ? co.map(c => {
