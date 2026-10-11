@@ -88,6 +88,7 @@ async function inicializarKODA() {
         else if (ruta.includes('compromisos')) btnActivo = document.getElementById('nav-btn-compromisos');
         else if (ruta.includes('metas')) btnActivo = document.getElementById('nav-btn-metas');
         else if (ruta.includes('checkpay')) btnActivo = document.getElementById('nav-btn-checkpay');
+        else if (ruta.includes('trading')) btnActivo = document.getElementById('nav-btn-trading');
         
         if (btnActivo) {
             setTimeout(() => {
@@ -145,7 +146,7 @@ async function inicializarKODA() {
 }
 document.addEventListener('DOMContentLoaded', inicializarKODA);
 
-const KODA_RUTAS = { dashboard: 'index.html', inicio: 'index.html', sobres: 'sobres.html', historial: 'historial.html', compromisos: 'compromisos.html', metas: 'metas.html', checkpay: 'checkpay.html' };
+const KODA_RUTAS = { dashboard: 'index.html', inicio: 'index.html', sobres: 'sobres.html', historial: 'historial.html', compromisos: 'compromisos.html', metas: 'metas.html', checkpay: 'checkpay.html', trading: 'trading.html' };
 
 // Navega con la misma animación de salida en todas las páginas
 function navegarConTransicion(url) {
@@ -1034,6 +1035,8 @@ function seleccionarSobreAqua(btn, nombre) {
 // ==========================================
 const KODA_NOTIF_KEY = 'koda_notifs_v1';
 const KODA_NOTIF_READ_KEY = 'koda_notifs_read_v1';
+const KODA_NOTIF_HIDE_KEY = 'koda_notifs_hidden_v1';
+let _notifOcultas = {};
 let notificacionesDB = [];
 let _notifLeidasDerivadas = {};
 
@@ -1042,24 +1045,26 @@ const kodaEsc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;',
 function _notifCargar() {
     try { const r = JSON.parse(localStorage.getItem(KODA_NOTIF_KEY) || '[]'); notificacionesDB = Array.isArray(r) ? r : []; } catch (e) { notificacionesDB = []; }
     try { _notifLeidasDerivadas = JSON.parse(localStorage.getItem(KODA_NOTIF_READ_KEY) || '{}') || {}; } catch (e) { _notifLeidasDerivadas = {}; }
+    try { _notifOcultas = JSON.parse(localStorage.getItem(KODA_NOTIF_HIDE_KEY) || '{}') || {}; } catch (e) { _notifOcultas = {}; }
 }
 function _notifGuardar() {
     try {
         localStorage.setItem(KODA_NOTIF_KEY, JSON.stringify(notificacionesDB.filter(n => !n.derivada)));
         localStorage.setItem(KODA_NOTIF_READ_KEY, JSON.stringify(_notifLeidasDerivadas));
+        localStorage.setItem(KODA_NOTIF_HIDE_KEY, JSON.stringify(_notifOcultas));
     } catch (e) { /* sin almacenamiento: las notificaciones viven solo en memoria */ }
 }
 
 // tipo: 'error' | 'warning' | 'info' | 'auto'
 function kodaNotificar(titulo, mensaje, opciones = {}) {
-    const { tipo = 'info', link = null, clave = null, derivada = false } = opciones;
+    const { tipo = 'info', link = null, clave = null, derivada = false, fija = false } = opciones;
     if (clave) {
         const existente = notificacionesDB.find(n => n.clave === clave);
         if (existente) { existente.titulo = titulo; existente.mensaje = mensaje; existente.link = link; return existente; }
     }
     const n = {
         id: Date.now() + Math.floor(Math.random() * 1000),
-        tipo, titulo, mensaje, link, clave, derivada,
+        tipo, titulo, mensaje, link, clave, derivada, fija,
         fecha: new Date().toISOString(),
         leida: derivada && clave ? !!_notifLeidasDerivadas[clave] : false
     };
@@ -1097,7 +1102,9 @@ function renderizarNotificaciones() {
             <div class="min-w-0 flex-1">
                 <div class="flex items-center justify-between gap-2">
                     <p class="text-xs font-semibold text-white truncate">${kodaEsc(n.titulo)}</p>
-                    ${n.leida ? '' : '<span class="w-1.5 h-1.5 rounded-full bg-koda-blue flex-shrink-0"></span>'}
+                    ${n.fija
+                        ? `<button type="button" title="Delete" onclick="event.stopPropagation(); eliminarNotificacion(${n.id})" class="text-koda-steel hover:text-white flex-shrink-0 cursor-pointer outline-none"><span class="material-symbols-outlined text-[16px]">close</span></button>`
+                        : (n.leida ? '' : '<span class="w-1.5 h-1.5 rounded-full bg-koda-blue flex-shrink-0"></span>')}
                 </div>
                 <p class="text-[11.5px] font-medium text-koda-steel leading-snug mt-0.5">${kodaEsc(n.mensaje)}</p>
                 <p class="text-[10.5px] font-medium text-koda-steel/70 mt-1">${_notifHace(n.fecha)}</p>
@@ -1121,10 +1128,19 @@ function marcarNotificacionesLeidas() {
     renderizarNotificaciones();
 }
 
+// Las fijas (Needs your attention) solo se borran a mano, una por una
+function eliminarNotificacion(id) {
+    notificacionesDB = notificacionesDB.filter(n => n.id !== id);
+    _notifGuardar();
+    renderizarNotificaciones();
+}
+
 function limpiarNotificaciones() {
-    // Las derivadas siguen existiendo mientras el problema exista; se marcan como leídas
-    notificacionesDB = notificacionesDB.filter(n => n.derivada);
-    marcarNotificacionesLeidas();
+    // Las alertas derivadas se ocultan hasta que el problema desaparezca y vuelva a ocurrir
+    notificacionesDB.forEach(n => { if (n.derivada && n.clave) _notifOcultas[n.clave] = true; });
+    notificacionesDB = notificacionesDB.filter(n => n.fija);
+    _notifGuardar();
+    renderizarNotificaciones();
 }
 
 function toggleNotificaciones() {
@@ -1148,7 +1164,6 @@ function chequearNotificaciones() {
 
     sobresDB.forEach(s => {
         if (s.monto < 0) derivadas.push({ clave: `sobre-neg-${s.id}`, tipo: 'warning', titulo: 'Envelope overdrawn', mensaje: `${s.nombre} is over by ${fmt(s.monto)}.`, link: `sobres.html?sobre=${s.id}` });
-        else if (s.monto === 0) derivadas.push({ clave: `sobre-vacio-${s.id}`, tipo: 'info', titulo: 'Envelope empty', mensaje: `${s.nombre} has no funds left.`, link: `sobres.html?sobre=${s.id}` });
     });
     cuentasDB.forEach(c => {
         if (c.tipo !== 'Tarjeta Crédito' && c.saldo < 0) derivadas.push({ clave: `cuenta-neg-${c.id}`, tipo: 'warning', titulo: 'Negative balance', mensaje: `${c.apodo} is at -${fmt(c.saldo)}.`, link: 'index.html' });
@@ -1161,7 +1176,12 @@ function chequearNotificaciones() {
         else if (m.fechaLimite && m.fechaLimite < hoy) derivadas.push({ clave: `meta-vencida-${m.id}`, tipo: 'warning', titulo: 'Goal past its date', mensaje: `${m.nombre} is ${fmt(m.metaTotal - m.montoActual)} short.`, link: 'metas.html' });
     });
 
-    derivadas.reverse().forEach(d => kodaNotificar(d.titulo, d.mensaje, { ...d, derivada: true }));
+    // Olvida lo ocultado cuyo problema ya no existe, para que avise si vuelve a pasar
+    const vivas = new Set(derivadas.map(d => d.clave));
+    Object.keys(_notifOcultas).forEach(k => { if (!vivas.has(k)) delete _notifOcultas[k]; });
+    _notifGuardar();
+
+    derivadas.filter(d => !_notifOcultas[d.clave]).reverse().forEach(d => kodaNotificar(d.titulo, d.mensaje, { ...d, derivada: true }));
     renderizarNotificaciones();
 }
 let _notifCargadas = false;
@@ -1396,7 +1416,7 @@ function renderizarMetasFondeo() {
 // Liquidez: lo que de verdad se puede gastar el resto de la quincena.
 // = saldo de las cuentas marcadas "Counts as spending money"
 //   - lo que está guardado en sobres
-//   - lo que falta por pagar en Check Pay (salvo obligaciones con "Affects net available" apagado)
+//   - lo que falta por pagar en Check Pay, solo pagos fijos y deudas con "Affects net available" encendido
 function kodaLiquidez(cuentas = cuentasDB, sobres = sobresDB, pendientes = checkpayDB, compromisos = compromisosDB) {
     const marcadas = cuentas.filter(c => c.liquida === true || c.liquida === 'TRUE' || c.liquida === 'true');
     const base = marcadas.reduce((a, c) => a + (Number(c.saldo) || 0), 0);
@@ -1406,7 +1426,8 @@ function kodaLiquidez(cuentas = cuentasDB, sobres = sobresDB, pendientes = check
             const c = compromisos.find(x => x.id == i.refId && x.tipo === i.tipoOrigen);
             if (c && (c.afectaDisponible === false || c.afectaDisponible === 'FALSE' || c.afectaDisponible === 'false')) return false;
         }
-        return true;
+        // Sobres, metas y manuales son solo lista: los sobres ya se restan en enSobres
+        return i.tipoOrigen === 'fijo' || i.tipoOrigen === 'deuda';
     }).reduce((a, i) => a + (Number(i.monto) || 0), 0);
     return { hayMarcadas: marcadas.length > 0, nombres: marcadas.map(c => c.apodo), base, enSobres, porPagar, libre: base - enSobres - porPagar };
 }
@@ -1657,7 +1678,7 @@ async function kodaProcesarBandeja() {
             await kodaNubeLlamar('marcarBandeja', { ids: duplicados.map(i => i.id), estado: 'avisado' });
         }
         if (revisar.length) {
-            revisar.forEach(it => kodaNotificar('Needs your attention', it.detalle || 'A bank email could not be read.', { tipo: 'warning', link: 'index.html' }));
+            revisar.forEach(it => kodaNotificar('Needs your attention', it.detalle || 'A bank email could not be read.', { tipo: 'warning', link: 'index.html', fija: true }));
             await kodaNubeLlamar('marcarBandeja', { ids: revisar.map(i => i.id), estado: 'avisado' });
         }
     } catch (e) {
