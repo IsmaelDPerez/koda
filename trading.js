@@ -655,7 +655,7 @@ KT.mount=function(hostEl,opts){
   R.innerHTML='<style>'+window.KT_CSS+'</style><div id="app"></div>';
   if(OPTS.fabBottom)hostEl.style.setProperty('--fab-b',OPTS.fabBottom);
   if(OPTS.fabRight)hostEl.style.setProperty('--fab-r',OPTS.fabRight);
-  const oh=document.createElement('div');document.body.appendChild(oh);
+  const oh=document.createElement('div');oh.id='kt-overlay';document.body.appendChild(oh);
   if(OPTS.fabBottom)oh.style.setProperty('--fab-b',OPTS.fabBottom);
   O=oh.attachShadow({mode:'open'});
   O.innerHTML='<style>'+window.KT_CSS+'</style><div class="bg" id="bg"></div><div class="sheet" id="sheet" role="dialog" aria-label="Trading"></div><div class="toast" id="toast"></div>';
