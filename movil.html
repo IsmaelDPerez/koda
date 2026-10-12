@@ -30,6 +30,19 @@
         .orb { display: block; width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #B9DDE2 0%, #66A5AD 48%, #2E5961 100%); box-shadow: 0 0 12px rgba(102,165,173,.65); }
         .orb-ring { position: absolute; inset: 7px; border-radius: 50%; border: 1px solid rgba(102,165,173,.55); opacity: 0; pointer-events: none; }
         .orb-btn.on .orb-ring { opacity: 1; inset: 5px; }
+        .icon-btn.unread::after { content: ''; position: absolute; top: 8px; right: 9px; width: 8px; height: 8px; border-radius: 50%; background: var(--cy); }
+        .npanel { position: fixed; top: calc(62px + env(safe-area-inset-top)); left: 16px; right: 16px; max-width: 528px; margin: 0 auto; z-index: 35; background: #141820; border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 16px 40px rgba(0,0,0,.5); padding: 12px; display: none; max-height: 62vh; overflow: auto; }
+        .npanel.on { display: block; }
+        .nhead { display: flex; justify-content: space-between; align-items: center; padding: 2px 6px 10px; margin-bottom: 6px; border-bottom: 1px solid var(--line); font-size: 12.5px; font-weight: 600; color: var(--mut); }
+        .nhead button { font-size: 12.5px; font-weight: 600; color: var(--mut); }
+        .nitem { display: flex; gap: 12px; padding: 11px 8px; border-radius: 14px; }
+        .nitem.new { background: rgba(255,255,255,.05); }
+        .nitem .ni { width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,.06); display: grid; place-items: center; flex: none; color: var(--cy); }
+        .nitem.w .ni { color: var(--txt); }
+        .nitem .nt { font-size: 13.5px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        .nitem .nm2 { font-size: 12.5px; color: var(--mut); margin-top: 2px; line-height: 1.35; }
+        .nitem .nw { font-size: 11px; color: rgba(138,152,165,.7); margin-top: 4px; }
+        .nitem .nd { width: 7px; height: 7px; border-radius: 50%; background: var(--cy); flex: none; }
         #ptr { height: 0; overflow: hidden; text-align: center; color: var(--mut); font-size: 12px; line-height: 28px; transition: height .2s; }
         .icon-btn { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: var(--mut); }
         .icon-btn:active { background: var(--card); }
@@ -105,10 +118,15 @@
         <div class="logo">KODA<i>.</i></div>
         <div style="display:flex;gap:4px">
             <button class="orb-btn" id="b-ask" onclick="ir('chat')" aria-label="Ask KODA"><span class="orb"></span><span class="orb-ring"></span></button>
+            <button class="icon-btn" id="b-notif" onclick="toggleNotifs(event)" aria-label="Notifications" style="position:relative"><span class="ms">notifications</span></button>
             <button class="icon-btn" onclick="salir()" aria-label="Sign out"><span class="ms">logout</span></button>
         </div>
     </div></header>
     <div id="ptr"></div>
+    <div class="npanel" id="np" onclick="event.stopPropagation()">
+        <div class="nhead"><span>Notifications</span><span style="display:flex;gap:14px"><button onclick="leerTodasNotifs()" style="color:var(--cy)">Mark all read</button><button onclick="limpiarNotifs()">Clear</button></span></div>
+        <div id="np-list"></div>
+    </div>
 
     <main class="wrap">
         <!-- Inicio -->
@@ -334,6 +352,8 @@ async function cargar(manual) {
         let nota = '';
         try {
             const b = await api('aplicarBandeja');
+            (b.lista || []).forEach(m => notificar(m.tipo === 'Ingreso' ? 'Automatic income registered' : 'Automatic expense registered', `${m.desc} · ${money(m.monto)} · ${m.cuenta}`, { tipo: 'auto' }));
+            (b.revisar || []).forEach(r => notificar('Needs your attention', r.detalle, { tipo: 'warning', fija: true, clave: 'rev-' + r.id }));
             if (b.registrados) nota = b.registrados + ' from your bank emails';
             else if (b.sinCuenta) nota = 'A bank email needs an account link (mapa_cuentas)';
         } catch (e) { if (e.red || e.auth) throw e; }
@@ -423,6 +443,7 @@ function pintar() {
         const ok = c.pagado === true || c.pagado === 'TRUE' || c.pagado === 'true';
         return `<div class="item"><div class="dot"><span class="ms">${ok ? 'check_circle' : 'radio_button_unchecked'}</span></div><div class="main"><div class="t" style="${ok ? 'opacity:.55;text-decoration:line-through' : ''}">${esc(c.nombre)}</div></div><div class="amt">${money(c.monto)}</div></div>`;
     }).join('') : '<div class="empty">Nothing to pay right now.</div>';
+    pintarNotifs();
 }
 
 /* ---- Registrar ---- */
@@ -510,6 +531,70 @@ async function enviar(directo) {
     } finally { pensando = false; pintarChat(); }
 }
 $('chat-in').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(); } });
+
+/* ---- Notificaciones (mismas alertas que la web) ---- */
+const NK = 'koda_movil_notifs', NR = 'koda_movil_notifs_read', NH = 'koda_movil_notifs_hidden';
+let nGuardadas = [], nLeidas = {}, nOcultas = {}, nDerivadas = [];
+try { nGuardadas = JSON.parse(localStorage.getItem(NK) || '[]') || []; nLeidas = JSON.parse(localStorage.getItem(NR) || '{}') || {}; nOcultas = JSON.parse(localStorage.getItem(NH) || '{}') || {}; } catch (e) {}
+const guardarNotifs = () => { try { localStorage.setItem(NK, JSON.stringify(nGuardadas.slice(0, 60))); localStorage.setItem(NR, JSON.stringify(nLeidas)); localStorage.setItem(NH, JSON.stringify(nOcultas)); } catch (e) {} };
+function notificar(titulo, mensaje, o = {}) {
+    if (o.clave && (nGuardadas.some(n => n.clave === o.clave) || nOcultas[o.clave])) return;
+    nGuardadas.unshift({ id: Date.now() + Math.floor(Math.random() * 1000), tipo: o.tipo || 'info', titulo, mensaje, clave: o.clave || null, fija: !!o.fija, fecha: new Date().toISOString(), leida: false });
+    guardarNotifs(); pintarNotifs();
+}
+function calcularDerivadas(cu, so, me) {
+    const L = [], f = n => '$' + Math.abs(Number(n) || 0).toLocaleString('en-US');
+    so.forEach(s => { if ((Number(s.monto) || 0) < 0) L.push({ clave: 'sobre-neg-' + s.id, tipo: 'warning', titulo: 'Envelope overdrawn', mensaje: `${s.nombre} is over by ${f(s.monto)}.` }); });
+    cu.forEach(c => {
+        const sal = Number(c.saldo) || 0, lim = Number(c.limite) || 0;
+        if (!esTarjeta(c) && sal < 0) L.push({ clave: 'cuenta-neg-' + c.id, tipo: 'warning', titulo: 'Negative balance', mensaje: `${c.apodo} is at -${f(sal)}.` });
+        if (esTarjeta(c) && lim && (lim + sal) <= lim * 0.1) L.push({ clave: 'tc-limite-' + c.id, tipo: 'warning', titulo: 'Credit limit almost used', mensaje: `${c.apodo} has ${f(lim + sal)} available.` });
+    });
+    const hoy = new Date().toISOString().split('T')[0];
+    me.forEach(m => {
+        const a = Number(m.montoActual) || 0, t = Number(m.metaTotal) || 0, hecha = m.completadaReal === true || m.completadaReal === 'TRUE' || m.completadaReal === 'true';
+        if (hecha) return;
+        if (t > 0 && a >= t) L.push({ clave: 'meta-lista-' + m.id, tipo: 'info', titulo: 'Goal reached', mensaje: `${m.nombre} is fully funded. Mark it complete.` });
+        else if (m.fechaLimite && String(m.fechaLimite) < hoy) L.push({ clave: 'meta-vencida-' + m.id, tipo: 'warning', titulo: 'Goal past its date', mensaje: `${m.nombre} is ${f(t - a)} short.` });
+    });
+    return L;
+}
+function hace(iso) {
+    const s = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
+    return s < 60 ? 'Just now' : s < 3600 ? Math.floor(s / 60) + 'm ago' : s < 86400 ? Math.floor(s / 3600) + 'h ago' : Math.floor(s / 86400) + 'd ago';
+}
+function pintarNotifs() {
+    const P = conPendientes();
+    nDerivadas = calcularDerivadas(P.cu, P.so, D.metas || []);
+    const vivas = new Set(nDerivadas.map(d => d.clave));
+    Object.keys(nOcultas).forEach(k => { if (k.indexOf('rev-') !== 0 && !vivas.has(k)) delete nOcultas[k]; });   // si el problema desaparece y vuelve, avisa otra vez
+    const der = nDerivadas.filter(d => !nOcultas[d.clave]);
+    const todas = nGuardadas.map(n => Object.assign({ stored: true }, n)).concat(der.map(d => Object.assign({ stored: false, leida: !!nLeidas[d.clave] }, d)));
+    $('b-notif').classList.toggle('unread', todas.some(n => !n.leida));
+    const icono = { error: 'error', warning: 'warning', info: 'info', auto: 'bolt' };
+    $('np-list').innerHTML = todas.length ? todas.map(n => `<div class="nitem ${n.leida ? '' : 'new'} ${n.tipo === 'warning' || n.tipo === 'error' ? 'w' : ''}" onclick="abrirNotif('${n.stored ? 'i' + n.id : 'c' + esc(n.clave)}')">
+        <div class="ni"><span class="ms" style="font-size:19px">${icono[n.tipo] || 'info'}</span></div>
+        <div style="min-width:0;flex:1"><div class="nt"><span>${esc(n.titulo)}</span>${n.fija ? `<button onclick="event.stopPropagation(); borrarNotif(${n.id})" aria-label="Delete" style="color:var(--mut)"><span class="ms" style="font-size:17px">close</span></button>` : (n.leida ? '' : '<span class="nd"></span>')}</div>
+        <div class="nm2">${esc(n.mensaje)}</div><div class="nw">${n.stored ? hace(n.fecha) : 'Now'}</div></div></div>`).join('') : '<div class="empty" style="padding:22px 10px">All clear</div>';
+}
+function toggleNotifs(e) { if (e) e.stopPropagation(); const p = $('np'); p.classList.toggle('on'); if (p.classList.contains('on')) pintarNotifs(); }
+document.addEventListener('click', e => { const p = $('np'); if (p.classList.contains('on') && !e.target.closest('#np')) p.classList.remove('on'); });
+function abrirNotif(k) {
+    if (k[0] === 'i') { const n = nGuardadas.find(x => 'i' + x.id === k); if (n) n.leida = true; } else nLeidas[k.slice(1)] = true;
+    guardarNotifs(); $('np').classList.remove('on'); ir('home'); pintarNotifs();
+}
+function leerTodasNotifs() { nGuardadas.forEach(n => { n.leida = true; }); nDerivadas.forEach(d => { nLeidas[d.clave] = true; }); guardarNotifs(); pintarNotifs(); }
+function limpiarNotifs() {
+    // Las alertas del sistema se ocultan hasta que el problema desaparezca y vuelva; las fijas (Needs your attention) solo se borran una por una
+    nDerivadas.forEach(d => { nOcultas[d.clave] = true; });
+    nGuardadas = nGuardadas.filter(n => n.fija);
+    guardarNotifs(); pintarNotifs();
+}
+function borrarNotif(id) {
+    const n = nGuardadas.find(x => x.id === id);
+    if (n && n.clave) nOcultas[n.clave] = true;   // no vuelve a aparecer en este teléfono
+    nGuardadas = nGuardadas.filter(x => x.id !== id); guardarNotifs(); pintarNotifs();
+}
 
 /* ---- Arrastrar hacia abajo para recargar ---- */
 let ptrY = null, ptrListo = false;
