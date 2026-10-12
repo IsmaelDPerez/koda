@@ -330,13 +330,20 @@ function descartar(cid) {
 async function cargar(manual) {
     if (cargando) return; cargando = true;
     try {
+        // Los gastos que llegaron por correo del banco se anotan en la hoja (la web lo hace al abrirla; el celular lo pide al servidor)
+        let nota = '';
+        try {
+            const b = await api('aplicarBandeja');
+            if (b.registrados) nota = b.registrados + ' from your bank emails';
+            else if (b.sinCuenta) nota = 'A bank email needs an account link (mapa_cuentas)';
+        } catch (e) { if (e.red || e.auth) throw e; }
         const r = await api('cargar');
         D = r.datos || {};
         cacheD();
         pintar();
         enviarCola();
         $('h-sync').textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        if (manual) toast('Up to date');
+        if (nota) toast(nota); else if (manual) toast('Up to date');
     } catch (e) {
         $('h-sync').textContent = 'Offline. Showing the last saved data.';
         if (manual) toast(e.message);
