@@ -218,6 +218,7 @@
         <label class="field" id="e-wsob"><span>Envelope</span><select id="e-sob" class="inp"></select></label>
         <div class="err" id="e-err"></div>
         <button class="btn" id="e-ok" onclick="guardarEd()">Save changes</button>
+        <button id="e-del" onclick="eliminarEd()" style="width:100%;margin-top:10px;padding:13px;border-radius:16px;font-weight:700;font-size:15px;color:var(--gold);background:transparent;border:1px solid rgba(193,163,95,.35)">Delete entry</button>
     </div>
     <div id="toast"></div>
 
@@ -490,8 +491,21 @@ function abrirEd(id) {
     const gasto = m.tipo === 'Gasto';
     $('e-wsob').style.display = gasto && (D.sobres || []).length ? '' : 'none';
     $('e-wcat').style.display = gasto || m.tipo === 'Ingreso' ? '' : 'none';
-    $('e-err').textContent = '';
+    $('e-err').textContent = ''; $('e-del').style.display = (m.tipo === 'Gasto' || m.tipo === 'Ingreso') ? '' : 'none'; $('e-del').dataset.sure = ''; $('e-del').textContent = 'Delete entry';
     document.body.classList.add('ed-on'); setTimeout(() => $('e-desc').focus(), 280);
+}
+async function eliminarEd() {
+    const b = $('e-del');
+    if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = 'Tap again to delete'; setTimeout(() => { b.dataset.sure = ''; b.textContent = 'Delete entry'; }, 3500); return; }
+    b.disabled = true;
+    try {
+        const r = await api('eliminarMovimiento', { id: edId });
+        D.historial = (D.historial || []).filter(x => String(x.id) !== String(edId));
+        if (r.sobres) D.sobres = r.sobres;
+        if (r.cuentas) D.cuentas = r.cuentas;
+        cacheD(); cerrarHoja(); pintar(); toast('Deleted');
+    } catch (e) { $('e-err').textContent = e.red ? 'You need a connection to delete an entry.' : e.message; }
+    finally { b.disabled = false; b.dataset.sure = ''; b.textContent = 'Delete entry'; }
 }
 async function guardarEd() {
     const btn = $('e-ok'), monto = parseFloat($('e-monto').value);
