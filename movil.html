@@ -49,6 +49,12 @@
         .hero { background: radial-gradient(70% 90% at 20% 100%, rgba(102,165,173,.55), rgba(102,165,173,0) 70%), linear-gradient(160deg, #1A242C, #0C1217); border: 1px solid var(--line); border-radius: 24px; padding: 22px 20px; margin-top: 8px; }
         .lbl { color: var(--mut); font-size: 13px; font-weight: 500; }
         .big { font-size: 38px; font-weight: 800; letter-spacing: -.02em; margin-top: 4px; }
+        .desglose { display: none; margin-top: 12px; padding: 4px 12px; background: rgba(0,0,0,.28); border-radius: 14px; }
+        .desglose.on { display: block; }
+        .desglose .r { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; font-size: 13px; font-weight: 600; border-top: 1px solid rgba(255,255,255,.06); }
+        .desglose .r:first-child { border-top: 0; }
+        .desglose .r span:first-child { color: var(--mut, #8A98A5); }
+        .desglose .t { font-weight: 800; }
         .row2 { display: flex; gap: 10px; margin-top: 16px; }
         .chip { flex: 1; background: rgba(0,0,0,.28); border-radius: 14px; padding: 10px 12px; }
         .chip b { display: block; font-size: 16px; margin-top: 2px; }
@@ -132,9 +138,12 @@
         <!-- Inicio -->
         <section class="view on" id="v-home">
             <div class="hero">
-                <div class="lbl">Available balance</div>
-                <div class="big" id="h-total">$0</div>
+                <div onclick="document.getElementById('h-desglose').classList.toggle('on')" style="cursor:pointer">
+                    <div class="lbl">Available balance</div>
+                    <div class="big" id="h-total">$0</div>
+                </div>
                 <div class="lbl" id="h-detalle" style="margin-top:6px;font-size:12px"></div>
+                <div id="h-desglose" class="desglose"></div>
                 <div class="row2">
                     <div class="chip"><span class="lbl">Spent this month</span><b id="h-gasto">$0</b></div>
                     <div class="chip"><span class="lbl">Income this month</span><b id="h-ingreso">$0</b></div>
@@ -277,6 +286,7 @@ function kodaLiquidez(cuentas, sobres, pendientes, compromisos) {
     const marcadas = cuentas.filter(c => si(c.liquida));
     const base = marcadas.reduce((a, c) => a + (Number(c.saldo) || 0), 0);
     const enSobres = sobres.reduce((a, s) => a + Math.max(0, Number(s.monto) || 0), 0);
+    const enBackups = compromisos.reduce((a, c) => a + (c.backup ? Math.max(0, Number(c.backup.monto) || 0) : 0), 0);
     const porPagar = pendientes.filter(i => !si(i.pagado)).filter(i => {
         if (i.tipoOrigen === 'fijo' || i.tipoOrigen === 'deuda') {
             const c = compromisos.find(x => x.id == i.refId && x.tipo === i.tipoOrigen);
@@ -285,7 +295,7 @@ function kodaLiquidez(cuentas, sobres, pendientes, compromisos) {
         // Sobres, metas y manuales son solo lista: los sobres ya se restan en enSobres
         return i.tipoOrigen === 'fijo' || i.tipoOrigen === 'deuda';
     }).reduce((a, i) => a + (Number(i.monto) || 0), 0);
-    return { hayMarcadas: marcadas.length > 0, nombres: marcadas.map(c => c.apodo), base, enSobres, porPagar, libre: base - enSobres - porPagar };
+    return { hayMarcadas: marcadas.length > 0, nombres: marcadas.map(c => c.apodo), base, enSobres, enBackups, porPagar, libre: base - enSobres - enBackups - porPagar };
 }
 function cacheD() { try { localStorage.setItem('koda_movil_cache', JSON.stringify({ t: Date.now(), D })); } catch (e) {} }
 
@@ -389,6 +399,8 @@ function pintar() {
     // Available balance = liquidez, igual que la web (cuentas marcadas - sobres - lo que falta por pagar)
     const L = kodaLiquidez(cu, so, ck, co);
     $('h-total').textContent = money(L.hayMarcadas ? L.libre : cu.reduce((a, c) => a + (Number(c.saldo) || 0), 0));
+    const fm = n => (n < 0 ? '-' : '') + money(Math.abs(n));
+    $('h-desglose').innerHTML = L.hayMarcadas ? `<div class="r"><span>Spending accounts</span><span>${money(L.base)}</span></div><div class="r"><span>In envelopes</span><span>${fm(-L.enSobres)}</span></div>${L.enBackups > 0 ? `<div class="r"><span>In backups</span><span>${fm(-L.enBackups)}</span></div>` : ''}<div class="r"><span>Left to pay</span><span>${fm(-L.porPagar)}</span></div><div class="r t"><span>Available</span><span>${fm(L.libre)}</span></div>` : '';
     $('h-detalle').textContent = L.hayMarcadas ? '' : (cu.length ? 'Choose your spending account in KODA on your computer.' : '');
     const mes = new Date().toISOString().slice(0, 7);
     const delMes = hi.filter(m => String(m.fechaStr || '').slice(0, 7) === mes);

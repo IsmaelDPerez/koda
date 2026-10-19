@@ -168,6 +168,12 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Export -->
+                <button type="button" id="btn-exportar" onclick="hxExportarExcel()" title="Export to Excel" class="flex items-center gap-2 h-9 px-4 rounded-full border border-white/10 hover:border-white/20 text-[11.5px] font-semibold text-white transition-colors cursor-pointer outline-none bg-transparent">
+                    <span class="material-symbols-outlined text-[16px] text-koda-steel">download</span>
+                    <span id="label-exportar">Export</span>
+                </button>
             </div>
         </div>
 
@@ -350,6 +356,63 @@
             hxPintarFiltros();
         }
         function hxCargarMas() { hx.limite += HX_PAGINA; renderizarPaginaHistorial(); }
+
+        // ---------- Exportar a Excel ----------
+        const HX_XLSX_URL = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+        function hxCargarXlsx() {
+            if (window.XLSX) return Promise.resolve();
+            return new Promise((ok, fail) => {
+                const sc = document.createElement('script');
+                sc.src = HX_XLSX_URL; sc.onload = ok; sc.onerror = () => fail(new Error('xlsx'));
+                document.head.appendChild(sc);
+            });
+        }
+        async function hxExportarExcel() {
+            const lista = hxFiltrados();
+            if (!lista.length) { if (typeof mostrarAlertaKoda === 'function') mostrarAlertaKoda('Nothing to export', 'No transactions match these filters.'); return; }
+            const lbl = hxEl('label-exportar'); const prev = lbl.innerText; lbl.innerText = 'Exporting...';
+            const filas = lista.map(m => {
+                const d = new Date(m.fechaStr.includes('T') ? m.fechaStr : m.fechaStr + 'T12:00:00');
+                const abs = Math.abs(Number(m.monto) || 0);
+                const entra = m.tipo === 'Ingreso' || hxEsCobro(m);
+                const neutro = m.tipo === 'Transferencia' || m.tipo === 'Fondeo de Sobre';
+                return {
+                    'Date': new Date(d.getFullYear(), d.getMonth(), d.getDate()),
+                    'Time': m.fechaStr.includes('T') ? d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : '',
+                    'Type': kodaTipoLabel(m.tipo),
+                    'Description': m.desc || '',
+                    'Category': m.tipo === 'Transferencia' ? (m.categoria || 'Transfer') : (m.categoria || ''),
+                    'Envelope': m.sobre || '',
+                    'Account': m.cuentaOrigen || '',
+                    'Amount': (entra || neutro) ? abs : -abs,
+                    'Source': m.automatico ? 'Automatic' : 'Manual'
+                };
+            });
+            const hoy = new Date(); const base = `KODA_History_${hoy.getFullYear()}-${hxPad(hoy.getMonth() + 1)}-${hxPad(hoy.getDate())}`;
+            try {
+                await hxCargarXlsx();
+                const ws = XLSX.utils.json_to_sheet(filas, { cellDates: true, dateNF: 'yyyy-mm-dd' });
+                ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 18 }, { wch: 34 }, { wch: 20 }, { wch: 18 }, { wch: 16 }, { wch: 14 }, { wch: 11 }];
+                const rango = XLSX.utils.decode_range(ws['!ref']);
+                for (let r = 1; r <= rango.e.r; r++) {
+                    const c = ws[XLSX.utils.encode_cell({ r, c: 7 })]; if (c) c.z = '#,##0.00';
+                    const f = ws[XLSX.utils.encode_cell({ r, c: 0 })]; if (f) f.z = 'yyyy-mm-dd';
+                }
+                ws['!autofilter'] = { ref: ws['!ref'] };
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'History');
+                XLSX.writeFile(wb, base + '.xlsx');
+            } catch (e) {
+                // Respaldo: CSV que Excel abre sin problema
+                const cab = Object.keys(filas[0]);
+                const celda = v => { const t = v instanceof Date ? hxIso(v.getFullYear(), v.getMonth(), v.getDate()) : String(v); return '"' + t.replace(/"/g, '""') + '"'; };
+                const csv = '\uFEFF' + [cab.map(celda).join(',')].concat(filas.map(f => cab.map(k => celda(f[k])).join(','))).join('\r\n');
+                const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+                a.download = base + '.csv'; document.body.appendChild(a); a.click(); a.remove();
+                if (typeof mostrarAlertaKoda === 'function') mostrarAlertaKoda('Exported as CSV', 'The Excel library did not load, so the file was saved as CSV. Excel opens it normally.');
+            }
+            lbl.innerText = prev;
+        }
 
         // ---------- Selección ----------
         function hxToggleSeleccion(id, on) { on ? hx.seleccion.add(id) : hx.seleccion.delete(id); hxActualizarBarra(); }

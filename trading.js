@@ -277,15 +277,14 @@ function vResumen(){
   const todas=listaOrdenada();
   const vis=S.verTodas?todas.slice(0,LIM):todas.filter(c=>c.estado==='funded'||c.estado==='eval').slice(0,3);
   const ult=S.log.slice().sort((a,b)=>b.id-a.id).slice(0,5);
-  return `<div class="hero"><div class="lbl">Net result (withdrawn minus invested)</div><div class="big">${usd(neto)}</div>
+  return `<div class="hero"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div class="lbl">Net result (withdrawn minus invested)</div><button type="button" class="btn2" style="flex:0 0 auto;width:auto;padding:7px 14px;font-size:12px" onclick="KT.hojaDia(null)">+ Result</button></div><div class="big">${usd(neto)}</div>
    <div class="row"><div class="chip"><span class="lbl">Invested in prop firms</span><b>${usd(invertido)}</b></div><div class="chip"><span class="lbl">Withdrawn</span><b>${usd(retirado)}</b></div></div></div>
   <div class="st"><div><b>${n('eval')}</b><span>Evaluation</span></div><div><b>${n('passed')}</b><span>Passed</span></div><div class="g"><b>${n('funded')}</b><span>Funded</span></div><div><b>${n('burned')}</b><span>Blown</span></div></div>
   <h2>Accounts</h2>
   <div class="cards">${vis.length?vis.map(tarjeta).join(''):`<div class="card"><div class="lbl">${S.verTodas?'No accounts yet.':(todas.length?'No active accounts.':'No accounts yet. Add your first one.')}</div></div>`}</div>
   ${todas.length>3?`<div style="display:flex;gap:9px;margin-bottom:10px"><button class="btn2" onclick="KT.toggleTodas()">${S.verTodas?'Show less':'Show all accounts'}</button><button class="btn2" onclick="KT.hojaHistorial()">Account history</button></div>`:''}
   <div style="display:flex;gap:9px"><button class="btn2" onclick="KT.hojaCuenta()">+ Buy a new account</button><button class="btn2" style="flex:0 0 auto;padding:12px 18px" onclick="KT.hojaPlantillas()">Templates</button></div>
-  ${ult.length?`<h2>Latest results</h2><div class="card">${ult.map(t=>filaDia(t,true)).join('')}</div>`:''}
-  <button class="fab" onclick="KT.hojaDia(null)">+ Result</button>`;
+  ${ult.length?`<h2>Latest results</h2><div class="card">${ult.map(t=>filaDia(t,true)).join('')}</div>`:''}`;
 }
 KT.toggleTodas=function(){S.verTodas=!S.verTodas;render()};
 function tarjeta(c){

@@ -39,6 +39,14 @@
         .koda-scrollbar::-webkit-scrollbar { width: 4px; }
         .koda-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .koda-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+
+        /* Fila Backup plegable */
+        .bk-wrap { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .3s ease; }
+        .bk-wrap.open { grid-template-rows: 1fr; }
+        .bk-wrap > div { overflow: hidden; min-height: 0; }
+        .bk-wrap.open.done > div { overflow: visible; }
+        .bk-chev { transition: transform .3s ease; }
+        .bk-open .bk-chev { transform: rotate(180deg); }
     </style>
 </head>
 <body class="font-sans min-h-screen flex flex-col items-center p-4 md:p-6 bg-koda-darkBg text-white transition-colors duration-300 relative select-none">
@@ -138,11 +146,11 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
                         <span class="text-[11.5px] font-semibold text-koda-steel">Paycheck 1 amount</span>
-                        <input type="number" id="cmp-bill-q1" onwheel="this.blur()" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none">
+                        <input type="number" id="cmp-bill-q1" onwheel="this.blur()" oninput="cmpBkTop()" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none">
                     </div>
                     <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
                         <span class="text-[11.5px] font-semibold text-koda-steel">Paycheck 2 amount</span>
-                        <input type="number" id="cmp-bill-q2" onwheel="this.blur()" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none">
+                        <input type="number" id="cmp-bill-q2" onwheel="this.blur()" oninput="cmpBkTop()" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none">
                     </div>
                 </div>
 
@@ -154,6 +162,8 @@
                         <span class="absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-transform duration-300 peer-checked:translate-x-4"></span>
                     </span>
                 </label>
+
+                <div id="cmp-bill-backup"></div>
 
                 <div class="flex items-center justify-end gap-3 pt-2 border-t border-white/5">
                     <button type="button" id="cmp-bill-eliminar" onclick="cmpArmarEliminar(this, eliminarBill)" class="hidden w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer mr-auto outline-none">
@@ -198,11 +208,11 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
                         <span class="text-[11.5px] font-semibold text-koda-steel">Paycheck 1 payment</span>
-                        <input type="number" id="cmp-debt-q1" onwheel="this.blur()" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none">
+                        <input type="number" id="cmp-debt-q1" onwheel="this.blur()" oninput="cmpBkTop()" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none">
                     </div>
                     <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
                         <span class="text-[11.5px] font-semibold text-koda-steel">Paycheck 2 payment</span>
-                        <input type="number" id="cmp-debt-q2" onwheel="this.blur()" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none">
+                        <input type="number" id="cmp-debt-q2" onwheel="this.blur()" oninput="cmpBkTop()" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none">
                     </div>
                 </div>
 
@@ -214,6 +224,8 @@
                         <span class="absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-transform duration-300 peer-checked:translate-x-4"></span>
                     </span>
                 </label>
+
+                <div id="cmp-debt-backup"></div>
 
                 <!-- Payment history (solo al editar una deuda existente) -->
                 <div id="cmp-debt-historial-wrap" class="hidden flex flex-col gap-2">
@@ -689,7 +701,8 @@
             const pctDeudas = Math.round((totDeudas / ingresos) * 100);
 
             cmpEl('cmp-kpi-fijos').innerText = cmpMoney(totFijos);
-            cmpEl('cmp-kpi-fijos-sub').innerText = `${pctFijos}% of income`;
+            const cmpEnBackups = cmpBkTotal();
+            cmpEl('cmp-kpi-fijos-sub').innerText = `${pctFijos}% of income${cmpEnBackups > 0 ? ' · ' + cmpMoney2(cmpEnBackups) + ' in backups' : ''}`;
             cmpEl('cmp-kpi-deudas').innerText = cmpMoney(totDeudas);
             cmpEl('cmp-kpi-deudas-sub').innerText = `${deudas.length} ${deudas.length === 1 ? 'debt' : 'debts'} · ${pctDeudas}% of income`;
             cmpEl('cmp-kpi-cobrar').innerText = cmpMoney(totCobrar);
@@ -748,7 +761,7 @@
                 return `
                 <div data-id="${it.id}" onclick="abrirModalBill(${it.id})" class="fila-koda px-6 py-4 flex justify-between items-center hover:bg-white/5 transition-colors cursor-pointer">
                     <span class="text-[14.5px] font-semibold text-white truncate pr-3">${cmpEsc(it.nombre)}</span>
-                    <span class="text-[15px] font-semibold text-white">${cmpMoney(cuota)}</span>
+                    <span class="flex items-center gap-3">${it.backup && it.backup.monto > 0 ? `<span class="text-[11px] font-semibold text-koda-steel bg-white/5 px-2 py-0.5 rounded-md">Backup ${cmpMoney2(it.backup.monto)}</span>` : ''}<span class="text-[15px] font-semibold text-white">${cmpMoney(cuota)}</span></span>
                 </div>`;
             }).join('');
             return `
@@ -783,7 +796,7 @@
                         <div class="w-full h-1.5 bg-koda-darkBg rounded-full overflow-hidden mb-3">
                             <div class="h-full ${saldada ? 'bg-koda-gold' : 'bg-koda-blue'} rounded-full transition-all duration-500" style="width: ${pct}%"></div>
                         </div>
-                        ${footer}
+                        <div class="flex justify-between items-center">${footer}${d.backup && d.backup.monto > 0 ? `<span class="text-[11px] font-semibold text-koda-steel bg-white/5 px-2 py-0.5 rounded-md">Backup ${cmpMoney2(d.backup.monto)}</span>` : ''}</div>
                     </div>
                 </div>`;
             }).join('');
@@ -878,6 +891,132 @@
         }
 
         // ==========================================
+        // BACKUP: dinero guardado dentro de un bill o una deuda
+        // (se guarda en item.backup = { monto, meses, notas, log[] }; Apps Script lo guarda en la columna "extra")
+        // ==========================================
+        let cmpBk = null;
+        const cmpMoney2 = (n) => '$' + (Math.round((Number(n) || 0) * 100) / 100).toLocaleString('en-US');
+        const cmpBkPref = () => (cmpBk && cmpBk.kind === 'debt') ? 'cmp-debt' : 'cmp-bill';
+        const cmpBkCuota = () => (parseFloat(cmpEl(cmpBkPref() + '-q1')?.value) || 0) + (parseFloat(cmpEl(cmpBkPref() + '-q2')?.value) || 0);
+        function cmpBkMesesTxt(monto, cuota) {
+            const m = cuota > 0 ? monto / cuota : 0, r = Math.round(m * 10) / 10;
+            return r + (r === 1 ? ' month' : ' months');
+        }
+        function cmpBkTotal() {
+            return compromisosDB.reduce((a, c) => a + (c.backup ? (Number(c.backup.monto) || 0) : 0), 0);
+        }
+
+        function cmpBkIniciar(kind, it) {
+            const b = it && it.backup ? it.backup : null;
+            cmpBk = {
+                kind, monto: b ? Number(b.monto) || 0 : 0, meses: b ? Number(b.meses) || 0 : 0, notas: b ? (b.notas || '') : '',
+                log: b && Array.isArray(b.log) ? b.log.map(l => ({ ...l })) : [], movidos: [], takeId: null, abierto: false
+            };
+            cmpEl('cmp-bill-backup').innerHTML = '';
+            cmpEl('cmp-debt-backup').innerHTML = '';
+            const cont = cmpEl(kind === 'debt' ? 'cmp-debt-backup' : 'cmp-bill-backup');
+            cont.innerHTML = `
+            <div id="bk" class="bg-[#0A0D12] border border-white/5 rounded-2xl overflow-hidden">
+                <button type="button" onclick="cmpBkToggle()" class="w-full px-4 py-3.5 flex items-center justify-between cursor-pointer outline-none">
+                    <span class="text-xs font-semibold text-white">Backup</span>
+                    <span class="flex items-center gap-2"><span id="bk-sum" class="text-[11.5px] font-semibold"></span><span class="material-symbols-outlined bk-chev text-[18px] text-koda-steel">expand_more</span></span>
+                </button>
+                <div id="bk-wrap" class="bk-wrap"><div><div id="bk-body" class="px-4 pb-4 pt-4 flex flex-col gap-3 border-t border-white/5"></div></div></div>
+            </div>`;
+            cmpBkRender();
+        }
+        function cmpBkToggle() {
+            cmpBk.abierto = !cmpBk.abierto;
+            cmpEl('bk').classList.toggle('bk-open', cmpBk.abierto);
+            const w = cmpEl('bk-wrap');
+            w.classList.toggle('open', cmpBk.abierto);
+            w.classList.remove('done');
+            // Al terminar de abrir, deja que el selector de sobres se vea completo
+            if (cmpBk.abierto) setTimeout(() => { if (cmpBk && cmpBk.abierto) w.classList.add('done'); }, 320);
+            kodaCerrarDropdowns();
+        }
+
+        // Resumen de la fila y bloque superior (se actualizan sin perder lo que escribes)
+        function cmpBkTop() {
+            if (!cmpBk || !cmpEl('bk-sum')) return;
+            const k = cmpBk, cuota = cmpBkCuota(), meta = k.meses * cuota, pct = meta > 0 ? Math.min(100, Math.round(k.monto / meta * 100)) : 0;
+            const sum = cmpEl('bk-sum');
+            sum.innerText = k.monto > 0 ? `${cmpMoney2(k.monto)}${cuota > 0 ? ' · ' + cmpBkMesesTxt(k.monto, cuota) : ''}` : 'None';
+            sum.className = 'text-[11.5px] font-semibold ' + (k.monto > 0 ? 'text-koda-blue' : 'text-koda-steel');
+            const top = cmpEl('bk-top'); if (!top) return;
+            top.innerHTML = `
+                <p class="text-[11.5px] font-semibold text-koda-steel">Saved</p>
+                <h4 class="text-2xl font-semibold tracking-tight text-white mt-0.5">${cmpMoney2(k.monto)}</h4>
+                <p class="text-[11.5px] font-normal text-koda-steel mt-0.5">${k.monto > 0 && cuota > 0 ? 'covers ' + cmpBkMesesTxt(k.monto, cuota) : 'nothing saved yet'}${meta > 0 ? ' · goal ' + cmpMoney2(meta) : ''}</p>
+                ${meta > 0 ? `<div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden mt-3"><div class="h-full ${k.monto >= meta ? 'bg-koda-gold' : 'bg-koda-blue'} rounded-full transition-all duration-500" style="width:${pct}%"></div></div>` : ''}`;
+        }
+
+        function cmpBkRender() {
+            const body = cmpEl('bk-body'); if (!body || !cmpBk) return;
+            const k = cmpBk, envs = sobresDB.filter(s => (Number(s.monto) || 0) > 0 && !k.movidos.includes(s.id));
+            const sel = envs.find(e => e.id === k.takeId);
+            const fld = (label, inner) => `<div class="bg-[#141820] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors"><span class="text-[11.5px] font-semibold text-koda-steel">${label}</span>${inner}</div>`;
+            const inp = 'w-full bg-transparent text-sm text-white font-medium border-none outline-none select-text';
+            body.innerHTML = `
+                <div id="bk-top"></div>
+                ${fld('Amount', `<input type="number" id="bk-monto" onwheel="this.blur()" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();cmpBkSumar();}" class="${inp}">`)}
+                <div class="grid grid-cols-2 gap-2">
+                    <button type="button" onclick="cmpBkSumar()" class="py-2.5 text-xs font-semibold rounded-full bg-koda-blue text-[#131722] hover:bg-[#7ab5bd] transition-colors cursor-pointer outline-none">Add to backup</button>
+                    <button type="button" onclick="cmpBkUsar()" class="py-2.5 text-xs font-semibold rounded-full border border-white/10 text-white hover:bg-white/5 transition-colors cursor-pointer outline-none">Use from backup</button>
+                </div>
+                <p id="bk-err" class="hidden text-[11.5px] font-semibold text-koda-gold -mt-1"></p>
+                ${envs.length ? `<div class="flex items-center gap-2">
+                    <div class="relative flex-1 min-w-0">
+                        <button type="button" id="btn-bk-sobre" onclick="kodaUiToggle('dropdown-bk-sobre')" class="w-full bg-[#141820] border border-white/5 hover:border-white/20 rounded-2xl px-4 py-3 flex items-center justify-between cursor-pointer outline-none transition-colors text-left">
+                            <span class="flex flex-col gap-1 min-w-0"><span class="text-[11.5px] font-semibold text-koda-steel">Move an envelope here</span><span class="text-sm text-white font-medium truncate">${sel ? cmpEsc(sel.nombre) + ' · ' + cmpMoney2(sel.monto) : 'Select envelope'}</span></span>
+                            <span class="material-symbols-outlined text-[16px] text-koda-steel">expand_more</span>
+                        </button>
+                        <div id="dropdown-bk-sobre" class="koda-dropdown hidden absolute bottom-full left-0 right-0 mb-2 bg-[#1B212B] border border-white/10 rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto koda-scrollbar py-1">
+                            ${envs.map(e => `<div onclick="cmpBkElegir(${e.id})" class="px-4 py-2 hover:bg-white/5 text-sm text-white font-medium cursor-pointer transition-colors">${cmpEsc(e.nombre)} <span class="text-koda-steel">(${cmpMoney2(e.monto)})</span></div>`).join('')}
+                        </div>
+                    </div>
+                    <button type="button" onclick="cmpBkMover()" class="self-center h-10 px-5 text-xs font-semibold rounded-full border border-white/10 text-white hover:bg-white/5 transition-colors cursor-pointer outline-none">Move</button>
+                </div>` : ''}
+                ${fld('Months to cover', `<input type="number" id="bk-meses" onwheel="this.blur()" autocomplete="off" oninput="cmpBkMeses(this.value)" value="${k.meses || ''}" class="${inp}">`)}
+                ${fld('Notes', `<textarea id="bk-notas" rows="2" maxlength="500" oninput="cmpBk.notas=this.value" class="${inp} resize-none">${cmpEsc(k.notas)}</textarea>`)}
+                ${k.log.length ? `<div><p class="text-[11.5px] font-semibold text-koda-steel mb-1">History</p><div class="max-h-40 overflow-y-auto">${k.log.map(l => {
+                    const t = formatearFechaHoraUI(l.fechaStr);
+                    return `<div class="flex items-center justify-between py-2.5 border-t border-white/5 first:border-0"><div class="min-w-0 pr-3"><p class="text-xs font-semibold text-white truncate">${cmpEsc(l.t)}</p><p class="text-[11px] text-koda-steel">${t.fecha}, ${t.hora}</p></div><span class="text-xs font-semibold ${l.a > 0 ? 'text-koda-blue' : 'text-white'}">${l.a > 0 ? '+' : '-'}${cmpMoney2(Math.abs(l.a))}</span></div>`;
+                }).join('')}</div></div>` : ''}`;
+            cmpBkTop();
+        }
+        function cmpBkErr(m) { const e = cmpEl('bk-err'); if (e) { e.innerText = m; e.classList.toggle('hidden', !m); } }
+        function cmpBkMeses(v) { cmpBk.meses = Math.max(0, parseInt(v, 10) || 0); cmpBkTop(); }
+        function cmpBkAhora() { return cmpHoyISO() + 'T' + cmpHoraActual(); }
+        function cmpBkSumar() {
+            cmpBkErr(''); const a = parseFloat(cmpEl('bk-monto').value) || 0;
+            if (a <= 0) return cmpBkErr('Enter an amount.');
+            cmpBk.monto += a; cmpBk.log.unshift({ fechaStr: cmpBkAhora(), t: 'Added to backup', a }); cmpBkRender();
+        }
+        function cmpBkUsar() {
+            cmpBkErr(''); const a = parseFloat(cmpEl('bk-monto').value) || 0;
+            if (a <= 0) return cmpBkErr('Enter an amount.');
+            if (a > cmpBk.monto) return cmpBkErr('The backup only has ' + cmpMoney2(cmpBk.monto) + '.');
+            cmpBk.monto -= a; cmpBk.log.unshift({ fechaStr: cmpBkAhora(), t: 'Used from backup', a: -a }); cmpBkRender();
+        }
+        function cmpBkElegir(id) { cmpBk.takeId = id; kodaCerrarDropdowns(); cmpBkRender(); }
+        function cmpBkMover() {
+            const e = sobresDB.find(x => x.id === cmpBk.takeId);
+            if (!e) return cmpBkErr('Select an envelope.');
+            cmpBk.monto += Number(e.monto) || 0;
+            cmpBk.log.unshift({ fechaStr: cmpBkAhora(), t: 'Moved from envelope ' + e.nombre, a: Number(e.monto) || 0 });
+            cmpBk.movidos.push(e.id); cmpBk.takeId = null; cmpBkRender();
+        }
+        // Se llama al confirmar el bill o la deuda
+        function cmpBkAplicar(it) {
+            const k = cmpBk; if (!k) return;
+            if (k.monto > 0 || k.meses > 0 || (k.notas || '').trim() || k.log.length) {
+                it.backup = { monto: Math.round(k.monto * 100) / 100, meses: k.meses, notas: (k.notas || '').trim(), log: k.log };
+            } else delete it.backup;
+            for (let i = sobresDB.length - 1; i >= 0; i--) if (k.movidos.includes(sobresDB[i].id)) sobresDB.splice(i, 1);
+        }
+
+        // ==========================================
         // FIXED BILL (new / edit)
         // ==========================================
         function accionAgregarContextual() {
@@ -896,6 +1035,7 @@
             cmpEl('cmp-bill-q2').value = it && it.montoQ2 ? it.montoQ2 : '';
             cmpEl('cmp-bill-afecta').checked = it ? it.afectaDisponible !== false : true;
             cmpEl('cmp-bill-eliminar').classList.toggle('hidden', !it);
+            cmpBkIniciar('bill', it);
             cmpResetEliminar();
             cmpAbrir('cmp-modal-bill');
             if (!it) setTimeout(() => cmpEl('cmp-bill-nombre').focus(), 80);
@@ -911,12 +1051,14 @@
 
             if (cmpEditId !== null) {
                 const it = compromisosDB.find(c => c.id === cmpEditId);
-                if (it) Object.assign(it, { nombre, montoQ1: q1, montoQ2: q2, afectaDisponible: afecta });
+                if (it) { Object.assign(it, { nombre, montoQ1: q1, montoQ2: q2, afectaDisponible: afecta }); cmpBkAplicar(it); }
             } else {
-                compromisosDB.push({
+                const nuevo = {
                     id: Date.now(), nombre, tipo: 'fijo', montoQ1: q1, montoQ2: q2, afectaDisponible: afecta,
                     orden: cmpSiguienteOrden(cmpItemsTab('fijo'))
-                });
+                };
+                cmpBkAplicar(nuevo);
+                compromisosDB.push(nuevo);
             }
             renderizarPaginaCompromisos();
             await kodaConfirmarYCerrar('cmp-modal-bill', () => cmpCerrar('cmp-modal-bill'));
@@ -925,6 +1067,7 @@
         function eliminarBill() {
             if (cmpEditId === null) return;
             const i = compromisosDB.findIndex(c => c.id === cmpEditId);
+            if (i >= 0 && compromisosDB[i].backup && (Number(compromisosDB[i].backup.monto) || 0) > 0) return cmpAlerta('Backup has money', 'Use the backup money or move it first, then delete this bill.');
             if (i >= 0) compromisosDB.splice(i, 1);
             cmpCerrar('cmp-modal-bill');
             renderizarPaginaCompromisos();
@@ -946,6 +1089,7 @@
             cmpEl('cmp-debt-afecta').checked = it ? it.afectaDisponible !== false : true;
             cmpEl('cmp-debt-eliminar').classList.toggle('hidden', !it);
             cmpRenderHistorialDeuda(it ? it.id : null);
+            cmpBkIniciar('debt', it);
             cmpResetEliminar();
             cmpAbrir('cmp-modal-debt');
             if (!it) setTimeout(() => cmpEl('cmp-debt-nombre').focus(), 80);
@@ -1004,12 +1148,14 @@
 
             if (cmpEditId !== null) {
                 const it = compromisosDB.find(c => c.id === cmpEditId);
-                if (it) Object.assign(it, { nombre, deudaTotal: total, deudaActual: actual, montoQ1: q1, montoQ2: q2, afectaDisponible: afecta });
+                if (it) { Object.assign(it, { nombre, deudaTotal: total, deudaActual: actual, montoQ1: q1, montoQ2: q2, afectaDisponible: afecta }); cmpBkAplicar(it); }
             } else {
-                compromisosDB.push({
+                const nuevo = {
                     id: Date.now(), nombre, tipo: 'deuda', deudaTotal: total, deudaActual: actual, montoQ1: q1, montoQ2: q2, afectaDisponible: afecta,
                     orden: cmpSiguienteOrden(cmpItemsTab('deuda'))
-                });
+                };
+                cmpBkAplicar(nuevo);
+                compromisosDB.push(nuevo);
             }
             renderizarPaginaCompromisos();
             await kodaConfirmarYCerrar('cmp-modal-debt', () => cmpCerrar('cmp-modal-debt'));
@@ -1018,6 +1164,7 @@
         function eliminarDebt() {
             if (cmpEditId === null) return;
             const i = compromisosDB.findIndex(c => c.id === cmpEditId);
+            if (i >= 0 && compromisosDB[i].backup && (Number(compromisosDB[i].backup.monto) || 0) > 0) return cmpAlerta('Backup has money', 'Use the backup money or move it first, then delete this debt.');
             if (i >= 0) compromisosDB.splice(i, 1);
             cmpCerrar('cmp-modal-debt');
             renderizarPaginaCompromisos();

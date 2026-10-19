@@ -205,6 +205,12 @@
                     </div>
                 </div>
 
+                <!-- Notes -->
+                <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                    <span class="text-[11.5px] font-semibold text-koda-steel">Notes</span>
+                    <textarea id="sobre-notas" rows="2" maxlength="500" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none resize-none select-text"></textarea>
+                </div>
+
                 <!-- Actions -->
                 <div class="flex items-center justify-end gap-3 pt-2 border-t border-white/5">
                     <button type="button" id="btn-eliminar-sobre" onclick="eliminarSobre()" class="hidden w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer mr-auto outline-none">
@@ -543,6 +549,7 @@ function cargarMasTransaccionesSobre() {
             document.getElementById('sobre-techo').value = '';
             document.getElementById('sobre-q1').value = '';
             document.getElementById('sobre-q2').value = '';
+            document.getElementById('sobre-notas').value = '';
             document.getElementById('titulo-modal-form-sobre').innerText = "New envelope";
             document.getElementById('btn-eliminar-sobre').classList.add('hidden');
 
@@ -564,6 +571,7 @@ function cargarMasTransaccionesSobre() {
             document.getElementById('sobre-techo').value = sobre.meta;
             document.getElementById('sobre-q1').value = sobre.q1 || '';
             document.getElementById('sobre-q2').value = sobre.q2 || '';
+            document.getElementById('sobre-notas').value = sobre.notas || '';
             document.getElementById('titulo-modal-form-sobre').innerText = "Edit envelope";
             document.getElementById('btn-eliminar-sobre').classList.remove('hidden');
 
@@ -589,14 +597,15 @@ function cargarMasTransaccionesSobre() {
             const meta = parseFloat(document.getElementById('sobre-techo').value) || 0;
             const q1 = parseFloat(document.getElementById('sobre-q1').value) || 0;
             const q2 = parseFloat(document.getElementById('sobre-q2').value) || 0;
+            const notas = document.getElementById('sobre-notas').value.trim();
 
             if (!nombre || meta <= 0) return;
 
             if (sobreEditandoId) {
                 const s = sobresDB.find(x => x.id === sobreEditandoId);
-                if (s) { s.nombre = nombre; s.meta = meta; s.q1 = q1; s.q2 = q2; }
+                if (s) { s.nombre = nombre; s.meta = meta; s.q1 = q1; s.q2 = q2; if (notas) s.notas = notas; else delete s.notas; }
             } else {
-                sobresDB.push({
+                const nuevoSobre = {
                     id: Date.now(),
                     nombre: nombre,
                     monto: 0,
@@ -604,7 +613,9 @@ function cargarMasTransaccionesSobre() {
                     q1: q1,
                     q2: q2,
                     orden: sobresDB.length
-                });
+                };
+                if (notas) nuevoSobre.notas = notas;
+                sobresDB.push(nuevoSobre);
             }
 
             renderizarPaginaSobres();

@@ -35,10 +35,14 @@
         <!-- ================= COLUMNA IZQUIERDA (3/12) ================= -->
         <aside class="lg:col-span-3 flex flex-col gap-6">
             <!-- Disponible Global -->
-            <div class="bg-white dark:bg-koda-darkCard border border-gray-100 dark:border-koda-darkBorder rounded-[2rem] p-8 shadow-sm relative overflow-hidden">
-                <p class="text-koda-textMuted text-xs font-semibold mb-3">Available balance</p>
+            <div id="card-disponible" onclick="toggleDesgloseDisponible()" class="bg-white dark:bg-koda-darkCard border border-gray-100 dark:border-koda-darkBorder rounded-[2rem] p-8 shadow-sm relative overflow-hidden cursor-pointer select-none">
+                <div class="flex items-start justify-between mb-3">
+                    <p class="text-koda-textMuted text-xs font-semibold">Available balance</p>
+                    <span id="disponible-chev" class="material-symbols-outlined text-[18px] text-koda-steel transition-transform duration-300">expand_more</span>
+                </div>
                 <h2 class="text-5xl font-semibold text-gray-900 dark:text-white" id="disponible-text">$0</h2>
                 <p class="text-[11.5px] font-semibold text-koda-textMuted mt-3 leading-relaxed" id="disponible-detalle"></p>
+                <div id="disponible-desglose" class="desglose-wrap"><div><div id="disponible-desglose-body" class="mt-5 pt-4 border-t border-white/5 flex flex-col"></div></div></div>
             </div>
             
             <!-- Cuentas -->
@@ -236,16 +240,33 @@
             });
             textTotal.innerText = sumaTotal < 0 ? `-$${Math.abs(sumaTotal).toLocaleString()}` : `$${sumaTotal.toLocaleString()}`;
             // Available balance = liquidez (lo que se puede gastar), distinto del total de todas las cuentas
-            const L = kodaLiquidez(), fm = n => (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString();
+            const L = kodaLiquidez(), fm = n => (n < 0 ? '-$' : '$') + Math.abs(Math.round(n * 100) / 100).toLocaleString();
             const det = document.getElementById('disponible-detalle');
+            const desg = document.getElementById('disponible-desglose-body');
             if (L.hayMarcadas) {
                 textDisp.innerText = fm(L.libre);
                 det.innerText = '';
+                // Desglose: se abre al tocar la tarjeta
+                const fila = (a, b, fuerte) => `<div class="flex justify-between gap-3 py-2 ${fuerte ? 'border-t border-white/5 mt-1 pt-3' : ''}"><span class="text-[11.5px] font-semibold ${fuerte ? 'text-white' : 'text-koda-textMuted'}">${a}</span><span class="text-[13px] font-semibold text-white">${b}</span></div>`;
+                if (desg) desg.innerHTML = fila('Spending accounts' + (L.nombres.length ? ' · ' + L.nombres.join(', ') : ''), fm(L.base))
+                    + fila('In envelopes', fm(-L.enSobres))
+                    + (L.enBackups > 0 ? fila('In backups', fm(-L.enBackups)) : '')
+                    + fila('Left to pay', fm(-L.porPagar))
+                    + fila('Available', fm(L.libre), true);
             } else {
+                if (desg) desg.innerHTML = '';
                 textDisp.innerText = textTotal.innerText;
                 det.innerText = cuentasDB.length ? 'Choose the account you spend from: edit an account and turn on "Counts as spending money".' : '';
             }
             if (typeof Sortable !== 'undefined') new Sortable(contDash, { animation: 150, ghostClass: 'sortable-ghost' });
+        }
+
+        function toggleDesgloseDisponible() {
+            const card = document.getElementById('card-disponible');
+            if (!document.getElementById('disponible-desglose-body').innerHTML.trim()) return;
+            card.classList.toggle('abierto');
+            document.getElementById('disponible-desglose').classList.toggle('open', card.classList.contains('abierto'));
+            document.getElementById('disponible-chev').style.transform = card.classList.contains('abierto') ? 'rotate(180deg)' : '';
         }
 
         function renderizarSobresDashboard() {

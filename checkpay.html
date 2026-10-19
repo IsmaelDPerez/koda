@@ -21,6 +21,11 @@
     <script src="tailwind-config.js"></script>
 
     <style>
+        @keyframes cpGlow { 0% { box-shadow: 0 0 0 0 rgba(193,163,95,0); } 40% { box-shadow: 0 0 28px 0 rgba(193,163,95,.28); } 100% { box-shadow: 0 0 0 0 rgba(193,163,95,0); } }
+        .cp-glow { animation: cpGlow 1.4s ease-out 1; border-color: rgba(193,163,95,.45) !important; }
+        #cp-todo { transition: opacity .5s ease, transform .5s ease; }
+        @media (prefers-reduced-motion: reduce) { .cp-glow { animation: none; } #cp-todo { transition: none; } }
+    
         /* Inputs sin flechas de scroll y con la fuente de KODA */
         input, button { font-family: inherit; color-scheme: dark; }
         input[type=number]::-webkit-inner-spin-button,
@@ -54,10 +59,10 @@
         </div>
 
         <!-- PROGRESS -->
-        <div class="bg-koda-darkCard border border-koda-darkBorder rounded-[1.5rem] p-6 md:p-8 shadow-sm mb-8">
+        <div id="cp-card-prog" class="bg-koda-darkCard border border-koda-darkBorder rounded-[1.5rem] p-6 md:p-8 shadow-sm mb-8 transition-colors duration-700">
             <div class="flex items-end justify-between mb-6">
                 <div>
-                    <p class="text-sm text-koda-textMuted mb-1">Progress</p>
+                    <p class="text-sm text-koda-textMuted mb-1 flex items-center gap-1.5">Progress<span id="cp-todo" class="inline-flex items-center gap-1 text-koda-gold opacity-0 -translate-y-0.5"><span class="material-symbols-outlined text-[15px]">check</span>All paid</span></p>
                     <h3 class="text-4xl font-semibold tracking-tight">
                         <span id="cp-pagados">0</span><span class="text-koda-textMuted font-normal"> / <span id="cp-total-items">0</span></span>
                     </h3>
@@ -337,6 +342,16 @@
             const barra = cpEl('cp-barra');
             barra.style.width = `${pct}%`;
             barra.className = `h-full ${total > 0 && pct === 100 ? 'bg-koda-gold' : 'bg-koda-blue'} rounded-full transition-all duration-700 ease-out`;
+
+            const completo = total > 0 && pct === 100;
+            const todo = cpEl('cp-todo');
+            if (todo) { todo.style.opacity = completo ? '1' : '0'; todo.style.transform = completo ? 'none' : 'translateY(-2px)'; }
+            const cardProg = cpEl('cp-card-prog');
+            if (cardProg) {
+                cardProg.classList.remove('cp-glow');
+                if (completo && window.__cpCompleto === false) { void cardProg.offsetWidth; cardProg.classList.add('cp-glow'); }
+            }
+            window.__cpCompleto = completo;
 
             cpEl('cp-label-orden').innerText = cpOrdenEtiqueta;
             cpRenderListaOrden();

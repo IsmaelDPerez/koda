@@ -1416,11 +1416,13 @@ function renderizarMetasFondeo() {
 // Liquidez: lo que de verdad se puede gastar el resto de la quincena.
 // = saldo de las cuentas marcadas "Counts as spending money"
 //   - lo que está guardado en sobres
+//   - lo que está reservado en backups de bills y deudas
 //   - lo que falta por pagar en Check Pay, solo pagos fijos y deudas con "Affects net available" encendido
 function kodaLiquidez(cuentas = cuentasDB, sobres = sobresDB, pendientes = checkpayDB, compromisos = compromisosDB) {
     const marcadas = cuentas.filter(c => c.liquida === true || c.liquida === 'TRUE' || c.liquida === 'true');
     const base = marcadas.reduce((a, c) => a + (Number(c.saldo) || 0), 0);
     const enSobres = sobres.reduce((a, s) => a + Math.max(0, Number(s.monto) || 0), 0);
+    const enBackups = compromisos.reduce((a, c) => a + (c.backup ? Math.max(0, Number(c.backup.monto) || 0) : 0), 0);
     const porPagar = pendientes.filter(i => !i.pagado && !(i.pagado === 'TRUE' || i.pagado === 'true')).filter(i => {
         if (i.tipoOrigen === 'fijo' || i.tipoOrigen === 'deuda') {
             const c = compromisos.find(x => x.id == i.refId && x.tipo === i.tipoOrigen);
@@ -1429,7 +1431,7 @@ function kodaLiquidez(cuentas = cuentasDB, sobres = sobresDB, pendientes = check
         // Sobres, metas y manuales son solo lista: los sobres ya se restan en enSobres
         return i.tipoOrigen === 'fijo' || i.tipoOrigen === 'deuda';
     }).reduce((a, i) => a + (Number(i.monto) || 0), 0);
-    return { hayMarcadas: marcadas.length > 0, nombres: marcadas.map(c => c.apodo), base, enSobres, porPagar, libre: base - enSobres - porPagar };
+    return { hayMarcadas: marcadas.length > 0, nombres: marcadas.map(c => c.apodo), base, enSobres, enBackups, porPagar, libre: base - enSobres - enBackups - porPagar };
 }
 
 function aplicarMovimientoContable(mov) {
