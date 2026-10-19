@@ -192,11 +192,6 @@
 
                 <div id="lista-completa-historial" class="flex flex-col"></div>
 
-                <div id="hx-mas-wrap" class="hidden justify-center pt-5">
-                    <button type="button" onclick="hxCargarMas()" class="px-6 py-2.5 text-xs font-semibold text-koda-steel hover:text-white rounded-full border border-white/10 hover:border-white/20 transition-colors cursor-pointer outline-none">
-                        Load more
-                    </button>
-                </div>
             </div>
         </div>
 
@@ -223,7 +218,7 @@
         // ==========================================
         // HISTORY: lógica de la página (prefijo hx)
         // ==========================================
-        const HX_PAGINA = 40;
+        const HX_PAGINA = 25;
         const HX_MESES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
         const HX_TIPOS = [
             { clave: 'gasto',      label: 'Expenses',          tipos: ['Gasto'] },
@@ -237,7 +232,7 @@
         const hx = {
             tiposActivos: new Set(HX_TIPOS.map(t => t.clave)),
             texto: '', desde: '', hasta: '',
-            limite: HX_PAGINA,
+            limites: {}, estado: {},
             seleccion: new Set(),
             calMes: new Date().getMonth(), calAno: new Date().getFullYear()
         };
@@ -291,25 +286,36 @@
 
         function hxFiltrosCambiaron() {
             hx.texto = hxEl('filtro-texto').value;
-            hx.limite = HX_PAGINA;
+            hxResetVista();
             renderizarPaginaHistorial();
         }
 
-        // ---------- Render de la tabla ----------
-        function renderizarPaginaHistorial() {
-            const cont = hxEl('lista-completa-historial');
-            if (!cont) return;
+        // ---------- Grupos por mes ----------
+        function hxFiltrando() { return !!(hx.desde || hx.hasta || hx.texto.trim()); }
+        function hxMesActual() { const d = new Date(); return `${d.getFullYear()}-${hxPad(d.getMonth() + 1)}`; }
+        function hxAbierto(key, filtrando) {
+            if (key in hx.estado) return hx.estado[key];
+            return filtrando || key === hxMesActual();
+        }
+        function hxGrupos(lista) {
+            const mapa = new Map();
+            lista.forEach(m => {
+                const key = (m.fechaStr || '').slice(0, 7);
+                if (!mapa.has(key)) { const [y, mo] = key.split('-'); mapa.set(key, { key, label: `${HX_MESES[Number(mo) - 1] || key} ${y}`, items: [] }); }
+                mapa.get(key).items.push(m);
+            });
+            return Array.from(mapa.values());
+        }
+        function hxVisibles() {
+            const f = hxFiltrando(), out = [];
+            hxGrupos(hxFiltrados()).forEach(g => { if (hxAbierto(g.key, f)) out.push(...g.items.slice(0, hx.limites[g.key] || HX_PAGINA)); });
+            return out;
+        }
+        function hxResetVista() { hx.limites = {}; hx.estado = {}; }
+        function hxToggleMes(key) { hx.estado[key] = !hxAbierto(key, hxFiltrando()); renderizarPaginaHistorial(); }
+        function hxMasMes(key) { hx.limites[key] = (hx.limites[key] || HX_PAGINA) + HX_PAGINA; renderizarPaginaHistorial(); }
 
-            // Limpiar selección de ids que ya no existen
-            hx.seleccion.forEach(id => { if (!historialDB.some(m => m.id === id)) hx.seleccion.delete(id); });
-
-            const lista = hxFiltrados();
-            const visibles = lista.slice(0, hx.limite);
-
-            if (!lista.length) {
-                cont.innerHTML = `<div class="py-16 text-center text-[11.5px] font-medium text-koda-steel">No transactions match these filters.</div>`;
-            } else {
-                cont.innerHTML = visibles.map(m => {
+        function hxFila(m) {
                     const f = hxFecha(m.fechaStr), ic = hxIcono(m), ct = hxCategoria(m), mt = hxMonto(m);
                     const sel = hx.seleccion.has(m.id);
                     const editable = m.tipo !== 'Préstamo';
@@ -347,15 +353,40 @@
                             </div>
                         </div>
                     </div>`;
+        }
+
+        // ---------- Render de la tabla ----------
+        function renderizarPaginaHistorial() {
+            const cont = hxEl('lista-completa-historial');
+            if (!cont) return;
+
+            // Limpiar selección de ids que ya no existen
+            hx.seleccion.forEach(id => { if (!historialDB.some(m => m.id === id)) hx.seleccion.delete(id); });
+
+            const lista = hxFiltrados();
+
+            if (!lista.length) {
+                cont.innerHTML = `<div class="py-16 text-center text-[11.5px] font-medium text-koda-steel">No transactions match these filters.</div>`;
+            } else {
+                const grupos = hxGrupos(lista);
+                const filtrando = hxFiltrando();
+                cont.innerHTML = grupos.map(g => {
+                    const abierto = hxAbierto(g.key, filtrando);
+                    const n = g.items.length, lim = hx.limites[g.key] || HX_PAGINA;
+                    const filas = abierto ? g.items.slice(0, lim).map(hxFila).join('') : '';
+                    const mas = abierto && n > lim ? `<div class="flex justify-center py-4 border-b border-white/5"><button type="button" onclick="hxMasMes('${g.key}')" class="px-6 py-2 text-xs font-semibold text-koda-steel hover:text-white rounded-full border border-white/10 hover:border-white/20 transition-colors cursor-pointer outline-none">Show more (${n - lim})</button></div>` : '';
+                    return `<div class="hx-grupo" data-mes="${g.key}">
+                        <button type="button" onclick="hxToggleMes('${g.key}')" class="w-full flex items-center gap-2 px-4 py-3 border-b border-white/5 text-left hover:bg-[#1A2027] transition-colors cursor-pointer outline-none">
+                            <span class="material-symbols-outlined text-[18px] text-koda-steel transition-transform duration-200 ${abierto ? 'rotate-90' : ''}">chevron_right</span>
+                            <span class="text-sm font-semibold text-white">${g.label}</span>
+                            <span class="text-[11.5px] font-medium text-koda-steel">${n}</span>
+                        </button>${filas}${mas}</div>`;
                 }).join('');
             }
 
-            hxEl('hx-mas-wrap').classList.toggle('hidden', lista.length <= hx.limite);
-            hxEl('hx-mas-wrap').classList.toggle('flex', lista.length > hx.limite);
             hxActualizarBarra();
             hxPintarFiltros();
         }
-        function hxCargarMas() { hx.limite += HX_PAGINA; renderizarPaginaHistorial(); }
 
         // ---------- Exportar a Excel ----------
         const HX_XLSX_URL = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
@@ -417,7 +448,7 @@
         // ---------- Selección ----------
         function hxToggleSeleccion(id, on) { on ? hx.seleccion.add(id) : hx.seleccion.delete(id); hxActualizarBarra(); }
         function hxSeleccionarTodos(chk) {
-            hxFiltrados().slice(0, hx.limite).forEach(m => chk.checked ? hx.seleccion.add(m.id) : hx.seleccion.delete(m.id));
+            hxVisibles().forEach(m => chk.checked ? hx.seleccion.add(m.id) : hx.seleccion.delete(m.id));
             renderizarPaginaHistorial();
         }
         function hxSeleccionRapida(id) { hxCerrarTodo(); hx.seleccion.add(id); renderizarPaginaHistorial(); }
@@ -430,7 +461,7 @@
             hxEl('barra-lote').classList.toggle('pointer-events-none', n === 0);
             hxEl('contenedor-tabla').classList.toggle('modo-seleccion', n > 0);
             hx.seleccion.forEach(id => { const f = document.querySelector(`.fila-grid[data-id="${id}"]`); if (f) f.classList.add('bg-[#141820]'); });
-            const visibles = hxFiltrados().slice(0, hx.limite);
+            const visibles = hxVisibles();
             hxEl('check-todos').checked = n > 0 && visibles.length > 0 && visibles.every(m => hx.seleccion.has(m.id));
         }
 
@@ -498,7 +529,7 @@
         }
         function hxToggleTipo(clave, on) {
             on ? hx.tiposActivos.add(clave) : hx.tiposActivos.delete(clave);
-            hx.limite = HX_PAGINA;
+            hxResetVista();
             renderizarPaginaHistorial();
         }
 
@@ -588,7 +619,7 @@
             if (!hx.desde || (hx.desde && hx.hasta)) { hx.desde = iso; hx.hasta = ''; }
             else if (iso < hx.desde) { hx.hasta = hx.desde; hx.desde = iso; }
             else hx.hasta = iso;
-            hx.limite = HX_PAGINA;
+            hxResetVista();
             hxRenderCalendario();
             renderizarPaginaHistorial();
         }
