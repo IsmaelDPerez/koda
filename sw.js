@@ -1,5 +1,5 @@
 // KODA - service worker: guarda la "carcasa" de la app para que abra al instante. Los datos siempre vienen de Google Sheets.
-const CACHE = 'koda-shell-v5';
+const CACHE = 'koda-shell-v6';
 const SHELL = ['movil.html', 'login.html', 'manifest.json', 'icon-192.png', 'icon-512.png', 'config.js', 'koda-api.js', 'trading.js'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

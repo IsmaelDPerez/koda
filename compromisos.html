@@ -875,6 +875,7 @@
 
             lista.forEach((it, i) => { it.orden = i; }); 
             cmpOrdenEtiqueta[cmpTab] = etiqueta;
+            kodaOrdenGuardar('comp', cmpOrdenEtiqueta);
             cerrarPopoverOrdenComp();
             renderizarPaginaCompromisos();
         }
@@ -886,6 +887,7 @@
                 if (obj) obj.orden = i;
             });
             cmpOrdenEtiqueta[cmpTab] = CMP_ORDEN_DEFAULT;
+            kodaOrdenGuardar('comp', cmpOrdenEtiqueta);
             cmpEl('cmp-label-orden').innerText = CMP_ORDEN_DEFAULT;
             cmpRenderListaOrden();
         }
@@ -1419,6 +1421,7 @@
         });
         window.addEventListener('resize', () => cmpPosicionarSlider(false));
         window.addEventListener('DOMContentLoaded', () => {
+            const gOrd = kodaOrdenLeer('comp'); if (gOrd) Object.keys(cmpOrdenEtiqueta).forEach(k => { if (gOrd[k]) cmpOrdenEtiqueta[k] = gOrd[k]; });
             renderizarPaginaCompromisos('fijo');
             // Enlace directo desde el Dashboard: compromisos.html?debt=ID
             const debtId = parseInt(new URLSearchParams(window.location.search).get('debt'));

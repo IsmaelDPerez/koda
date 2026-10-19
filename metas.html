@@ -460,7 +460,7 @@
             btn.className = 'item-filtro-all w-full px-3 py-2 rounded-xl text-left text-[11.5px] font-semibold text-koda-blue bg-koda-blue/10 flex items-center justify-between transition-colors cursor-pointer outline-none';
             btn.querySelector('.material-symbols-outlined').classList.remove('opacity-0');
             
-            currentSortAll = val;
+            currentSortAll = val; kodaOrdenGuardar('metas_all', { val, label });
             document.getElementById('label-sort-all').innerText = label;
             document.getElementById('popover-sort-all').classList.add('hidden');
             renderAllGoals();
@@ -474,7 +474,7 @@
             btn.className = 'item-filtro-ach w-full px-3 py-2 rounded-xl text-left text-[11.5px] font-semibold text-koda-blue bg-koda-blue/10 flex items-center justify-between transition-colors cursor-pointer outline-none';
             btn.querySelector('.material-symbols-outlined').classList.remove('opacity-0');
 
-            currentSortAchievements = val;
+            currentSortAchievements = val; kodaOrdenGuardar('metas_ach', { val, label });
             document.getElementById('label-sort-achievements').innerText = label;
             document.getElementById('popover-sort-achievements').classList.add('hidden');
             renderAchievements();
@@ -486,7 +486,20 @@
             if (metaIdUrl) { currentGoalId = parseInt(metaIdUrl); }
         }
 
+        function restaurarOrdenMetas() {
+            [['metas_all', 'item-filtro-all', 'label-sort-all', v => { currentSortAll = v; }], ['metas_ach', 'item-filtro-ach', 'label-sort-achievements', v => { currentSortAchievements = v; }]].forEach(([k, cls, lbl, set]) => {
+                const g = kodaOrdenLeer(k); if (!g) return;
+                const btn = Array.from(document.querySelectorAll('.' + cls)).find(b => (b.getAttribute('onclick') || '').includes("'" + g.val + "'"));
+                if (!btn) return;
+                set(g.val); document.getElementById(lbl).innerText = g.label;
+                document.querySelectorAll('.' + cls).forEach(i => { i.className = cls + ' w-full px-3 py-2 rounded-xl text-left text-[11.5px] font-semibold text-koda-steel hover:text-white hover:bg-white/5 flex items-center justify-between transition-colors cursor-pointer outline-none'; i.querySelector('.material-symbols-outlined').classList.add('opacity-0'); });
+                btn.className = cls + ' w-full px-3 py-2 rounded-xl text-left text-[11.5px] font-semibold text-koda-blue bg-koda-blue/10 flex items-center justify-between transition-colors cursor-pointer outline-none';
+                btn.querySelector('.material-symbols-outlined').classList.remove('opacity-0');
+            });
+        }
+
         function initializeGoalsView() {
+            restaurarOrdenMetas();
             localGoalsDB = typeof metasDB !== 'undefined' ? metasDB : [];
             mockContributionsHistory = {};
             let months = ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'];

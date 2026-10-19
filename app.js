@@ -2037,3 +2037,8 @@ async function enviarAsistente(ev, textoDirecto) {
         document.getElementById('asistente-entrada')?.focus();
     }
 }
+
+
+// ---------- Orden elegido en cada lista: KODA lo recuerda en este dispositivo ----------
+function kodaOrdenLeer(clave) { try { return JSON.parse(localStorage.getItem('koda_orden_' + clave) || 'null'); } catch (e) { return null; } }
+function kodaOrdenGuardar(clave, valor) { try { localStorage.setItem('koda_orden_' + clave, JSON.stringify(valor)); } catch (e) {} }
