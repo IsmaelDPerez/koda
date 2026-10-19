@@ -290,12 +290,15 @@ function kodaLiquidez(cuentas, sobres, pendientes, compromisos) {
     const si = v => v === true || v === 'TRUE' || v === 'true';
     const marcadas = cuentas.filter(c => si(c.liquida));
     const base = marcadas.reduce((a, c) => a + (Number(c.saldo) || 0), 0);
-    const enSobres = sobres.reduce((a, s) => a + Math.max(0, Number(s.monto) || 0), 0);
-    const enBackups = compromisos.reduce((a, c) => a + (c.backup ? Math.max(0, Number(c.backup.monto) || 0) : 0), 0);
+    // Cada sobre y pago fijo tiene su cuenta: solo se resta lo que vive en una cuenta marcada (sin cuenta asignada se resta)
+    const cuentaCuenta = id => { if (!id) return true; const c = cuentas.find(x => String(x.id) === String(id)); return !c || si(c.liquida); };
+    const enSobres = sobres.reduce((a, s) => a + (cuentaCuenta(s.cuentaId) ? Math.max(0, Number(s.monto) || 0) : 0), 0);
+    const enBackups = compromisos.reduce((a, c) => a + (c.backup && cuentaCuenta(c.cuentaId) ? Math.max(0, Number(c.backup.monto) || 0) : 0), 0);
     const porPagar = pendientes.filter(i => !si(i.pagado)).filter(i => {
         if (i.tipoOrigen === 'fijo' || i.tipoOrigen === 'deuda') {
             const c = compromisos.find(x => x.id == i.refId && x.tipo === i.tipoOrigen);
             if (c && (c.afectaDisponible === false || c.afectaDisponible === 'FALSE' || c.afectaDisponible === 'false')) return false;
+            if (c && !cuentaCuenta(c.cuentaId)) return false;   // se paga desde una cuenta que no cuenta
         }
         // Sobres, metas y manuales son solo lista: los sobres ya se restan en enSobres
         return i.tipoOrigen === 'fijo' || i.tipoOrigen === 'deuda';
@@ -412,7 +415,7 @@ function pintar() {
     const mes = new Date().toISOString().slice(0, 7);
     const delMes = hi.filter(m => String(m.fechaStr || '').slice(0, 7) === mes);
     $('h-gasto').textContent = money(delMes.filter(m => m.tipo === 'Gasto').reduce((a, m) => a + (Number(m.monto) || 0), 0));
-    $('h-ingreso').textContent = money(delMes.filter(m => m.tipo === 'Ingreso').reduce((a, m) => a + (Number(m.monto) || 0), 0));
+    $('h-ingreso').textContent = money(delMes.filter(m => m.tipo === 'Ingreso' && !(m.excluirReporte === true || m.excluirReporte === 'TRUE' || m.excluirReporte === 'true')).reduce((a, m) => a + (Number(m.monto) || 0), 0));
 
     $('l-cuentas').innerHTML = cu.length ? cu.map(c => {
         const s = Number(c.saldo) || 0;
@@ -548,6 +551,7 @@ function abrirHoja() {
     const cats = (D.categorias || []).map(c => c.nombre).filter(Boolean);
     $('f-cat').innerHTML = (cats.length ? cats : ['General']).map(c => `<option>${esc(c)}</option>`).join('');
     $('f-sobre').innerHTML = '<option value="">None</option>' + (D.sobres || []).map(s => `<option>${esc(s.nombre)}</option>`).join('');
+    $('f-sobre').onchange = () => { const so = (D.sobres || []).find(x => x.nombre === $('f-sobre').value); if (so && so.cuentaId && [...$('f-cuenta').options].some(o => o.value === String(so.cuentaId))) $('f-cuenta').value = String(so.cuentaId); };   // el gasto sale de la cuenta del sobre
     $('f-monto').value = ''; $('f-desc').value = ''; $('f-err').textContent = ''; setTipo('Gasto');
     document.body.classList.add('sheet-on'); setTimeout(() => $('f-monto').focus(), 280);
 }
@@ -677,7 +681,7 @@ function pintarNotifs() {
     const icono = { error: 'error', warning: 'warning', info: 'info', auto: 'bolt' };
     $('np-list').innerHTML = todas.length ? todas.map(n => `<div class="nitem ${n.leida ? '' : 'new'} ${n.tipo === 'warning' || n.tipo === 'error' ? 'w' : ''}" onclick="abrirNotif('${n.stored ? 'i' + n.id : 'c' + esc(n.clave)}')">
         <div class="ni"><span class="ms" style="font-size:19px">${icono[n.tipo] || 'info'}</span></div>
-        <div style="min-width:0;flex:1"><div class="nt"><span>${esc(n.titulo)}</span>${n.fija ? `<button onclick="event.stopPropagation(); borrarNotif(${n.id})" aria-label="Delete" style="color:var(--mut)"><span class="ms" style="font-size:17px">close</span></button>` : (n.leida ? '' : '<span class="nd"></span>')}</div>
+        <div style="min-width:0;flex:1"><div class="nt"><span>${esc(n.titulo)}</span><span style="display:flex;align-items:center;gap:8px">${n.leida ? '' : '<span class="nd"></span>'}<button onclick="event.stopPropagation(); borrarNotif('${n.stored ? 'i' + n.id : 'c' + esc(n.clave)}')" aria-label="Delete" style="color:var(--mut)"><span class="ms" style="font-size:17px">close</span></button></span></div>
         <div class="nm2">${esc(n.mensaje)}</div><div class="nw">${n.stored ? hace(n.fecha) : 'Now'}</div></div></div>`).join('') : '<div class="empty" style="padding:22px 10px">All clear</div>';
 }
 function toggleNotifs(e) { if (e) e.stopPropagation(); const p = $('np'); p.classList.toggle('on'); if (p.classList.contains('on')) pintarNotifs(); }
@@ -693,10 +697,14 @@ function limpiarNotifs() {
     nGuardadas = nGuardadas.filter(n => n.fija);
     guardarNotifs(); pintarNotifs();
 }
-function borrarNotif(id) {
-    const n = nGuardadas.find(x => x.id === id);
-    if (n && n.clave) nOcultas[n.clave] = true;   // no vuelve a aparecer en este teléfono
-    nGuardadas = nGuardadas.filter(x => x.id !== id); guardarNotifs(); pintarNotifs();
+function borrarNotif(k) {
+    if (k[0] === 'c') nOcultas[k.slice(1)] = true;   // alerta del sistema: vuelve solo si el problema desaparece y reaparece
+    else {
+        const id = Number(k.slice(1)), n = nGuardadas.find(x => x.id === id);
+        if (n && n.clave) nOcultas[n.clave] = true;   // no vuelve a aparecer en este teléfono
+        nGuardadas = nGuardadas.filter(x => x.id !== id);
+    }
+    guardarNotifs(); pintarNotifs();
 }
 
 /* ---- Arrastrar hacia abajo para recargar ---- */

@@ -319,7 +319,8 @@
                     const f = hxFecha(m.fechaStr), ic = hxIcono(m), ct = hxCategoria(m), mt = hxMonto(m);
                     const sel = hx.seleccion.has(m.id);
                     const editable = m.tipo !== 'Préstamo';
-                    const cuentaTxt = m.tipo === 'Transferencia' ? `${m.cuentaOrigen}` : m.cuentaOrigen;
+                    const destM = m.cuentaDestinoId ? (cuentasDB.find(c => c.id === m.cuentaDestinoId) || {}).apodo : '';
+                    const cuentaTxt = (destM ? `${m.cuentaOrigen} → ${destM}` : m.cuentaOrigen) + (m.comision ? ` · 0.20% tax $${Number(m.comision).toLocaleString('en-US', { maximumFractionDigits: 2 })}` : '');
                     return `
                     <div data-id="${m.id}" class="fila-grid grid-koda gap-4 px-4 py-4 border-b border-white/5 items-center hover:bg-[#1A2027] transition-colors relative ${sel ? 'bg-[#141820]' : ''}">
                         <div class="col-check" onclick="event.stopPropagation()"><input type="checkbox" class="koda-check hx-check" ${sel ? 'checked' : ''} onchange="hxToggleSeleccion(${m.id}, this.checked)"></div>

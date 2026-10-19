@@ -199,6 +199,12 @@
                     <input type="number" id="sobre-techo" onwheel="this.blur()" class="w-full bg-transparent text-4xl font-semibold text-white text-center placeholder:text-white/20 border-none outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]" required>
                 </div>
 
+                <!-- Cuenta donde vive el dinero del sobre -->
+                <div class="bg-[#0A0D12] border border-white/5 rounded-2xl px-4 py-3 flex flex-col gap-2.5">
+                    <span class="text-[11.5px] font-semibold text-koda-steel">Account holding this money</span>
+                    <div id="sobre-cuenta-pills" class="flex flex-wrap gap-2"></div>
+                </div>
+
                 <!-- Top-up 1 & Top-up 2 (FLECHAS Y SCROLL ELIMINADOS) -->
                 <div class="grid grid-cols-2 gap-3" id="bloque-reposiciones">
                     <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
@@ -576,6 +582,7 @@ function cargarMasTransaccionesSobre() {
             document.getElementById('sobre-techo').value = '';
             document.getElementById('sobre-q1').value = '';
             document.getElementById('sobre-q2').value = '';
+            kodaPillsCuenta('sobre-cuenta-pills', null);
             document.getElementById('titulo-modal-form-sobre').innerText = "New envelope";
             document.getElementById('btn-eliminar-sobre').classList.add('hidden');
 
@@ -597,6 +604,7 @@ function cargarMasTransaccionesSobre() {
             document.getElementById('sobre-techo').value = sobre.meta;
             document.getElementById('sobre-q1').value = sobre.q1 || '';
             document.getElementById('sobre-q2').value = sobre.q2 || '';
+            kodaPillsCuenta('sobre-cuenta-pills', sobre.cuentaId);
             document.getElementById('titulo-modal-form-sobre').innerText = "Edit envelope";
             document.getElementById('btn-eliminar-sobre').classList.remove('hidden');
 
@@ -627,7 +635,7 @@ function cargarMasTransaccionesSobre() {
 
             if (sobreEditandoId) {
                 const s = sobresDB.find(x => x.id === sobreEditandoId);
-                if (s) { s.nombre = nombre; s.meta = meta; s.q1 = q1; s.q2 = q2; }
+                if (s) { s.nombre = nombre; s.meta = meta; s.q1 = q1; s.q2 = q2; s.cuentaId = kodaPillsCuentaValor('sobre-cuenta-pills'); }
             } else {
                 const nuevoSobre = {
                     id: Date.now(),
@@ -636,6 +644,7 @@ function cargarMasTransaccionesSobre() {
                     meta: meta,
                     q1: q1,
                     q2: q2,
+                    cuentaId: kodaPillsCuentaValor('sobre-cuenta-pills'),
                     orden: sobresDB.length
                 };
                 sobresDB.push(nuevoSobre);

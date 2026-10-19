@@ -337,7 +337,14 @@
             cpEl('cp-monto-total').innerText = `of ${cpMoney(montoTotal)}`;
             const barra = cpEl('cp-barra');
             barra.style.width = `${pct}%`;
-            barra.className = `h-full ${total > 0 && pct === 100 ? 'bg-koda-gold' : 'bg-koda-blue'} rounded-full transition-all duration-700 ease-out`;
+            barra.className = 'h-full bg-koda-blue rounded-full transition-all duration-700 ease-out';
+            // Al completar todo (no al cargar la página) la barra aqua hace un pulso breve
+            if (total > 0 && pct === 100 && typeof cpPctPrevio === 'number' && cpPctPrevio < 100) {
+                void barra.offsetWidth;
+                barra.classList.add('koda-barra-ok'); cpEl('cp-pagados').classList.add('koda-pop-ok');
+                setTimeout(() => { barra.classList.remove('koda-barra-ok'); cpEl('cp-pagados').classList.remove('koda-pop-ok'); }, 1000);
+            }
+            cpPctPrevio = pct;
 
 
             cpEl('cp-label-orden').innerText = cpOrdenEtiqueta;
@@ -385,9 +392,10 @@
             }
         }
 
+        var cpPctPrevio = null;
         function toggleCheckpay(id) {
             const item = checkpayDB.find(c => c.id === id);
-            if (item) { item.pagado = !item.pagado; renderizarPaginaCheckpay(); }
+            if (item) { item.pagado = !item.pagado; renderizarPaginaCheckpay(); kodaEsperarGuardado(); }   // guarda en la hoja enseguida; al cambiar de página se espera a que termine
         }
 
         // ==========================================

@@ -152,7 +152,9 @@ const KODA_RUTAS = { dashboard: 'index.html', inicio: 'index.html', sobres: 'sob
 function navegarConTransicion(url) {
     if (document.body.classList.contains('koda-saliendo')) return;
     document.body.classList.add('koda-saliendo');
-    setTimeout(() => { window.location.href = url; }, 170);
+    // Si hay un cambio sin guardar en la hoja, se espera a que quede guardado antes de irse (evita que se pierda o se desmarque)
+    const espera = typeof kodaEsperarGuardado === 'function' ? kodaEsperarGuardado(6000).catch(() => {}) : Promise.resolve();
+    Promise.all([espera, new Promise(r => setTimeout(r, 170))]).then(() => { window.location.href = url; });
 }
 
 function navegarA(pagina) {
@@ -499,7 +501,7 @@ function renderizarWidgetCompromisos() {
     if (!cont) return;
 
     let ingresosTotales = 0;
-    historialDB.forEach(m => { if (m.tipo === 'Ingreso') ingresosTotales += m.monto; });
+    historialDB.forEach(m => { if (kodaIngresoReal(m)) ingresosTotales += m.monto; });
     let divisorIngreso = ingresosTotales > 0 ? ingresosTotales : 1; 
 
     let totalFijos = 0;
@@ -599,8 +601,9 @@ function renderizarWidgetComparativa(periodo = '6M') {
             const f = fechaDe(m);
             const idx = Math.floor((f - ini) / (7 * 86400000));
             if (isNaN(idx) || idx < 0 || idx > 3) return;
-            if (m.tipo === 'Ingreso') dataIngresos[idx] += m.monto;
+            if (m.tipo === 'Ingreso') { if (kodaIngresoReal(m)) dataIngresos[idx] += m.monto; }
             else if (GASTOS.includes(m.tipo)) dataGastos[idx] += m.monto;
+            if (m.comision) dataGastos[idx] += Number(m.comision) || 0;
         });
     } else {
         const n = periodo === '3M' ? 3 : periodo === '1A' ? 12 : 6;
@@ -616,8 +619,9 @@ function renderizarWidgetComparativa(periodo = '6M') {
             if (isNaN(f)) return;
             const idx = claves.indexOf(`${f.getFullYear()}-${f.getMonth()}`);
             if (idx === -1) return;
-            if (m.tipo === 'Ingreso') dataIngresos[idx] += m.monto;
+            if (m.tipo === 'Ingreso') { if (kodaIngresoReal(m)) dataIngresos[idx] += m.monto; }
             else if (GASTOS.includes(m.tipo)) dataGastos[idx] += m.monto;
+            if (m.comision) dataGastos[idx] += Number(m.comision) || 0;
         });
     }
     dataIngresos = dataIngresos.map(v => Math.round(v * 100) / 100);
@@ -864,6 +868,11 @@ function renderizarWidgetCheckPayHome() {
     conteoEl.innerText = `${pagados} / ${total} paid`;
     barraEl.style.width = `${porcentaje}%`;
     if (subEl) subEl.innerText = `${porcentaje}% complete this period`;
+    if (total > 0 && porcentaje === 100 && typeof window._homeCpPrevio === 'number' && window._homeCpPrevio < 100) {
+        barraEl.classList.remove('koda-barra-ok'); void barraEl.offsetWidth; barraEl.classList.add('koda-barra-ok');
+        setTimeout(() => barraEl.classList.remove('koda-barra-ok'), 1000);
+    }
+    window._homeCpPrevio = porcentaje;
 }
 
 
@@ -1015,8 +1024,18 @@ function evaluarAlertaSobre() {
 }
 
 // ACTUALIZA TU FUNCIÓN EXISTENTE PARA QUE LLAME A LA ALERTA AL HACER CLIC
+function kodaCuentaPorDefecto(cuentaId) {
+    if (!cuentaId || idEdicionActual !== null) return;   // al editar se respeta la cuenta que ya tenía
+    const btn = [...document.querySelectorAll('.pill-cuenta')].find(b => (b.getAttribute('onclick') || '').includes(`, ${cuentaId})`));
+    if (!btn) return;
+    const exp = btn.closest('#cuentas-expandibles'); if (exp) exp.classList.remove('hidden');
+    seleccionarCuentaOrigen(btn, cuentaId);
+}
+
 function seleccionarSobreAqua(btn, nombre) {
     sobreSeleccionado = nombre;
+    const sobElegido = sobresDB.find(s => s.nombre === nombre);
+    if (sobElegido) kodaCuentaPorDefecto(sobElegido.cuentaId);
     document.querySelectorAll('.pill-sobre-gasto').forEach(b => {
         b.className = 'pill-sobre-gasto px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-colors bg-[#0A0D12] text-koda-steel border-white/5 hover:border-white/10 cursor-pointer';
     });
@@ -1102,9 +1121,10 @@ function renderizarNotificaciones() {
             <div class="min-w-0 flex-1">
                 <div class="flex items-center justify-between gap-2">
                     <p class="text-xs font-semibold text-white truncate">${kodaEsc(n.titulo)}</p>
-                    ${n.fija
-                        ? `<button type="button" title="Delete" onclick="event.stopPropagation(); eliminarNotificacion(${n.id})" class="text-koda-steel hover:text-white flex-shrink-0 cursor-pointer outline-none"><span class="material-symbols-outlined text-[16px]">close</span></button>`
-                        : (n.leida ? '' : '<span class="w-1.5 h-1.5 rounded-full bg-koda-blue flex-shrink-0"></span>')}
+                    <span class="flex items-center gap-2 flex-shrink-0">
+                        ${n.leida ? '' : '<span class="w-1.5 h-1.5 rounded-full bg-koda-blue"></span>'}
+                        <button type="button" title="Delete" onclick="event.stopPropagation(); eliminarNotificacion(${n.id})" class="text-koda-steel hover:text-white cursor-pointer outline-none"><span class="material-symbols-outlined text-[16px]">close</span></button>
+                    </span>
                 </div>
                 <p class="text-[11.5px] font-medium text-koda-steel leading-snug mt-0.5">${kodaEsc(n.mensaje)}</p>
                 <p class="text-[10.5px] font-medium text-koda-steel/70 mt-1">${_notifHace(n.fecha)}</p>
@@ -1130,6 +1150,8 @@ function marcarNotificacionesLeidas() {
 
 // Las fijas (Needs your attention) solo se borran a mano, una por una
 function eliminarNotificacion(id) {
+    const n = notificacionesDB.find(x => x.id === id);
+    if (n && n.derivada && n.clave) _notifOcultas[n.clave] = true;   // las alertas del sistema vuelven solo si el problema desaparece y reaparece
     notificacionesDB = notificacionesDB.filter(n => n.id !== id);
     _notifGuardar();
     renderizarNotificaciones();
@@ -1358,6 +1380,8 @@ function autoAsignarMonto(btn, valor, claseGrupo, tonoColor) {
 
 function seleccionarPagarItem(btn, sub, id, valor) {
     pagarSeleccion = { sub, id };
+    const itemElegido = (sub === 'sobres' ? sobresDB : compromisosDB).find(x => x.id === id);
+    if (itemElegido && sub !== 'sobres') kodaCuentaPorDefecto(itemElegido.cuentaId);   // un pago fijo sale de su cuenta; un fondeo sale de donde tú elijas
     autoAsignarMonto(btn, valor, 'pagar-item', 'neutral');
 }
 function seleccionarMetaFondeo(btn, id, valor) {
@@ -1412,21 +1436,68 @@ function renderizarMetasFondeo() {
         'metas-expandibles', cont);
 }
 
+// Aviso del 0.20 % cuando el dinero cambia de banco (transferencia o fondeo de un sobre que vive en otro banco)
+function kodaActualizarAvisoComision() {
+    const el = document.getElementById('aviso-comision'); if (!el) return;
+    let txt = '';
+    try {
+        const monto = parseFloat(document.getElementById('input-monto')?.value) || 0;
+        const origen = cuentasDB.find(c => c.id === cuentaOrigenSeleccionadaId);
+        let destino = null;
+        if (tipoActual === 'mover') destino = cuentasDB.find(c => c.id === cuentaDestinoSeleccionadaId);
+        else if (tipoActual === 'pagar' && pagarSeleccion && pagarSeleccion.sub === 'sobres') { const so = sobresDB.find(x => x.id === pagarSeleccion.id); destino = so && so.cuentaId !== origen?.id ? cuentasDB.find(c => c.id === so.cuentaId) : null; }
+        const com = monto > 0 ? kodaComisionTransf(origen, destino, monto) : 0;
+        if (com) txt = `0.20% bank tax: $${com.toLocaleString('en-US', { maximumFractionDigits: 2 })} also leaves ${origen.apodo}`;
+        else if (destino && origen && tipoActual === 'pagar') txt = `Moves to ${destino.apodo}, where this envelope lives`;
+    } catch (e) {}
+    el.textContent = txt; el.classList.toggle('hidden', !txt);
+}
+document.addEventListener('click', e => { if (e.target.closest && e.target.closest('#modal-movimiento')) setTimeout(kodaActualizarAvisoComision, 0); });
+
+// ----- Selector de cuenta (sobres y pagos fijos): "la cuenta donde vive el dinero" -----
+function kodaPillsCuenta(idCont, seleccionado) {
+    const cont = document.getElementById(idCont); if (!cont) return;
+    cont.dataset.sel = seleccionado ? String(seleccionado) : '';
+    const pill = (on, id, txt) => `<button type="button" onclick="kodaPillsCuentaElegir('${idCont}', '${id}')" class="${PILL_BASE} ${on ? PILL_ON_NEUTRAL : PILL_OFF}">${kodaEsc(txt)}</button>`;
+    const cuentas = cuentasDB.filter(c => c.tipo !== 'Tarjeta Crédito');
+    cont.innerHTML = pill(!seleccionado, '', 'None') + cuentas.map(c => pill(String(c.id) === String(seleccionado), c.id, c.apodo)).join('');
+}
+function kodaPillsCuentaElegir(idCont, id) { kodaPillsCuenta(idCont, id || null); }
+function kodaPillsCuentaValor(idCont) {
+    const v = document.getElementById(idCont)?.dataset.sel;
+    if (!v) return null;
+    const c = cuentasDB.find(x => String(x.id) === v);
+    return c ? c.id : null;
+}
+
 // ----- Contabilidad -----
+const kodaSi = v => v === true || v === 'TRUE' || v === 'true';
+const KODA_COMISION_TRANSF = 0.002;   // 0.20 %: lo que cobra el banco por transferir a otro banco; sale de la cuenta origen, aparte del monto
+const kodaIngresoReal = m => m.tipo === 'Ingreso' && !kodaSi(m.excluirReporte);   // los "Move" de saldos iniciales no son ingresos
+
+function kodaComisionTransf(origen, destino, monto) {
+    if (!origen || !destino || origen.id === destino.id) return 0;
+    const b = c => String(c.banco || '').trim().toLowerCase();
+    if (b(origen) === b(destino)) return 0;
+    return Math.round((Number(monto) || 0) * KODA_COMISION_TRANSF * 100) / 100;
+}
+
 // Liquidez: lo que de verdad se puede gastar el resto de la quincena.
 // = saldo de las cuentas marcadas "Counts as spending money"
-//   - lo que está guardado en sobres
-//   - lo que está reservado en backups de bills y deudas
-//   - lo que falta por pagar en Check Pay, solo pagos fijos y deudas con "Affects net available" encendido
+//   - lo guardado en sobres, backups y pagos pendientes, pero solo lo que vive en una de esas cuentas
+//     (cada sobre y cada pago fijo tiene su cuenta; sin cuenta asignada se resta, como antes)
 function kodaLiquidez(cuentas = cuentasDB, sobres = sobresDB, pendientes = checkpayDB, compromisos = compromisosDB) {
-    const marcadas = cuentas.filter(c => c.liquida === true || c.liquida === 'TRUE' || c.liquida === 'true');
+    const marcadas = cuentas.filter(c => kodaSi(c.liquida));
     const base = marcadas.reduce((a, c) => a + (Number(c.saldo) || 0), 0);
-    const enSobres = sobres.reduce((a, s) => a + Math.max(0, Number(s.monto) || 0), 0);
-    const enBackups = compromisos.reduce((a, c) => a + (c.backup ? Math.max(0, Number(c.backup.monto) || 0) : 0), 0);
+    const cuenta = id => cuentas.find(c => String(c.id) === String(id));
+    const cuenta_cuenta = id => { if (!id) return true; const c = cuenta(id); return !c || kodaSi(c.liquida); };   // ¿esa cuenta cuenta como dinero para gastar?
+    const enSobres = sobres.reduce((a, s) => a + (cuenta_cuenta(s.cuentaId) ? Math.max(0, Number(s.monto) || 0) : 0), 0);
+    const enBackups = compromisos.reduce((a, c) => a + (c.backup && cuenta_cuenta(c.cuentaId) ? Math.max(0, Number(c.backup.monto) || 0) : 0), 0);
     const porPagar = pendientes.filter(i => !i.pagado && !(i.pagado === 'TRUE' || i.pagado === 'true')).filter(i => {
         if (i.tipoOrigen === 'fijo' || i.tipoOrigen === 'deuda') {
             const c = compromisos.find(x => x.id == i.refId && x.tipo === i.tipoOrigen);
             if (c && (c.afectaDisponible === false || c.afectaDisponible === 'FALSE' || c.afectaDisponible === 'false')) return false;
+            if (c && !cuenta_cuenta(c.cuentaId)) return false;   // se paga desde una cuenta que no cuenta
         }
         // Sobres, metas y manuales son solo lista: los sobres ya se restan en enSobres
         return i.tipoOrigen === 'fijo' || i.tipoOrigen === 'deuda';
@@ -1444,16 +1515,26 @@ function aplicarMovimientoContable(mov) {
         return;
     }
     if (mov.tipo === 'Préstamo') return;   // lo gestiona la página de Obligations
-    if (mov.tipo === 'Fondeo de Sobre') {  // asignar dinero al sobre: la cuenta no cambia
+    if (mov.tipo === 'Fondeo de Sobre') {  // asignar dinero al sobre; si el sobre vive en otra cuenta, el dinero se mueve hacia allá
         const sobF = sobresDB.find(s => s.nombre === mov.sobre);
         if (sobF) sobF.monto += monto;
+        const destF = mov.cuentaDestinoId && mov.cuentaDestinoId !== mov.cuentaId ? cuentasDB.find(c => c.id === mov.cuentaDestinoId) : null;
+        if (destF) {
+            cuenta.saldo -= monto; destF.saldo += monto;
+            const com = mov.automatico ? 0 : kodaComisionTransf(cuenta, destF, monto);
+            if (com) { cuenta.saldo -= com; mov.comision = com; } else delete mov.comision;
+        }
         return;
     }
 
     cuenta.saldo -= monto;                 // todo lo demás sale de la cuenta origen
     if (mov.tipo === 'Transferencia') {
         const dest = cuentasDB.find(c => c.id === mov.cuentaDestinoId);
-        if (dest) dest.saldo += monto;
+        if (dest) {
+            dest.saldo += monto;
+            const com = mov.automatico ? 0 : kodaComisionTransf(cuenta, dest, monto);   // los correos del banco ya traen su propio cargo
+            if (com) { cuenta.saldo -= com; mov.comision = com; } else delete mov.comision;
+        }
     } else if (mov.tipo === 'Aporte a Meta') {
         const meta = metasDB.find(m => m.id === mov.metaId);
         if (meta) meta.montoActual += monto;
@@ -1478,6 +1559,8 @@ function revertirMovimientoContable(idMovimiento) {
     if (mov.tipo === 'Fondeo de Sobre') {
         const sobF = sobresDB.find(s => s.nombre === mov.sobre);
         if (sobF) sobF.monto -= monto;
+        const destF = mov.cuentaDestinoId && mov.cuentaDestinoId !== mov.cuentaId ? cuentasDB.find(c => c.id === mov.cuentaDestinoId) : null;
+        if (destF) { cuenta.saldo += monto + (Number(mov.comision) || 0); destF.saldo -= monto; }
         return;
     }
     if (mov.tipo === 'Préstamo') {
@@ -1491,6 +1574,7 @@ function revertirMovimientoContable(idMovimiento) {
     if (mov.tipo === 'Transferencia') {
         const dest = cuentasDB.find(c => c.id === mov.cuentaDestinoId);
         if (dest) dest.saldo -= monto;
+        if (mov.comision) cuenta.saldo += Number(mov.comision) || 0;
     } else if (mov.tipo === 'Aporte a Meta') {
         const meta = metasDB.find(m => m.id === mov.metaId);
         if (meta) meta.montoActual -= monto;
@@ -1558,6 +1642,7 @@ async function confirmarMovimiento() {
         } else {
             const it = sobresDB.find(s => s.id === id);
             mov = { ...base, tipo: 'Fondeo de Sobre', desc: descRaw || `Fund ${it.nombre}`, categoria: it.nombre, sobre: it.nombre };
+            if (it.cuentaId && it.cuentaId !== cOrigen.id && cuentasDB.some(c => c.id === it.cuentaId)) mov.cuentaDestinoId = it.cuentaId;   // el dinero llega a la cuenta del sobre
         }
     } else if (tipoActual === 'meta') {
         if (metaFondeoId === null) return mostrarAlertaKoda("Nothing selected", "Select the goal to fund.");
@@ -1776,6 +1861,9 @@ let kodaNubeActiva = false;      // true solo cuando los datos se cargaron bien 
 let kodaNubeSnapshot = {};
 let kodaNubeSincronizando = false;
 let kodaNubeFalloAvisado = false;
+let kodaSaliendo = false;
+window.addEventListener('pagehide', () => { kodaSaliendo = true; });
+window.addEventListener('beforeunload', () => { kodaSaliendo = true; });
 
 function kodaNubeConfig() {
     try {
@@ -1847,7 +1935,23 @@ function kodaNubeMostrarCopia() {
     } catch (e) {}
 }
 
-async function kodaNubeCargarInterno(cfg) {
+// Ajuste de una sola vez: asigna a cada sobre y pago fijo la cuenta donde vive su dinero, deja Recon fuera de "spending" y saca los "Move" iniciales de los ingresos.
+// Se marca con "mig2" en las cuentas para no repetirse (si luego cambias algo a mano, no se vuelve a tocar).
+function kodaMigracionCuentas() {
+    if (!cuentasDB.length || cuentasDB.some(c => c.mig2)) return;
+    const norm = t => String(t || '').toLowerCase().replace(/[’']/g, "'").trim();
+    const cuenta = n => cuentasDB.find(c => norm(c.apodo) === norm(n));
+    const mapSobres = { "eval's lucid": 'Vanguard', "grocery's": 'Recon', 'self-care': 'Recon', 'unicaribe': 'Recon' };
+    const mapFijos = { 'household contributions': 'Hub', 'tradingview': 'Vanguard', 'fx replay': 'Vanguard', 'claro': 'Recon', 'spotify': 'Recon', 'gym': 'Recon' };
+    sobresDB.forEach(s => { const c = !s.cuentaId && cuenta(mapSobres[norm(s.nombre)]); if (c) s.cuentaId = c.id; });
+    compromisosDB.forEach(x => { const c = x.tipo === 'fijo' && !x.cuentaId && cuenta(mapFijos[norm(x.nombre)]); if (c) x.cuentaId = c.id; });
+    const recon = cuenta('Recon'); if (recon) recon.liquida = false;
+    historialDB.forEach(m => { if (m.tipo === 'Ingreso' && /\s-\sMove$/i.test(m.desc || '') && m.excluirReporte === undefined) m.excluirReporte = true; });
+    cuentasDB.forEach(c => { c.mig2 = true; });
+    kodaRefrescarVistas();
+}
+
+async function kodaNubeCargarInterno(cfg, intento = 1) {
     try {
         const { datos, inicializado } = await kodaNubeLlamar('cargar', {}, cfg);
         const hayDatos = Object.keys(KODA_TABLAS_NUBE).some(t => (datos[t] || []).length > 0);
@@ -1865,6 +1969,8 @@ async function kodaNubeCargarInterno(cfg) {
         notificacionesDB = notificacionesDB.filter(n => n.clave !== 'nube-vacia');
         kodaNubeTomarSnapshot();
         kodaNubeActiva = true;
+        notificacionesDB = notificacionesDB.filter(n => n.clave !== 'nube-carga');
+        kodaMigracionCuentas();   // después del snapshot: así el cambio se detecta y se guarda en la hoja
         kodaNubeGuardarCopia();
         kodaRefrescarVistas();
         setTimeout(kodaProcesarBandeja, 800);
@@ -1872,6 +1978,9 @@ async function kodaNubeCargarInterno(cfg) {
         ['initializeGoalsView', 'renderizarPaginaCheckpay'].forEach(n => { if (typeof window[n] === 'function') { try { window[n](); } catch (e) { console.error(n, e); } } });
     } catch (e) {
         console.error('Carga desde Google Sheets falló:', e);
+        // Un fallo suelto (p. ej. al cambiar de página con la carga a medias) no se avisa: se reintenta en silencio
+        if (kodaSaliendo) return;
+        if (intento < 3) { await new Promise(r => setTimeout(r, 1500 * intento)); if (kodaSaliendo) return; return kodaNubeCargarInterno(cfg, intento + 1); }
         kodaNotificar('Could not load your data', e.message, { tipo: 'error', clave: 'nube-carga' });
         mostrarAlertaKoda('Could not load your data', 'KODA is showing sample data and will not save changes. ' + e.message);
     }
