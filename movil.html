@@ -77,7 +77,11 @@
         .fab .ms { font-size: 28px; }
         .sheet-bg { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.55); opacity: 0; pointer-events: none; transition: opacity .2s; }
         .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 41; background: #1A1F2B; border-radius: 26px 26px 0 0; border-top: 1px solid var(--line); padding: 10px 18px calc(18px + env(safe-area-inset-bottom)); transform: translateY(105%); transition: transform .26s cubic-bezier(.2,.8,.2,1); max-height: 92dvh; overflow: auto; }
-        body.sheet-on .sheet-bg, body.ed-on .sheet-bg { opacity: 1; pointer-events: auto; } body.sheet-on #sh-add, body.ed-on #sh-ed { transform: none; }
+        body.sheet-on .sheet-bg, body.ed-on .sheet-bg, body.det-on .sheet-bg { opacity: 1; pointer-events: auto; } body.sheet-on #sh-add, body.ed-on #sh-ed, body.det-on #sh-det { transform: none; }
+        .det-h { font-size: 20px; font-weight: 800; letter-spacing: -.01em; margin: 6px 2px 2px; } .det-big { font-size: 30px; font-weight: 800; margin: 2px 2px 12px; }
+        .det-r { display: flex; justify-content: space-between; gap: 12px; padding: 11px 2px; border-top: 1px solid var(--line); font-size: 14.5px; } .det-r span:first-child { color: var(--mut); } .det-r b { font-weight: 700; text-align: right; }
+        .det-n { color: var(--mut); font-size: 13.5px; white-space: pre-wrap; padding: 4px 2px 10px; } .det-sec { color: var(--mut); font-size: 12px; font-weight: 700; margin: 14px 2px 4px; }
+        .item.ck { cursor: pointer; } .item.ck:active { background: var(--card2); } .item.ck .dot { transition: color .2s; }
         .filt { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } .cnt { color: var(--mut); font-size: 12.5px; margin: 10px 2px 0; }
         .icon-btn.on { color: var(--cy); background: var(--card); } .icon-btn.dot2 { position: relative; } .icon-btn.dot2::after { content: ''; position: absolute; top: 8px; right: 8px; width: 7px; height: 7px; border-radius: 50%; background: var(--gold); }
         .bc { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 18px 18px 16px; margin-bottom: 10px; }
@@ -217,6 +221,7 @@
         <div class="err" id="f-err"></div>
         <button class="btn" id="f-ok" onclick="guardar()">Save</button>
     </div>
+    <div class="sheet" id="sh-det" role="dialog" aria-label="Details"><div class="grab"></div><div id="det-body"></div></div>
     <div class="sheet" id="sh-ed" role="dialog" aria-label="Edit entry">
         <div class="grab"></div>
         <div class="lbl" id="e-info" style="font-size:15px;font-weight:700;color:var(--txt)"></div>
@@ -368,8 +373,10 @@ async function cargar(manual) {
             if (b.registrados) nota = b.registrados + ' from your bank emails';
             else if (b.sinCuenta) nota = 'A bank email needs an account link (mapa_cuentas)';
         } catch (e) { if (e.red || e.auth) throw e; }
+        await enviarCk();
         const r = await api('cargar');
         D = r.datos || {};
+        reaplicarCk();
         cacheD();
         pintar();
         enviarCola();
@@ -410,7 +417,7 @@ function pintar() {
     $('l-cuentas').innerHTML = cu.length ? cu.map(c => {
         const s = Number(c.saldo) || 0;
         const sub = esTarjeta(c) ? (c.limite ? 'Available ' + money(Number(c.limite) + s) : 'Credit card') : (c.banco || c.tipo || 'Account');
-        return `<div class="item"><div class="dot"><span class="ms">${esTarjeta(c) ? 'credit_card' : 'account_balance'}</span></div><div class="main"><div class="t">${esc(c.apodo)}</div><div class="s">${esc(sub)}</div></div><div class="amt ${s < 0 ? 'neg' : ''}">${money(s)}</div></div>`;
+        return `<div class="item tap" onclick="abrirDet('cuenta','${esc(c.id)}')"><div class="dot"><span class="ms">${esTarjeta(c) ? 'credit_card' : 'account_balance'}</span></div><div class="main"><div class="t">${esc(c.apodo)}</div><div class="s">${esc(sub)}</div></div><div class="amt ${s < 0 ? 'neg' : ''}">${money(s)}</div></div>`;
     }).join('') : '<div class="empty">No accounts yet. Add them from KODA on your computer.</div>';
 
     // Sobres y metas: solo las 3 más cercanas a completarse; el botón despliega todas
@@ -422,11 +429,11 @@ function pintar() {
     };
     lista('l-sobres', 'm-sobres', so.map(s => Object.assign({}, s, { _p: (Number(s.monto) || 0) < 0 ? -1 : pct(Number(s.monto) || 0, Number(s.meta) || 0) })), s => {
         const m = Number(s.monto) || 0, g = Number(s.meta) || 0, p = pct(m, g);
-        return `<div class="bc"><div class="top"><div class="nm">${esc(s.nombre)}</div><div class="vl">${money(m)}</div></div>${g ? `<div class="bar"><div style="width:${p}%"></div></div><div class="sb"><span>${Math.round(p)}% of ${money(g)}</span><span>${m >= g ? 'Full' : money(g - m) + ' to go'}</span></div>` : ''}</div>`;
+        return `<div class="bc" onclick="abrirDet('sobre','${esc(s.id)}')"><div class="top"><div class="nm">${esc(s.nombre)}</div><div class="vl">${money(m)}</div></div>${g ? `<div class="bar"><div style="width:${p}%"></div></div><div class="sb"><span>${Math.round(p)}% of ${money(g)}</span><span>${m >= g ? 'Full' : money(g - m) + ' to go'}</span></div>` : ''}</div>`;
     }, 'sobres', 'No envelopes yet.', 'envelopes');
     lista('l-metas', 'm-metas', me.map(m => Object.assign({}, m, { _p: pct(Number(m.montoActual) || 0, Number(m.metaTotal) || 0) })), m => {
         const a = Number(m.montoActual) || 0, t = Number(m.metaTotal) || 0, p = pct(a, t);
-        return `<div class="bc"><div class="top"><div class="nm">${esc(m.nombre)}</div><div class="vl">${money(a)}</div></div><div class="bar"><div style="width:${p}%"></div></div><div class="sb"><span>${Math.round(p)}% of ${money(t)}</span><span>${a >= t ? 'Done' : money(t - a) + ' to go'}</span></div></div>`;
+        return `<div class="bc" onclick="abrirDet('meta','${esc(m.id)}')"><div class="top"><div class="nm">${esc(m.nombre)}</div><div class="vl">${money(a)}</div></div><div class="bar"><div style="width:${p}%"></div></div><div class="sb"><span>${Math.round(p)}% of ${money(t)}</span><span>${a >= t ? 'Done' : money(t - a) + ' to go'}</span></div></div>`;
     }, 'metas', 'No goals yet.', 'goals');
 
     // Filtro de la actividad
@@ -449,17 +456,87 @@ function pintar() {
 
     $('l-comp').innerHTML = co.length ? co.map(c => {
         const mens = (Number(c.montoQ1) || 0) + (Number(c.montoQ2) || 0), deuda = c.tipo === 'deuda';
-        return `<div class="item"><div class="dot"><span class="ms">${deuda ? 'real_estate_agent' : 'event_repeat'}</span></div><div class="main"><div class="t">${esc(c.nombre)}</div><div class="s">${deuda ? 'Remaining ' + money(c.deudaActual) : 'Fixed bill'}</div></div><div class="amt">${money(mens)}<span class="s"> /mo</span></div></div>`;
+        return `<div class="item tap" onclick="abrirDet('comp','${esc(c.id)}')"><div class="dot"><span class="ms">${deuda ? 'real_estate_agent' : 'event_repeat'}</span></div><div class="main"><div class="t">${esc(c.nombre)}</div><div class="s">${deuda ? 'Remaining ' + money(c.deudaActual) : 'Fixed bill'}</div></div><div class="amt">${money(mens)}<span class="s"> /mo</span></div></div>`;
     }).join('') : '<div class="empty">No bills or debts yet.</div>';
 
     $('l-check').innerHTML = ck.length ? ck.map(c => {
         const ok = c.pagado === true || c.pagado === 'TRUE' || c.pagado === 'true';
-        return `<div class="item"><div class="dot"><span class="ms">${ok ? 'check_circle' : 'radio_button_unchecked'}</span></div><div class="main"><div class="t" style="${ok ? 'opacity:.55;text-decoration:line-through' : ''}">${esc(c.nombre)}</div></div><div class="amt">${money(c.monto)}</div></div>`;
+        return `<div class="item ck" onclick="marcarCk('${esc(c.id)}')"><div class="dot" style="${ok ? 'color:var(--cy)' : ''}"><span class="ms">${ok ? 'check_circle' : 'radio_button_unchecked'}</span></div><div class="main"><div class="t" style="${ok ? 'opacity:.55;text-decoration:line-through' : ''}">${esc(c.nombre)}</div></div><div class="amt">${money(c.monto)}</div></div>`;
     }).join('') : '<div class="empty">Nothing to pay right now.</div>';
     pintarNotifs();
 }
 
 /* ---- Registrar ---- */
+
+/* ---- Check Pay: tocar para marcar o desmarcar. Se guarda al instante; sin señal queda en cola ---- */
+const CK_KEY = 'koda_movil_ck';
+let colaCk = {}; try { colaCk = JSON.parse(localStorage.getItem(CK_KEY) || '{}'); } catch (e) {}
+const guardarCk = () => { try { localStorage.setItem(CK_KEY, JSON.stringify(colaCk)); } catch (e) {} };
+const siCk = v => v === true || v === 'TRUE' || v === 'true';
+let enviandoCk = false;
+function marcarCk(id) {
+    const it = (D.checkpay || []).find(x => String(x.id) === String(id)); if (!it) return;
+    const nuevo = !siCk(it.pagado);
+    it.pagado = nuevo; colaCk[String(id)] = nuevo; guardarCk(); cacheD(); pintar();
+    if (navigator.vibrate) try { navigator.vibrate(8); } catch (e) {}
+    enviarCk();
+}
+async function enviarCk() {
+    if (enviandoCk) return; enviandoCk = true;
+    try {
+        for (const id of Object.keys(colaCk)) {
+            const val = colaCk[id];
+            try { await api('marcarCheckpay', { id: id, pagado: val }); if (colaCk[id] === val) delete colaCk[id]; guardarCk(); }
+            catch (e) { if (e.red || e.auth) break; delete colaCk[id]; guardarCk(); toast(e.message); }
+        }
+    } finally { enviandoCk = false; }
+}
+function reaplicarCk() { Object.keys(colaCk).forEach(id => { const it = (D.checkpay || []).find(x => String(x.id) === id); if (it) it.pagado = colaCk[id]; }); }
+
+/* ---- Detalles: tocar una cuenta, sobre, meta o pago para verlo completo ---- */
+function filaDet(a, b) { return `<div class="det-r"><span>${esc(a)}</span><b>${b}</b></div>`; }
+function movsDet(arr) {
+    if (!arr.length) return '';
+    const l = arr.sort((a, b) => String(b.fechaStr || '').localeCompare(String(a.fechaStr || ''))).slice(0, 8).map(m => {
+        const ing = m.tipo === 'Ingreso', f = m.fechaStr ? new Date(m.fechaStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+        return `<div class="det-r"><span>${esc(f)} · ${esc(m.desc || tipoEn(m.tipo))}</span><b>${ing ? '+' : ''}${money(m.monto)}</b></div>`;
+    }).join('');
+    return `<div class="det-sec">Recent activity</div>${l}`;
+}
+function abrirDet(k, id) {
+    const P = conPendientes(), hi = P.hi;
+    const q = arr => (arr || []).find(x => String(x.id) === String(id));
+    let h = '';
+    if (k === 'cuenta') {
+        const c = q(P.cu); if (!c) return;
+        h = `<div class="det-h">${esc(c.apodo)}</div><div class="det-big">${money(c.saldo)}</div>` + filaDet('Bank', esc(c.banco || '-')) + filaDet('Type', esc(c.tipo || 'Account')) + (esTarjeta(c) && c.limite ? filaDet('Credit limit', money(c.limite)) + filaDet('Available', money(Number(c.limite) + (Number(c.saldo) || 0))) : '') +
+            movsDet(hi.filter(m => m.cuentaOrigen === c.apodo));
+    } else if (k === 'sobre') {
+        const s = q(P.so); if (!s) return;
+        const m = Number(s.monto) || 0, g = Number(s.meta) || 0;
+        h = `<div class="det-h">${esc(s.nombre)}</div><div class="det-big">${money(m)}</div>` + (g ? filaDet('Goal', money(g)) + filaDet('Progress', Math.round(Math.max(0, Math.min(100, m / g * 100))) + '%') + filaDet(m >= g ? 'Status' : 'To go', m >= g ? 'Full' : money(g - m)) : '') +
+            (Number(s.q1) ? filaDet('Top-up 1', money(s.q1)) : '') + (Number(s.q2) ? filaDet('Top-up 2', money(s.q2)) : '') +
+            (s.notas ? `<div class="det-sec">Notes</div><div class="det-n">${esc(s.notas)}</div>` : '') +
+            movsDet(hi.filter(x => x.sobre === s.nombre || (x.categoria === s.nombre && x.tipo === 'Gasto')));
+    } else if (k === 'meta') {
+        const m = q(D.metas); if (!m) return;
+        const a = Number(m.montoActual) || 0, t = Number(m.metaTotal) || 0;
+        h = `<div class="det-h">${esc(m.nombre)}</div><div class="det-big">${money(a)}</div>` + filaDet('Goal', money(t)) + filaDet('Progress', Math.round(t > 0 ? Math.min(100, a / t * 100) : 0) + '%') + filaDet(a >= t ? 'Status' : 'To go', a >= t ? 'Done' : money(t - a)) +
+            (m.fechaLimite ? filaDet('Deadline', esc(String(m.fechaLimite).slice(0, 10))) : '') + (Number(m.cuotaIdeal) ? filaDet('Ideal contribution', money(m.cuotaIdeal)) : '');
+    } else if (k === 'comp') {
+        const c = q(D.compromisos); if (!c) return;
+        const deuda = c.tipo === 'deuda', bk = c.backup;
+        h = `<div class="det-h">${esc(c.nombre)}</div><div class="det-big">${money((Number(c.montoQ1) || 0) + (Number(c.montoQ2) || 0))}<span class="s" style="font-size:14px;font-weight:600;color:var(--mut)"> /mo</span></div>` +
+            filaDet('Type', deuda ? 'Debt' : 'Fixed bill') + filaDet('First half', money(c.montoQ1)) + filaDet('Second half', money(c.montoQ2)) +
+            (deuda ? filaDet('Remaining', money(c.deudaActual)) + (Number(c.deudaTotal) ? filaDet('Total debt', money(c.deudaTotal)) : '') : '') +
+            (bk && Number(bk.monto) > 0 ? filaDet('Backup', money(bk.monto) + (bk.meses ? ` · ${bk.meses} mo` : '')) : '') +
+            (bk && bk.notas ? `<div class="det-sec">Notes</div><div class="det-n">${esc(bk.notas)}</div>` : '');
+    }
+    if (!h) return;
+    $('det-body').innerHTML = h;
+    document.body.classList.add('det-on');
+}
+
 function setTipo(t) {
     tipo = t; $('s-gasto').classList.toggle('on', t === 'Gasto'); $('s-ingreso').classList.toggle('on', t === 'Ingreso');
     $('w-sobre').style.display = t === 'Gasto' && (D.sobres || []).length ? '' : 'none';
@@ -474,7 +551,7 @@ function abrirHoja() {
     $('f-monto').value = ''; $('f-desc').value = ''; $('f-err').textContent = ''; setTipo('Gasto');
     document.body.classList.add('sheet-on'); setTimeout(() => $('f-monto').focus(), 280);
 }
-function cerrarHoja() { document.body.classList.remove('sheet-on', 'ed-on'); document.activeElement && document.activeElement.blur(); }
+function cerrarHoja() { document.body.classList.remove('sheet-on', 'ed-on', 'det-on'); document.activeElement && document.activeElement.blur(); }
 async function guardar() {
     const monto = parseFloat($('f-monto').value);
     if (!(monto > 0)) { $('f-err').textContent = 'Enter an amount greater than zero.'; return; }
@@ -624,7 +701,7 @@ function borrarNotif(id) {
 
 /* ---- Arrastrar hacia abajo para recargar ---- */
 let ptrY = null, ptrListo = false;
-const ptrBloqueado = e => document.body.classList.contains('chat-on') || document.body.classList.contains('sheet-on') || document.body.classList.contains('ed-on') || e.composedPath().some(n => n.id === 'kt-overlay');
+const ptrBloqueado = e => document.body.classList.contains('chat-on') || document.body.classList.contains('sheet-on') || document.body.classList.contains('ed-on') || document.body.classList.contains('det-on') || e.composedPath().some(n => n.id === 'kt-overlay');
 addEventListener('touchstart', e => { ptrY = (scrollY <= 0 && !ptrBloqueado(e)) ? e.touches[0].clientY : null; ptrListo = false; }, { passive: true });
 addEventListener('touchmove', e => {
     if (ptrY == null) return;
