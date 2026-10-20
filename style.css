@@ -220,3 +220,22 @@ body.koda-saliendo main { opacity: 0; transform: translateY(-6px); transition: o
 .koda-barra-ok { animation: kodaBarraOk 0.95s ease-out 1; }
 .koda-pop-ok { animation: kodaPopOk 0.45s ease-out 1; display: inline-block; }
 @media (prefers-reduced-motion: reduce) { .koda-barra-ok, .koda-pop-ok { animation: none; } }
+
+
+/* ==========================================
+   9. NOTAS DEL SOBRE: barra plegable (igual que Backup)
+   ========================================== */
+.sn-wrap { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .3s ease; }
+.sn-wrap.open { grid-template-rows: 1fr; }
+.sn-wrap > div { overflow: hidden; min-height: 0; }
+.sn-chev { transition: transform .3s ease; }
+.sn-open .sn-chev { transform: rotate(180deg); }
+
+/* ==========================================
+   10. CONCILIACIÓN: barra plegable en el modal de cuenta
+   ========================================== */
+.cn-wrap { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .3s ease; }
+.cn-wrap.open { grid-template-rows: 1fr; }
+.cn-wrap > div { overflow: hidden; min-height: 0; }
+.cn-chev { transition: transform .3s ease; }
+.cn-open .cn-chev { transform: rotate(180deg); }

@@ -396,8 +396,89 @@
             document.getElementById('cuenta-id-edicion').value = '';
             document.getElementById('titulo-modal-cuenta').innerText = "New account";
             document.getElementById('btn-eliminar-cuenta').classList.add('hidden');
+            cnIniciar(null);
             seleccionarTipoCuenta('Banco');
             mostrarModalCuenta();
+        }
+
+
+        // ==========================================
+        // CONCILIACIÓN: compara el saldo de KODA con el del banco
+        // ==========================================
+        function cnCuenta() { const id = document.getElementById('cuenta-id-edicion').value; return id ? cuentasDB.find(c => c.id == id) : null; }
+        function cnMoney(n) { return (n < 0 ? '-$' : '$') + Math.abs(Math.round(n * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+        function cnToggle(forzar) {
+            const w = document.getElementById('cn-wrap'), b = document.getElementById('cn-bloque');
+            const abrir = typeof forzar === 'boolean' ? forzar : !w.classList.contains('open');
+            w.classList.toggle('open', abrir); b.classList.toggle('cn-open', abrir);
+        }
+        function cnIniciar(cuenta) {
+            const bloque = document.getElementById('cn-bloque');
+            const ver = !!cuenta && cuenta.tipo !== 'Tarjeta Crédito';
+            bloque.classList.toggle('hidden', !ver);
+            if (!ver) return;
+            cnToggle(false);
+            document.getElementById('cn-banco').value = '';
+            document.getElementById('cn-resultado').classList.add('hidden');
+            cnResumen(cuenta);
+        }
+        function cnResumen(cuenta) {
+            const el = document.getElementById('cn-sum');
+            if (cuenta.conciliada) {
+                const f = new Date(cuenta.conciliada + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                el.innerText = 'Matched ' + f; el.className = 'text-[11.5px] font-semibold text-koda-blue';
+            } else { el.innerText = 'Never checked'; el.className = 'text-[11.5px] font-semibold text-koda-steel'; }
+        }
+        function cnCalcular() {
+            const cuenta = cnCuenta(), out = document.getElementById('cn-resultado');
+            const raw = document.getElementById('cn-banco').value;
+            if (!cuenta || raw === '') { out.classList.add('hidden'); return; }
+            const banco = parseFloat(raw) || 0, dif = Math.round((cuenta.saldo - banco) * 100) / 100;
+            out.classList.remove('hidden');
+            const fila = (a, b, c) => `<div class="flex justify-between gap-3 text-[13px]"><span class="text-koda-steel">${a}</span><span class="font-semibold ${c || 'text-white'}">${b}</span></div>`;
+            let html = fila('KODA', cnMoney(cuenta.saldo)) + fila('Bank', cnMoney(banco));
+            if (dif === 0) {
+                html += `<div class="flex items-center gap-2 pt-2 border-t border-white/5 text-[13px] font-semibold text-koda-blue"><span class="material-symbols-outlined text-[18px]">check_circle</span>It matches</div>
+                    <button type="button" onclick="cnMarcarCuadra()" class="w-full py-2.5 rounded-xl bg-koda-blue text-[#131722] text-xs font-semibold hover:bg-[#7ab5bd] transition-colors cursor-pointer outline-none">Save this check</button>`;
+            } else {
+                const cand = cnCandidatos(cuenta, Math.abs(dif));
+                html += fila('Difference', (dif > 0 ? 'KODA has ' : 'KODA is missing ') + cnMoney(Math.abs(dif)), 'text-koda-gold');
+                html += `<p class="text-[11.5px] leading-relaxed text-koda-steel pt-2 border-t border-white/5">${dif > 0
+                    ? 'KODA shows more than the bank: an expense is missing, or an income was entered that never arrived.'
+                    : 'KODA shows less than the bank: an income is missing, or an expense was entered twice or with a wrong amount.'}</p>`;
+                if (cand.length) {
+                    html += `<p class="text-[11.5px] font-semibold text-koda-steel pt-1">Entries that could explain it</p>` + cand.map(m =>
+                        `<div class="flex justify-between gap-3 text-[12.5px] bg-[#141820] border border-white/5 rounded-xl px-3 py-2"><span class="text-white truncate">${kodaEsc(m.desc || m.tipo)} <span class="text-koda-steel">· ${kodaEsc(String(m.fechaStr || '').slice(5, 10))}</span></span><span class="font-semibold text-white flex-shrink-0">${cnMoney(m.monto || m.comision)}</span></div>`).join('');
+                } else {
+                    html += `<p class="text-[11.5px] text-koda-steel">No single entry matches that amount. Check the last few days in History.</p>`;
+                }
+                html += `<button type="button" onclick="cnAjustar(${dif})" class="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors cursor-pointer outline-none">Adjust KODA to the bank (${cnMoney(-dif)})</button>
+                    <p class="text-[11px] text-koda-steel/80 text-center">This adds an "Adjustment" entry. It does not count as income or spending.</p>`;
+            }
+            out.innerHTML = html;
+        }
+        // Movimientos de la cuenta (últimos 45 días) cuyo monto (o cargo del 0.20 %) coincide con la diferencia
+        function cnCandidatos(cuenta, dif) {
+            const desde = Date.now() - 45 * 86400000;
+            return historialDB.filter(m => (m.cuentaId === cuenta.id || m.cuentaDestinoId === cuenta.id) && new Date(m.fechaStr).getTime() >= desde
+                && (Math.abs((Number(m.monto) || 0) - dif) < 0.01 || Math.abs((Number(m.comision) || 0) - dif) < 0.01))
+                .sort((a, b) => new Date(b.fechaStr) - new Date(a.fechaStr)).slice(0, 4);
+        }
+        function cnHoy() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+        function cnMarcarCuadra() {
+            const c = cnCuenta(); if (!c) return;
+            c.conciliada = cnHoy(); cnResumen(c); renderizarCuentas();
+            document.getElementById('cn-banco').value = ''; document.getElementById('cn-resultado').classList.add('hidden'); cnToggle(false);
+        }
+        function cnAjustar(dif) {
+            const c = cnCuenta(); if (!c) return;
+            const ahora = new Date(), fISO = `${cnHoy()}T${ahora.toTimeString().split(' ')[0]}`;
+            const mov = { id: Date.now(), tipo: dif > 0 ? 'Gasto' : 'Ingreso', monto: Math.abs(dif), desc: 'Adjustment', categoria: 'General', sobre: null, cuentaOrigen: c.apodo, cuentaId: c.id, fechaStr: fISO, origen: 'ajuste', excluirReporte: true };
+            aplicarMovimientoContable(mov); historialDB.push(mov);
+            c.conciliada = cnHoy();
+            document.getElementById('nueva-cuenta-saldo').value = c.saldo;   // el formulario muestra el saldo ya ajustado
+            cnResumen(c); renderizarCuentas(); kodaRefrescarVistas();
+            document.getElementById('cn-banco').value = ''; document.getElementById('cn-resultado').classList.add('hidden'); cnToggle(false);
         }
 
         function abrirModalEditarCuenta(id) {
@@ -415,6 +496,7 @@
             document.getElementById('nueva-cuenta-disponible').value = esTC ? Math.max(0, (cuenta.limite || 0) + Math.min(0, cuenta.saldo || 0)) : '';
             document.getElementById('titulo-modal-cuenta').innerText = "Edit account";
             document.getElementById('btn-eliminar-cuenta').classList.remove('hidden');
+            cnIniciar(cuenta);
             mostrarModalCuenta();
         }
 
@@ -540,6 +622,21 @@
                 <div id="cuenta-deuda-caja" class="hidden bg-[#0A0D12] border border-white/5 focus-within:border-koda-blue/40 rounded-2xl p-4 flex flex-col items-center justify-center gap-1 transition-colors">
                     <span class="text-[11.5px] font-semibold text-koda-steel">Available now</span>
                     <input type="number" id="nueva-cuenta-disponible" min="0" onwheel="this.blur()" class="w-full bg-transparent text-2xl font-semibold text-white text-center border-none outline-none">
+                </div>
+
+                <!-- Conciliación con el banco (solo al editar una cuenta que no es tarjeta) -->
+                <div id="cn-bloque" class="hidden bg-[#0A0D12] border border-white/5 rounded-2xl overflow-hidden">
+                    <button type="button" onclick="cnToggle()" class="w-full px-4 py-3.5 flex items-center justify-between cursor-pointer outline-none">
+                        <span class="text-xs font-semibold text-white">Reconcile with bank</span>
+                        <span class="flex items-center gap-2"><span id="cn-sum" class="text-[11.5px] font-semibold text-koda-steel">Never checked</span><span class="material-symbols-outlined cn-chev text-[18px] text-koda-steel">expand_more</span></span>
+                    </button>
+                    <div id="cn-wrap" class="cn-wrap"><div><div class="px-4 pb-4 pt-4 flex flex-col gap-3 border-t border-white/5">
+                        <div class="bg-[#141820] border border-white/5 focus-within:border-koda-blue/40 rounded-2xl p-3 flex flex-col items-center gap-1 transition-colors">
+                            <span class="text-[11.5px] font-semibold text-koda-steel">Balance in your bank app</span>
+                            <input type="number" id="cn-banco" oninput="cnCalcular()" onwheel="this.blur()" class="w-full bg-transparent text-2xl font-semibold text-white text-center placeholder:text-white/20 border-none outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]">
+                        </div>
+                        <div id="cn-resultado" class="hidden flex flex-col gap-2"></div>
+                    </div></div></div>
                 </div>
 
                 <div class="flex items-center justify-end gap-3 pt-2 border-t border-white/5">

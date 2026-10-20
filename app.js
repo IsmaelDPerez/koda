@@ -602,7 +602,7 @@ function renderizarWidgetComparativa(periodo = '6M') {
             const idx = Math.floor((f - ini) / (7 * 86400000));
             if (isNaN(idx) || idx < 0 || idx > 3) return;
             if (m.tipo === 'Ingreso') { if (kodaIngresoReal(m)) dataIngresos[idx] += m.monto; }
-            else if (GASTOS.includes(m.tipo)) dataGastos[idx] += m.monto;
+            else if (GASTOS.includes(m.tipo) && !kodaSi(m.excluirReporte)) dataGastos[idx] += m.monto;
             if (m.comision) dataGastos[idx] += Number(m.comision) || 0;
         });
     } else {
@@ -620,7 +620,7 @@ function renderizarWidgetComparativa(periodo = '6M') {
             const idx = claves.indexOf(`${f.getFullYear()}-${f.getMonth()}`);
             if (idx === -1) return;
             if (m.tipo === 'Ingreso') { if (kodaIngresoReal(m)) dataIngresos[idx] += m.monto; }
-            else if (GASTOS.includes(m.tipo)) dataGastos[idx] += m.monto;
+            else if (GASTOS.includes(m.tipo) && !kodaSi(m.excluirReporte)) dataGastos[idx] += m.monto;
             if (m.comision) dataGastos[idx] += Number(m.comision) || 0;
         });
     }
@@ -709,7 +709,7 @@ function renderizarWidgetDistribucion() {
     if(!contLeyenda) return;
 
     // 1. Filtrar y agrupar gastos
-    let gastos = historialDB.filter(m => m.tipo === 'Gasto');
+    let gastos = historialDB.filter(m => m.tipo === 'Gasto' && !kodaSi(m.excluirReporte));
     let totalGastos = 0;
     let agrupados = {};
 
@@ -1190,6 +1190,32 @@ function chequearNotificaciones() {
     cuentasDB.forEach(c => {
         if (c.tipo !== 'Tarjeta Crédito' && c.saldo < 0) derivadas.push({ clave: `cuenta-neg-${c.id}`, tipo: 'warning', titulo: 'Negative balance', mensaje: `${c.apodo} is at -${fmt(c.saldo)}.`, link: 'index.html' });
         if (c.tipo === 'Tarjeta Crédito' && c.limite && (c.limite + c.saldo) <= c.limite * 0.1) derivadas.push({ clave: `tc-limite-${c.id}`, tipo: 'warning', titulo: 'Credit limit almost used', mensaje: `${c.apodo} has ${fmt(c.limite + c.saldo)} available.`, link: 'index.html' });
+    });
+    // Cuenta con menos dinero que lo asignado a los sobres que viven en ella
+    cuentasDB.forEach(c => {
+        if (c.tipo === 'Tarjeta Crédito') return;
+        const asignado = sobresDB.filter(s => String(s.cuentaId) === String(c.id)).reduce((a, s) => a + Math.max(0, Number(s.monto) || 0), 0);
+        if (asignado > 0 && (Number(c.saldo) || 0) + 0.005 < asignado) derivadas.push({ clave: `cuenta-sobres-${c.id}`, tipo: 'warning', titulo: 'Account below its envelopes', mensaje: `${c.apodo} has ${fmt(c.saldo)} but its envelopes hold ${fmt(asignado)}.`, link: 'sobres.html' });
+    });
+    // Pagos fijos y deudas que vencen hoy o mañana, sin pagar y sin dinero suficiente en su cuenta
+    const dm = (y, m) => new Date(y, m + 1, 0).getDate();
+    const venceEn = (dia, f) => !!dia && f.getDate() === Math.min(Number(dia), dm(f.getFullYear(), f.getMonth()));
+    const hoyD = new Date(), manD = new Date(hoyD.getFullYear(), hoyD.getMonth(), hoyD.getDate() + 1);
+    compromisosDB.forEach(c => {
+        if ((c.tipo !== 'fijo' && c.tipo !== 'deuda') || !c.diaPago || !c.cuentaId) return;
+        const cuota = venceEn(c.diaPago, hoyD) ? 'today' : venceEn(c.diaPago, manD) ? 'tomorrow' : null;
+        if (!cuota) return;
+        const item = checkpayDB.find(i => i.refId == c.id && i.tipoOrigen === c.tipo && !(i.pagado === true || i.pagado === 'TRUE' || i.pagado === 'true'));
+        const cta = cuentasDB.find(x => String(x.id) === String(c.cuentaId));
+        if (!item || !cta || (Number(cta.saldo) || 0) >= item.monto) return;
+        derivadas.push({ clave: `vence-${c.id}`, tipo: 'warning', titulo: `${c.nombre} is due ${cuota}`, mensaje: `${fmt(item.monto)} is paid from ${cta.apodo}, which has ${fmt(cta.saldo)}.`, link: 'checkpay.html' });
+    });
+    // Cobros pendientes que llegan hoy o mañana
+    prestamosDB.forEach(p => {
+        const pendiente = (Number(p.montoPrestado) || 0) - (Number(p.montoPagado) || 0);
+        if (!p.diaCobro || pendiente <= 0) return;
+        const cuota = venceEn(p.diaCobro, hoyD) ? 'today' : venceEn(p.diaCobro, manD) ? 'tomorrow' : null;
+        if (cuota) derivadas.push({ clave: `cobro-${p.id}`, tipo: 'info', titulo: `Collect from ${p.nombre} ${cuota}`, mensaje: `${fmt(pendiente)} is still owed to you.`, link: 'compromisos.html' });
     });
     const hoy = new Date().toISOString().split('T')[0];
     metasDB.forEach(m => {

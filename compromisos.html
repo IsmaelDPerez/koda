@@ -148,6 +148,11 @@
                     <div id="cmp-bill-cuenta-pills" class="flex flex-wrap gap-2"></div>
                 </div>
 
+                <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                    <span class="text-[11.5px] font-semibold text-koda-steel">Due day of the month (optional)</span>
+                    <input type="number" id="cmp-bill-dia" min="1" max="31" onwheel="this.blur()" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]">
+                </div>
+
                 <div class="grid grid-cols-2 gap-3">
                     <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
                         <span class="text-[11.5px] font-semibold text-koda-steel">Paycheck 1 amount</span>
@@ -208,6 +213,16 @@
                         <span class="text-[11.5px] font-semibold text-koda-steel">Remaining balance</span>
                         <input type="number" id="cmp-debt-actual" onwheel="this.blur()" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none">
                     </div>
+                </div>
+
+                <div class="bg-[#0A0D12] border border-white/5 rounded-2xl px-4 py-3 flex flex-col gap-2.5">
+                    <span class="text-[11.5px] font-semibold text-koda-steel">Paid from account</span>
+                    <div id="cmp-debt-cuenta-pills" class="flex flex-wrap gap-2"></div>
+                </div>
+
+                <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                    <span class="text-[11.5px] font-semibold text-koda-steel">Due day of the month (optional)</span>
+                    <input type="number" id="cmp-debt-dia" min="1" max="31" onwheel="this.blur()" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]">
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
@@ -327,6 +342,11 @@
                         </div>
                     </div>
 
+                </div>
+
+                <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
+                    <span class="text-[11.5px] font-semibold text-koda-steel">Collect on day of the month (optional)</span>
+                    <input type="number" id="cmp-loan-dia" min="1" max="31" onwheel="this.blur()" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]">
                 </div>
 
                 <div class="flex items-center justify-end gap-3 pt-2 border-t border-white/5">
@@ -1032,6 +1052,9 @@
             else abrirModalNuevoPrestamo();
         }
 
+        // Día del mes (1-31) o null si se deja vacío
+        function cmpDia(id) { const n = parseInt(cmpEl(id).value); return n >= 1 && n <= 31 ? n : null; }
+
         function abrirModalBill(id = null) {
             const it = id !== null ? compromisosDB.find(c => c.id === id && c.tipo === 'fijo') : null;
             if (id !== null && !it) return;
@@ -1042,6 +1065,7 @@
             cmpEl('cmp-bill-q2').value = it && it.montoQ2 ? it.montoQ2 : '';
             cmpEl('cmp-bill-afecta').checked = it ? it.afectaDisponible !== false : true;
             kodaPillsCuenta('cmp-bill-cuenta-pills', it ? it.cuentaId : null);
+            cmpEl('cmp-bill-dia').value = it && it.diaPago ? it.diaPago : '';
             cmpEl('cmp-bill-eliminar').classList.toggle('hidden', !it);
             cmpBkIniciar('bill', it);
             cmpResetEliminar();
@@ -1059,10 +1083,10 @@
 
             if (cmpEditId !== null) {
                 const it = compromisosDB.find(c => c.id === cmpEditId);
-                if (it) { Object.assign(it, { nombre, montoQ1: q1, montoQ2: q2, afectaDisponible: afecta, cuentaId: kodaPillsCuentaValor('cmp-bill-cuenta-pills') }); cmpBkAplicar(it); }
+                if (it) { Object.assign(it, { nombre, montoQ1: q1, montoQ2: q2, afectaDisponible: afecta, cuentaId: kodaPillsCuentaValor('cmp-bill-cuenta-pills'), diaPago: cmpDia('cmp-bill-dia') }); cmpBkAplicar(it); }
             } else {
                 const nuevo = {
-                    id: Date.now(), nombre, tipo: 'fijo', montoQ1: q1, montoQ2: q2, afectaDisponible: afecta, cuentaId: kodaPillsCuentaValor('cmp-bill-cuenta-pills'),
+                    id: Date.now(), nombre, tipo: 'fijo', montoQ1: q1, montoQ2: q2, afectaDisponible: afecta, cuentaId: kodaPillsCuentaValor('cmp-bill-cuenta-pills'), diaPago: cmpDia('cmp-bill-dia'),
                     orden: cmpSiguienteOrden(cmpItemsTab('fijo'))
                 };
                 cmpBkAplicar(nuevo);
@@ -1095,6 +1119,8 @@
             cmpEl('cmp-debt-q1').value = it && it.montoQ1 ? it.montoQ1 : '';
             cmpEl('cmp-debt-q2').value = it && it.montoQ2 ? it.montoQ2 : '';
             cmpEl('cmp-debt-afecta').checked = it ? it.afectaDisponible !== false : true;
+            kodaPillsCuenta('cmp-debt-cuenta-pills', it ? it.cuentaId : null);
+            cmpEl('cmp-debt-dia').value = it && it.diaPago ? it.diaPago : '';
             cmpEl('cmp-debt-eliminar').classList.toggle('hidden', !it);
             cmpRenderHistorialDeuda(it ? it.id : null);
             cmpBkIniciar('debt', it);
@@ -1156,10 +1182,10 @@
 
             if (cmpEditId !== null) {
                 const it = compromisosDB.find(c => c.id === cmpEditId);
-                if (it) { Object.assign(it, { nombre, deudaTotal: total, deudaActual: actual, montoQ1: q1, montoQ2: q2, afectaDisponible: afecta }); cmpBkAplicar(it); }
+                if (it) { Object.assign(it, { nombre, deudaTotal: total, deudaActual: actual, montoQ1: q1, montoQ2: q2, afectaDisponible: afecta, cuentaId: kodaPillsCuentaValor('cmp-debt-cuenta-pills'), diaPago: cmpDia('cmp-debt-dia') }); cmpBkAplicar(it); }
             } else {
                 const nuevo = {
-                    id: Date.now(), nombre, tipo: 'deuda', deudaTotal: total, deudaActual: actual, montoQ1: q1, montoQ2: q2, afectaDisponible: afecta,
+                    id: Date.now(), nombre, tipo: 'deuda', deudaTotal: total, deudaActual: actual, montoQ1: q1, montoQ2: q2, afectaDisponible: afecta, cuentaId: kodaPillsCuentaValor('cmp-debt-cuenta-pills'), diaPago: cmpDia('cmp-debt-dia'),
                     orden: cmpSiguienteOrden(cmpItemsTab('deuda'))
                 };
                 cmpBkAplicar(nuevo);
@@ -1189,6 +1215,7 @@
         function abrirModalNuevoPrestamo() {
             cmpEl('cmp-loan-nombre').value = '';
             cmpEl('cmp-loan-monto').value = '';
+            cmpEl('cmp-loan-dia').value = '';
             
             // Custom Calendar init
             kodaCalActivo.d = new Date();
@@ -1214,7 +1241,7 @@
             if (!cta) return cmpAlerta('Missing info', 'Select the account the money came from.');
 
             const id = Date.now();
-            prestamosDB.push({ id, nombre, montoPrestado: monto, montoPagado: 0, notasGlobales: '', orden: cmpSiguienteOrden(prestamosDB) });
+            prestamosDB.push({ id, nombre, montoPrestado: monto, montoPagado: 0, notasGlobales: '', diaCobro: cmpDia('cmp-loan-dia'), orden: cmpSiguienteOrden(prestamosDB) });
             cta.saldo -= monto;
             historialDB.push({
                 id: id + 1, tipo: 'Préstamo', monto, desc: 'Initial transfer', notas: '',

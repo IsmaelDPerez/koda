@@ -414,7 +414,7 @@ function pintar() {
     $('h-detalle').textContent = L.hayMarcadas ? '' : (cu.length ? 'Choose your spending account in KODA on your computer.' : '');
     const mes = new Date().toISOString().slice(0, 7);
     const delMes = hi.filter(m => String(m.fechaStr || '').slice(0, 7) === mes);
-    $('h-gasto').textContent = money(delMes.filter(m => m.tipo === 'Gasto').reduce((a, m) => a + (Number(m.monto) || 0), 0));
+    $('h-gasto').textContent = money(delMes.filter(m => m.tipo === 'Gasto' && !(m.excluirReporte === true || m.excluirReporte === 'TRUE' || m.excluirReporte === 'true')).reduce((a, m) => a + (Number(m.monto) || 0), 0));
     $('h-ingreso').textContent = money(delMes.filter(m => m.tipo === 'Ingreso' && !(m.excluirReporte === true || m.excluirReporte === 'TRUE' || m.excluirReporte === 'true')).reduce((a, m) => a + (Number(m.monto) || 0), 0));
 
     $('l-cuentas').innerHTML = cu.length ? cu.map(c => {

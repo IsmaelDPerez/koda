@@ -37,10 +37,16 @@
                 <h2 class="text-3xl font-semibold tracking-tight">Envelopes</h2>
             </div>
 
-            <button onclick="abrirModalCrearSobre()" class="px-6 py-2.5 bg-koda-blue text-[#131722] font-semibold rounded-full text-xs hover:bg-[#7ab5bd] transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer outline-none">
-                <span class="material-symbols-outlined text-[18px]">add</span>
-                New envelope
-            </button>
+            <div class="flex items-center gap-3">
+                <button onclick="abrirPlanQuincena()" class="px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold rounded-full text-xs transition-colors flex items-center gap-1.5 cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[18px] text-koda-steel">payments</span>
+                    Paycheck plan
+                </button>
+                <button onclick="abrirModalCrearSobre()" class="px-6 py-2.5 bg-koda-blue text-[#131722] font-semibold rounded-full text-xs hover:bg-[#7ab5bd] transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[18px]">add</span>
+                    New envelope
+                </button>
+            </div>
         </div>
 
         <!-- STATS KPI (Total, Active, To fund, Funded) -->
@@ -122,7 +128,7 @@
 
     <!-- [SOB-04] DETAILED DRAWER/MODAL -->
     <div id="modal-detalle-sobre" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
-        <div id="card-detalle-sobre" class="relative w-full max-w-[460px] bg-[#141820] border border-white/10 rounded-[32px] p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] flex flex-col gap-5 transform scale-95 transition-all duration-300 ease-out max-h-[90vh]">
+        <div id="card-detalle-sobre" class="relative w-full max-w-[460px] bg-[#141820] border border-white/10 rounded-[32px] p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] flex flex-col gap-5 transform scale-95 transition-all duration-300 ease-out max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             <div class="flex items-start justify-between">
                 <div>
                     <h3 class="text-2xl font-semibold text-white leading-tight" id="det-sobre-nombre">Envelope</h3>
@@ -154,10 +160,15 @@
                 </button>
             </div>
 
-            <!-- Notes -->
-            <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
-                <span class="text-[11.5px] font-semibold text-koda-steel">Notes</span>
-                <textarea id="det-sobre-notas" rows="3" maxlength="500" onblur="guardarNotasSobre()" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none resize-none select-text"></textarea>
+            <!-- Notes (barra plegable, cerrada por defecto) -->
+            <div id="sob-notas" class="bg-[#0A0D12] border border-white/5 rounded-2xl overflow-hidden">
+                <button type="button" onclick="toggleNotasSobre()" class="w-full px-4 py-3.5 flex items-center justify-between cursor-pointer outline-none">
+                    <span class="text-xs font-semibold text-white">Notes</span>
+                    <span class="flex items-center gap-2"><span id="sob-notas-sum" class="text-[11.5px] font-semibold text-koda-steel">None</span><span class="material-symbols-outlined sn-chev text-[18px] text-koda-steel">expand_more</span></span>
+                </button>
+                <div id="sob-notas-wrap" class="sn-wrap"><div><div class="px-4 pb-4 pt-3 border-t border-white/5">
+                    <textarea id="det-sobre-notas" rows="3" maxlength="500" oninput="resumenNotasSobre()" onblur="guardarNotasSobre()" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none resize-none select-text"></textarea>
+                </div></div></div>
             </div>
 
             <!-- Recent transactions -->
@@ -176,7 +187,7 @@
 
     <!-- [SOB-05] CREATE / EDIT ENVELOPE (SIN SPIN-BUTTONS NI SCROLL DE NUMBERS) -->
     <div id="modal-form-sobre" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
-        <div id="card-form-sobre" class="relative w-full max-w-[460px] bg-[#141820] border border-white/10 rounded-[32px] p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] flex flex-col gap-4 transform scale-95 transition-all duration-300 ease-out max-h-[92vh]">
+        <div id="card-form-sobre" class="relative w-full max-w-[460px] bg-[#141820] border border-white/10 rounded-[32px] p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] flex flex-col gap-4 transform scale-95 transition-all duration-300 ease-out max-h-[92vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             <div class="flex items-center justify-between">
                 <h3 class="text-2xl font-semibold tracking-tight text-white" id="titulo-modal-form-sobre">Envelope</h3>
                 <button type="button" onclick="cerrarModalFormSobre()" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
@@ -230,6 +241,41 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- [SOB-07] PAYCHECK PLAN -->
+    <div id="modal-plan" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
+        <div id="card-plan" class="relative w-full max-w-[460px] bg-[#141820] border border-white/10 rounded-[32px] p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] flex flex-col gap-4 transform scale-95 transition-all duration-300 ease-out max-h-[92vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div class="flex items-center justify-between">
+                <h3 class="text-2xl font-semibold tracking-tight text-white">Paycheck plan</h3>
+                <button type="button" onclick="cerrarPlanQuincena()" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[18px]">close</span>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 bg-[#0A0D12] border border-white/5 rounded-2xl p-1.5">
+                <button type="button" id="plan-q1" onclick="planElegirQuincena(1)" class="py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer outline-none">Paycheck 1</button>
+                <button type="button" id="plan-q2" onclick="planElegirQuincena(2)" class="py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer outline-none">Paycheck 2</button>
+            </div>
+
+            <div class="bg-[#0A0D12] border border-white/5 focus-within:border-koda-blue/40 rounded-2xl p-4 flex flex-col items-center justify-center gap-1 transition-colors">
+                <span class="text-[11.5px] font-semibold text-koda-steel">Paycheck amount</span>
+                <input type="number" id="plan-monto" oninput="planCalcular()" onwheel="this.blur()" class="w-full bg-transparent text-4xl font-semibold text-white text-center placeholder:text-white/20 border-none outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]">
+            </div>
+
+            <div class="bg-[#0A0D12] border border-white/5 rounded-2xl px-4 py-3 flex flex-col gap-2.5">
+                <span class="text-[11.5px] font-semibold text-koda-steel">Deposited in</span>
+                <div id="plan-cuenta-pills" class="flex flex-wrap gap-2"></div>
+            </div>
+
+            <div id="plan-resumen" class="bg-[#0A0D12] border border-white/5 rounded-2xl px-4 py-2 flex flex-col"></div>
+            <p class="text-[11px] leading-relaxed text-koda-steel/80 text-center px-2">This only moves money into your envelopes. Register the paycheck as income and pay your bills as usual.</p>
+
+            <div class="flex items-center justify-end gap-3 pt-2 border-t border-white/5">
+                <button type="button" onclick="cerrarPlanQuincena()" class="px-5 py-2.5 text-xs font-semibold text-koda-steel hover:text-white rounded-full hover:bg-white/5 transition-colors cursor-pointer outline-none">Cancel</button>
+                <button type="button" id="plan-confirmar" onclick="planFondear()" class="px-8 py-3 text-xs font-semibold rounded-full bg-koda-blue text-[#131722] hover:bg-[#7ab5bd] transition-colors cursor-pointer outline-none">Fund envelopes</button>
+            </div>
         </div>
     </div>
 
@@ -453,6 +499,17 @@
         // 4. DETALLE KODA CON REDIRECCIÓN DE EDICIÓN DE MOVIMIENTOS
        let limiteHistorialSobre = 6;
 
+function resumenNotasSobre() {
+    const t = (document.getElementById('det-sobre-notas').value || '').trim(), el = document.getElementById('sob-notas-sum');
+    el.innerText = t ? 'Added' : 'None';
+    el.className = 'text-[11.5px] font-semibold ' + (t ? 'text-koda-blue' : 'text-koda-steel');
+}
+function toggleNotasSobre(forzar) {
+    const caja = document.getElementById('sob-notas'), w = document.getElementById('sob-notas-wrap');
+    const abrir = typeof forzar === 'boolean' ? forzar : !w.classList.contains('open');
+    w.classList.toggle('open', abrir); caja.classList.toggle('sn-open', abrir);
+    if (abrir) setTimeout(() => document.getElementById('det-sobre-notas').focus(), 320); else guardarNotasSobre();
+}
 function guardarNotasSobre() {
     const s = sobresDB.find(x => x.id === sobreAbiertoId); if (!s) return;
     const t = document.getElementById('det-sobre-notas').value.trim();
@@ -488,6 +545,8 @@ function abrirDetalleSobre(id, resetLimite = true) {
     }
 
     document.getElementById('det-sobre-notas').value = sobre.notas || '';
+    resumenNotasSobre();
+    if (resetLimite) toggleNotasSobre(false);   // siempre cerrada al abrir el sobre
 
     // Insight dinámico
     const insightEl = document.getElementById('det-sobre-insight');
@@ -572,6 +631,72 @@ function cargarMasTransaccionesSobre() {
         function editarSobreDesdeDetalle() {
             cerrarDetalleSobre();
             abrirModalEditarSobre(sobreAbiertoId);
+        }
+
+
+        // ==========================================
+        // PAYCHECK PLAN: cuánto va a fijos, a sobres y cuánto queda libre; fondea los sobres de una vez
+        // ==========================================
+        let planQ = 1;
+        function planElegirQuincena(q) {
+            planQ = q;
+            document.getElementById('plan-q1').className = 'py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer outline-none ' + (q === 1 ? 'bg-white/10 text-white' : 'text-koda-steel hover:text-white');
+            document.getElementById('plan-q2').className = 'py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer outline-none ' + (q === 2 ? 'bg-white/10 text-white' : 'text-koda-steel hover:text-white');
+            planCalcular();
+        }
+        function planMoney(n) { return (n < 0 ? '-$' : '$') + Math.abs(Math.round(n * 100) / 100).toLocaleString('en-US', { maximumFractionDigits: 2 }); }
+        // Lo que se le puede poner a cada sobre en esta quincena: su reposición, sin pasar del techo
+        function planSobres() {
+            return sobresDB.map(s => {
+                const q = Number(planQ === 1 ? s.q1 : s.q2) || 0, techo = Number(s.meta) || 0, actual = Number(s.monto) || 0;
+                const monto = Math.max(0, techo > 0 ? Math.min(q, techo - actual) : q);
+                return { s, monto: Math.round(monto * 100) / 100 };
+            }).filter(x => x.monto > 0);
+        }
+        function planCalcular() {
+            const salario = parseFloat(document.getElementById('plan-monto').value) || 0;
+            const fijos = compromisosDB.filter(c => c.tipo === 'fijo').reduce((a, c) => a + (Number(planQ === 1 ? c.montoQ1 : c.montoQ2) || 0), 0);
+            const deudas = compromisosDB.filter(c => c.tipo === 'deuda').reduce((a, c) => a + (Number(planQ === 1 ? c.montoQ1 : c.montoQ2) || 0), 0);
+            const sob = planSobres(), totSob = sob.reduce((a, x) => a + x.monto, 0);
+            const libre = salario - fijos - deudas - totSob;
+            const fila = (a, b, extra) => `<div class="flex justify-between gap-3 py-2.5 border-b border-white/5 last:border-0"><span class="text-[12.5px] font-medium text-koda-steel">${a}</span><span class="text-[13px] font-semibold ${extra || 'text-white'}">${b}</span></div>`;
+            document.getElementById('plan-resumen').innerHTML =
+                fila('Fixed bills', planMoney(fijos)) + (deudas > 0 ? fila('Debt payments', planMoney(deudas)) : '') +
+                fila(`Envelope top-ups (${sob.length})`, planMoney(totSob)) +
+                fila('Left over', planMoney(libre), salario > 0 ? (libre < 0 ? 'text-koda-gold' : 'text-koda-blue') : 'text-koda-steel');
+            const btn = document.getElementById('plan-confirmar');
+            btn.disabled = !sob.length; btn.classList.toggle('opacity-40', !sob.length);
+            btn.innerText = sob.length ? `Fund ${sob.length} envelope${sob.length > 1 ? 's' : ''}` : 'Nothing to fund';
+        }
+        function abrirPlanQuincena() {
+            const ult = [...historialDB].filter(m => m.tipo === 'Ingreso' && !kodaSi(m.excluirReporte) && /salary/i.test(m.categoria || '')).sort((a, b) => new Date(b.fechaStr) - new Date(a.fechaStr))[0];
+            document.getElementById('plan-monto').value = ult ? ult.monto : '';
+            const gasto = cuentasDB.find(c => kodaSi(c.liquida)) || cuentasDB.find(c => c.tipo !== 'Tarjeta Crédito');
+            kodaPillsCuenta('plan-cuenta-pills', gasto ? gasto.id : null);
+            planElegirQuincena(new Date().getDate() <= 15 ? 1 : 2);
+            const m = document.getElementById('modal-plan'), c = document.getElementById('card-plan');
+            m.classList.remove('opacity-0', 'pointer-events-none'); m.classList.add('opacity-100', 'pointer-events-auto');
+            c.classList.remove('scale-95'); c.classList.add('scale-100');
+        }
+        function cerrarPlanQuincena() {
+            const m = document.getElementById('modal-plan'), c = document.getElementById('card-plan');
+            m.classList.remove('opacity-100', 'pointer-events-auto'); m.classList.add('opacity-0', 'pointer-events-none');
+            c.classList.remove('scale-100'); c.classList.add('scale-95');
+        }
+        async function planFondear() {
+            const origen = cuentasDB.find(c => c.id === kodaPillsCuentaValor('plan-cuenta-pills'));
+            if (!origen) return mostrarAlertaKoda('Account required', 'Choose the account the paycheck was deposited in.');
+            const lista = planSobres(); if (!lista.length) return;
+            const ahora = new Date(), fecha = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}T${ahora.toTimeString().split(' ')[0]}`;
+            const btn = document.getElementById('plan-confirmar');
+            kodaBotonCargando(btn, true);
+            lista.forEach((x, i) => {
+                const mov = { id: Date.now() + i, tipo: 'Fondeo de Sobre', monto: x.monto, desc: `Paycheck ${planQ} · ${x.s.nombre}`, categoria: x.s.nombre, sobre: x.s.nombre, cuentaOrigen: origen.apodo, cuentaId: origen.id, fechaStr: fecha };
+                if (x.s.cuentaId && x.s.cuentaId !== origen.id && cuentasDB.some(c => c.id === x.s.cuentaId)) mov.cuentaDestinoId = x.s.cuentaId;
+                aplicarMovimientoContable(mov); historialDB.push(mov);
+            });
+            kodaRefrescarVistas();
+            try { await kodaEsperarGuardado(); } finally { cerrarPlanQuincena(); setTimeout(() => kodaBotonCargando(btn, false), 350); }
         }
 
         // 5. CREATE / EDIT ENVELOPE
