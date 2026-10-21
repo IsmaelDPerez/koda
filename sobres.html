@@ -269,6 +269,8 @@
                 <div id="plan-cuenta-pills" class="flex flex-wrap gap-2"></div>
             </div>
 
+            <div id="plan-aviso" class="hidden bg-koda-gold/10 border border-koda-gold/30 rounded-2xl px-4 py-3 text-[12px] font-medium text-koda-gold"></div>
+
             <div class="bg-[#0A0D12] border border-white/5 rounded-2xl px-4 py-3 flex flex-col gap-1">
                 <span class="text-[11.5px] font-semibold text-koda-steel">Envelopes to fund</span>
                 <div id="plan-sobres" class="flex flex-col"></div>
@@ -660,6 +662,18 @@ function cargarMasTransaccionesSobre() {
                 return { s, incluir: monto > 0, monto: Math.round(monto * 100) / 100 };
             });
             planPintarFilas();
+            planAvisoYa();
+        }
+        // Movimientos "Paycheck N · ..." de este mes: avisa si esa quincena ya se fondeó
+        function planYaFondeada() {
+            const ahora = new Date(), pref = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}`;
+            return historialDB.filter(m => m.tipo === 'Fondeo de Sobre' && String(m.fechaStr || '').startsWith(pref) && String(m.desc || '').startsWith(`Paycheck ${planQ} ·`));
+        }
+        function planAvisoYa() {
+            const ya = planYaFondeada(), el = document.getElementById('plan-aviso');
+            if (!el) return;
+            el.classList.toggle('hidden', !ya.length);
+            if (ya.length) { const f = new Date(ya[ya.length - 1].fechaStr); el.innerText = `Paycheck ${planQ} was already funded this month (${ya.length} envelope${ya.length > 1 ? 's' : ''}, ${f.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}).`; }
         }
         function planPintarFilas() {
             const cont = document.getElementById('plan-sobres');
@@ -699,8 +713,9 @@ function cargarMasTransaccionesSobre() {
         }
         function abrirPlanQuincena() {
             const ult = [...historialDB].filter(m => m.tipo === 'Ingreso' && !kodaSi(m.excluirReporte) && /salary/i.test(m.categoria || '')).sort((a, b) => new Date(b.fechaStr) - new Date(a.fechaStr))[0];
-            document.getElementById('plan-monto').value = ult ? ult.monto : '';
-            const gasto = cuentasDB.find(c => kodaSi(c.liquida)) || cuentasDB.find(c => c.tipo !== 'Tarjeta Crédito');
+            let recM = null, recC = null; try { recM = localStorage.getItem('koda_plan_monto'); recC = parseInt(localStorage.getItem('koda_plan_cuenta')); } catch (e) {}
+            document.getElementById('plan-monto').value = recM ? recM : (ult ? ult.monto : '');
+            const gasto = cuentasDB.find(c => c.id === recC) || cuentasDB.find(c => kodaSi(c.liquida)) || cuentasDB.find(c => c.tipo !== 'Tarjeta Crédito');
             kodaPillsCuenta('plan-cuenta-pills', gasto ? gasto.id : null);
             planElegirQuincena(new Date().getDate() <= 15 ? 1 : 2);
             const m = document.getElementById('modal-plan'), c = document.getElementById('card-plan');
@@ -712,10 +727,16 @@ function cargarMasTransaccionesSobre() {
             m.classList.remove('opacity-100', 'pointer-events-auto'); m.classList.add('opacity-0', 'pointer-events-none');
             c.classList.remove('scale-100'); c.classList.add('scale-95');
         }
-        async function planFondear() {
+        function planFondear() {
+            const ya = planYaFondeada();
+            if (ya.length) return kodaConfirmar('Already funded', `Paycheck ${planQ} was already funded this month. Fund again?`, planFondearYa, 'Fund again', 'warning');
+            planFondearYa();
+        }
+        async function planFondearYa() {
             const origen = cuentasDB.find(c => c.id === kodaPillsCuentaValor('plan-cuenta-pills'));
             if (!origen) return mostrarAlertaKoda('Account required', 'Choose the account the paycheck was deposited in.');
             const lista = planSobres(); if (!lista.length) return;
+            try { localStorage.setItem('koda_plan_monto', document.getElementById('plan-monto').value); localStorage.setItem('koda_plan_cuenta', String(origen.id)); } catch (e) {}
             const ahora = new Date(), fecha = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}T${ahora.toTimeString().split(' ')[0]}`;
             const btn = document.getElementById('plan-confirmar');
             kodaBotonCargando(btn, true);
