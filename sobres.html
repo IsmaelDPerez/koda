@@ -269,6 +269,11 @@
                 <div id="plan-cuenta-pills" class="flex flex-wrap gap-2"></div>
             </div>
 
+            <div class="bg-[#0A0D12] border border-white/5 rounded-2xl px-4 py-3 flex flex-col gap-1">
+                <span class="text-[11.5px] font-semibold text-koda-steel">Envelopes to fund</span>
+                <div id="plan-sobres" class="flex flex-col"></div>
+            </div>
+
             <div id="plan-resumen" class="bg-[#0A0D12] border border-white/5 rounded-2xl px-4 py-2 flex flex-col"></div>
             <p class="text-[11px] leading-relaxed text-koda-steel/80 text-center px-2">This only moves money into your envelopes. Register the paycheck as income and pay your bills as usual.</p>
 
@@ -642,17 +647,41 @@ function cargarMasTransaccionesSobre() {
             planQ = q;
             document.getElementById('plan-q1').className = 'py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer outline-none ' + (q === 1 ? 'bg-white/10 text-white' : 'text-koda-steel hover:text-white');
             document.getElementById('plan-q2').className = 'py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer outline-none ' + (q === 2 ? 'bg-white/10 text-white' : 'text-koda-steel hover:text-white');
+            planArmarFilas();
             planCalcular();
         }
         function planMoney(n) { return (n < 0 ? '-$' : '$') + Math.abs(Math.round(n * 100) / 100).toLocaleString('en-US', { maximumFractionDigits: 2 }); }
-        // Lo que se le puede poner a cada sobre en esta quincena: su reposición, sin pasar del techo
-        function planSobres() {
-            return sobresDB.map(s => {
+        // Filas editables: cada sobre con su check y su monto (por defecto, la reposición sin pasar del techo)
+        let planFilas = [];
+        function planArmarFilas() {
+            planFilas = sobresDB.map(s => {
                 const q = Number(planQ === 1 ? s.q1 : s.q2) || 0, techo = Number(s.meta) || 0, actual = Number(s.monto) || 0;
                 const monto = Math.max(0, techo > 0 ? Math.min(q, techo - actual) : q);
-                return { s, monto: Math.round(monto * 100) / 100 };
-            }).filter(x => x.monto > 0);
+                return { s, incluir: monto > 0, monto: Math.round(monto * 100) / 100 };
+            });
+            planPintarFilas();
         }
+        function planPintarFilas() {
+            const cont = document.getElementById('plan-sobres');
+            if (!planFilas.length) { cont.innerHTML = '<span class="text-xs text-koda-steel py-2">No envelopes yet.</span>'; return; }
+            cont.innerHTML = planFilas.map((f, i) => `
+                <div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+                    <button type="button" onclick="planAlternar(${i})" id="plan-chk-${i}" class="w-5 h-5 rounded-md border flex items-center justify-center shrink-0 cursor-pointer outline-none transition-colors ${f.incluir ? 'bg-koda-blue border-koda-blue' : 'border-white/20'}">
+                        <span class="material-symbols-outlined text-[14px] text-[#131722] ${f.incluir ? '' : 'hidden'}">check</span>
+                    </button>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-[13px] font-semibold text-white truncate">${String(f.s.nombre).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]))}</div>
+                        <div class="text-[11px] text-koda-steel">Has ${planMoney(Number(f.s.monto) || 0)}${Number(f.s.meta) > 0 ? ' of ' + planMoney(Number(f.s.meta)) : ''}</div>
+                    </div>
+                    <div class="flex items-center bg-[#141820] border border-white/5 focus-within:border-koda-blue/40 rounded-xl px-3 py-1.5 w-[104px] transition-colors">
+                        <span class="text-xs text-koda-steel">$</span>
+                        <input type="number" value="${f.monto || ''}" oninput="planEditar(${i}, this.value)" onwheel="this.blur()" class="w-full bg-transparent text-[13px] font-semibold text-white text-right border-none outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]">
+                    </div>
+                </div>`).join('');
+        }
+        function planAlternar(i) { planFilas[i].incluir = !planFilas[i].incluir; if (planFilas[i].incluir && !(planFilas[i].monto > 0)) planFilas[i].monto = Number(planQ === 1 ? planFilas[i].s.q1 : planFilas[i].s.q2) || 0; planPintarFilas(); planCalcular(); }
+        function planEditar(i, v) { const n = parseFloat(v); planFilas[i].monto = n > 0 ? Math.round(n * 100) / 100 : 0; planFilas[i].incluir = planFilas[i].monto > 0; const chk = document.getElementById('plan-chk-' + i); if (chk) { chk.className = 'w-5 h-5 rounded-md border flex items-center justify-center shrink-0 cursor-pointer outline-none transition-colors ' + (planFilas[i].incluir ? 'bg-koda-blue border-koda-blue' : 'border-white/20'); chk.firstElementChild.classList.toggle('hidden', !planFilas[i].incluir); } planCalcular(); }
+        function planSobres() { return planFilas.filter(f => f.incluir && f.monto > 0).map(f => ({ s: f.s, monto: f.monto })); }
         function planCalcular() {
             const salario = parseFloat(document.getElementById('plan-monto').value) || 0;
             const fijos = compromisosDB.filter(c => c.tipo === 'fijo').reduce((a, c) => a + (Number(planQ === 1 ? c.montoQ1 : c.montoQ2) || 0), 0);

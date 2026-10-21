@@ -149,8 +149,8 @@
                 </div>
 
                 <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
-                    <span class="text-[11.5px] font-semibold text-koda-steel">Due day of the month (optional)</span>
-                    <input type="number" id="cmp-bill-dia" min="1" max="31" onwheel="this.blur()" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]">
+                    <span class="text-[11.5px] font-semibold text-koda-steel">Due date (optional)</span>
+                    <div data-dia="cmp-bill-dia" class="relative"></div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
@@ -221,8 +221,8 @@
                 </div>
 
                 <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
-                    <span class="text-[11.5px] font-semibold text-koda-steel">Due day of the month (optional)</span>
-                    <input type="number" id="cmp-debt-dia" min="1" max="31" onwheel="this.blur()" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]">
+                    <span class="text-[11.5px] font-semibold text-koda-steel">Due date (optional)</span>
+                    <div data-dia="cmp-debt-dia" class="relative"></div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
@@ -345,8 +345,8 @@
                 </div>
 
                 <div class="bg-[#0A0D12] border border-white/5 focus-within:border-white/20 rounded-2xl px-4 py-3 flex flex-col gap-1 transition-colors">
-                    <span class="text-[11.5px] font-semibold text-koda-steel">Collect on day of the month (optional)</span>
-                    <input type="number" id="cmp-loan-dia" min="1" max="31" onwheel="this.blur()" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]">
+                    <span class="text-[11.5px] font-semibold text-koda-steel">Collect date (optional)</span>
+                    <div data-dia="cmp-loan-dia" class="relative"></div>
                 </div>
 
                 <div class="flex items-center justify-end gap-3 pt-2 border-t border-white/5">
@@ -1053,7 +1053,43 @@
         }
 
         // Día del mes (1-31) o null si se deja vacío
-        function cmpDia(id) { const n = parseInt(cmpEl(id).value); return n >= 1 && n <= 31 ? n : null; }
+
+        // Selector de día del mes con calendario (se repite cada mes). El valor guardado es el número del día.
+        function cmpDiaInit() {
+            document.querySelectorAll('[data-dia]').forEach(w => {
+                const id = w.dataset.dia;
+                if (cmpEl(id)) return;
+                let celdas = '';
+                for (let d = 1; d <= 31; d++) celdas += `<div id="${id}-c${d}" onclick="cmpDiaElegir('${id}',${d})" class="w-8 h-8 mx-auto rounded-full flex items-center justify-center text-xs transition-colors cursor-pointer text-white hover:bg-white/10">${d}</div>`;
+                w.innerHTML = `<input type="hidden" id="${id}">
+                    <button type="button" id="${id}-btn" onclick="kodaUiToggle('${id}-drop')" class="w-full bg-transparent text-sm text-white font-medium border-none outline-none flex justify-between items-center text-left cursor-pointer"><span id="${id}-txt">No date</span><span class="material-symbols-outlined text-[16px] text-koda-steel">calendar_today</span></button>
+                    <div id="${id}-drop" class="koda-dropdown hidden absolute bottom-full right-0 mb-2 w-[290px] bg-[#1B212B] border border-white/10 rounded-xl shadow-xl z-50 p-4" onclick="event.stopPropagation()">
+                        <div class="text-sm font-semibold text-white mb-1">Day of the month</div>
+                        <div class="text-[11px] text-koda-steel mb-3">Repeats every month on this day.</div>
+                        <div class="grid grid-cols-7 gap-y-1">${celdas}</div>
+                        <div class="flex justify-between mt-3 pt-3 border-t border-white/5">
+                            <button type="button" onclick="cmpDiaElegir('${id}','')" class="text-xs text-koda-blue hover:text-white transition-colors font-semibold outline-none">Clear</button>
+                            <button type="button" onclick="cmpDiaElegir('${id}',new Date().getDate())" class="text-xs text-koda-blue hover:text-white transition-colors font-semibold outline-none">Today</button>
+                        </div>
+                    </div>`;
+            });
+        }
+        function cmpDiaElegir(id, d) {
+            cmpDiaPonerValor(id, d);
+            kodaCerrarDropdowns();
+        }
+        function cmpDiaPonerValor(id, d) {
+            cmpDiaInit();
+            const n = parseInt(d) >= 1 && parseInt(d) <= 31 ? parseInt(d) : '';
+            cmpEl(id).value = n;
+            const sufijo = (x) => (x % 10 === 1 && x !== 11) ? 'st' : (x % 10 === 2 && x !== 12) ? 'nd' : (x % 10 === 3 && x !== 13) ? 'rd' : 'th';
+            cmpEl(id + '-txt').innerText = n ? `${n}${sufijo(n)} of every month` : 'No date';
+            for (let k = 1; k <= 31; k++) {
+                const c = cmpEl(`${id}-c${k}`);
+                c.className = 'w-8 h-8 mx-auto rounded-full flex items-center justify-center text-xs transition-colors cursor-pointer ' + (k === n ? 'bg-koda-blue text-[#131722] font-semibold shadow-md' : 'text-white hover:bg-white/10');
+            }
+        }
+        function cmpDia(id) { cmpDiaInit(); const n = parseInt(cmpEl(id).value); return n >= 1 && n <= 31 ? n : null; }
 
         function abrirModalBill(id = null) {
             const it = id !== null ? compromisosDB.find(c => c.id === id && c.tipo === 'fijo') : null;
@@ -1065,7 +1101,7 @@
             cmpEl('cmp-bill-q2').value = it && it.montoQ2 ? it.montoQ2 : '';
             cmpEl('cmp-bill-afecta').checked = it ? it.afectaDisponible !== false : true;
             kodaPillsCuenta('cmp-bill-cuenta-pills', it ? it.cuentaId : null);
-            cmpEl('cmp-bill-dia').value = it && it.diaPago ? it.diaPago : '';
+            cmpDiaPonerValor('cmp-bill-dia', it && it.diaPago ? it.diaPago : '');
             cmpEl('cmp-bill-eliminar').classList.toggle('hidden', !it);
             cmpBkIniciar('bill', it);
             cmpResetEliminar();
@@ -1120,7 +1156,7 @@
             cmpEl('cmp-debt-q2').value = it && it.montoQ2 ? it.montoQ2 : '';
             cmpEl('cmp-debt-afecta').checked = it ? it.afectaDisponible !== false : true;
             kodaPillsCuenta('cmp-debt-cuenta-pills', it ? it.cuentaId : null);
-            cmpEl('cmp-debt-dia').value = it && it.diaPago ? it.diaPago : '';
+            cmpDiaPonerValor('cmp-debt-dia', it && it.diaPago ? it.diaPago : '');
             cmpEl('cmp-debt-eliminar').classList.toggle('hidden', !it);
             cmpRenderHistorialDeuda(it ? it.id : null);
             cmpBkIniciar('debt', it);
@@ -1215,7 +1251,7 @@
         function abrirModalNuevoPrestamo() {
             cmpEl('cmp-loan-nombre').value = '';
             cmpEl('cmp-loan-monto').value = '';
-            cmpEl('cmp-loan-dia').value = '';
+            cmpDiaPonerValor('cmp-loan-dia', '');
             
             // Custom Calendar init
             kodaCalActivo.d = new Date();
