@@ -452,7 +452,7 @@
                 } else {
                     html += `<p class="text-[11.5px] text-koda-steel">No single entry matches that amount. Check the last few days in History.</p>`;
                 }
-                html += `<button type="button" onclick="cnAjustar(${dif}, this)" class="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors cursor-pointer outline-none">Adjust KODA to the bank (${cnMoney(-dif)})</button>
+                html += `<button type="button" onclick="cnAjustar(${dif}, this)" class="w-full py-2.5 rounded-xl bg-koda-blue text-[#131722] hover:bg-[#7ab5bd] text-xs font-semibold transition-colors cursor-pointer outline-none">Adjust KODA to the bank (${cnMoney(-dif)})</button>
                     <p class="text-[11px] text-koda-steel/80 text-center">This adds an "Adjustment" entry. It does not count as income or spending.</p>`;
             }
             out.innerHTML = html;
@@ -486,17 +486,30 @@
                 document.getElementById('cn-banco').value = ''; document.getElementById('cn-resultado').classList.add('hidden'); cnToggle(false);
             });
         }
+        // Crea el movimiento "Adjustment" y deja el saldo igual al del banco (sin contar como ingreso ni gasto)
+        function cnAplicarAjuste(c, dif) {
+            const ahora = new Date(), fISO = `${cnHoy()}T${ahora.toTimeString().split(' ')[0]}`;
+            const mov = { id: Date.now(), tipo: dif > 0 ? 'Gasto' : 'Ingreso', monto: Math.abs(dif), desc: 'Adjustment', categoria: 'General', sobre: null, cuentaOrigen: c.apodo, cuentaId: c.id, fechaStr: fISO, origen: 'ajuste', excluirReporte: true };
+            aplicarMovimientoContable(mov); historialDB.push(mov);
+            c.conciliada = cnHoy();
+            document.getElementById('nueva-cuenta-saldo').value = c.saldo;   // el formulario muestra el saldo ya ajustado
+        }
         function cnAjustar(dif, btn) {
             const c = cnCuenta(); if (!c) return;
             cnGuardar(btn, () => {
-                const ahora = new Date(), fISO = `${cnHoy()}T${ahora.toTimeString().split(' ')[0]}`;
-                const mov = { id: Date.now(), tipo: dif > 0 ? 'Gasto' : 'Ingreso', monto: Math.abs(dif), desc: 'Adjustment', categoria: 'General', sobre: null, cuentaOrigen: c.apodo, cuentaId: c.id, fechaStr: fISO, origen: 'ajuste', excluirReporte: true };
-                aplicarMovimientoContable(mov); historialDB.push(mov);
-                c.conciliada = cnHoy();
-                document.getElementById('nueva-cuenta-saldo').value = c.saldo;   // el formulario muestra el saldo ya ajustado
+                cnAplicarAjuste(c, dif);
                 cnResumen(c); renderizarCuentas(); kodaRefrescarVistas();
                 document.getElementById('cn-banco').value = ''; document.getElementById('cn-resultado').classList.add('hidden'); cnToggle(false);
             });
+        }
+        // Si escribiste el saldo del banco y pulsas Confirm sin tocar "Adjust", el ajuste se aplica igual al guardar
+        function cnAplicarPendiente() {
+            const c = cnCuenta(), raw = document.getElementById('cn-banco').value;
+            if (!c || c.tipo === 'Tarjeta Crédito' || raw === '') return;
+            const dif = Math.round((c.saldo - (parseFloat(raw) || 0)) * 100) / 100;
+            if (dif !== 0) cnAplicarAjuste(c, dif); else c.conciliada = cnHoy();
+            document.getElementById('cn-banco').value = ''; document.getElementById('cn-resultado').classList.add('hidden');
+            kodaRefrescarVistas();
         }
 
         function abrirModalEditarCuenta(id) {
@@ -544,6 +557,7 @@
 
         async function guardarNuevaCuentaDashboard() {
             const idEdicion = document.getElementById('cuenta-id-edicion').value;
+            if (idEdicion) cnAplicarPendiente();
             const apodo = document.getElementById('nueva-cuenta-apodo').value.trim();
             const banco = document.getElementById('nueva-cuenta-banco').value.trim();
             const sigla = document.getElementById('nueva-cuenta-sigla').value.trim().toUpperCase();
