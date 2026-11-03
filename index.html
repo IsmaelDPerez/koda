@@ -439,7 +439,7 @@
             let html = fila('KODA', cnMoney(cuenta.saldo)) + fila('Bank', cnMoney(banco));
             if (dif === 0) {
                 html += `<div class="flex items-center gap-2 pt-2 border-t border-white/5 text-[13px] font-semibold text-koda-blue"><span class="material-symbols-outlined text-[18px]">check_circle</span>It matches</div>
-                    <button type="button" onclick="cnMarcarCuadra()" class="w-full py-2.5 rounded-xl bg-koda-blue text-[#131722] text-xs font-semibold hover:bg-[#7ab5bd] transition-colors cursor-pointer outline-none">Save this check</button>`;
+                    <button type="button" onclick="cnMarcarCuadra(this)" class="w-full py-2.5 rounded-xl bg-koda-blue text-[#131722] text-xs font-semibold hover:bg-[#7ab5bd] transition-colors cursor-pointer outline-none">Save this check</button>`;
             } else {
                 const cand = cnCandidatos(cuenta, Math.abs(dif));
                 html += fila('Difference', (dif > 0 ? 'KODA has ' : 'KODA is missing ') + cnMoney(Math.abs(dif)), 'text-koda-gold');
@@ -452,7 +452,7 @@
                 } else {
                     html += `<p class="text-[11.5px] text-koda-steel">No single entry matches that amount. Check the last few days in History.</p>`;
                 }
-                html += `<button type="button" onclick="cnAjustar(${dif})" class="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors cursor-pointer outline-none">Adjust KODA to the bank (${cnMoney(-dif)})</button>
+                html += `<button type="button" onclick="cnAjustar(${dif}, this)" class="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors cursor-pointer outline-none">Adjust KODA to the bank (${cnMoney(-dif)})</button>
                     <p class="text-[11px] text-koda-steel/80 text-center">This adds an "Adjustment" entry. It does not count as income or spending.</p>`;
             }
             out.innerHTML = html;
@@ -465,20 +465,38 @@
                 .sort((a, b) => new Date(b.fechaStr) - new Date(a.fechaStr)).slice(0, 4);
         }
         function cnHoy() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
-        function cnMarcarCuadra() {
-            const c = cnCuenta(); if (!c) return;
-            c.conciliada = cnHoy(); cnResumen(c); renderizarCuentas();
-            document.getElementById('cn-banco').value = ''; document.getElementById('cn-resultado').classList.add('hidden'); cnToggle(false);
+        async function cnGuardar(btn, fn) {
+            kodaBotonCargando(btn, true);
+            let ok = true;
+            try {
+                fn();
+                ok = await kodaEsperarGuardado();
+            } catch (e) {
+                console.error('Conciliación falló:', e);
+                kodaBotonCargando(btn, false);
+                return mostrarAlertaKoda('Could not adjust', 'Something went wrong: ' + (e && e.message ? e.message : e));
+            }
+            kodaBotonCargando(btn, false);
+            if (!ok) mostrarAlertaKoda('Not saved yet', 'The adjustment is in KODA, but it could not be saved to your sheet. Check your connection; KODA keeps retrying.');
         }
-        function cnAjustar(dif) {
+        function cnMarcarCuadra(btn) {
             const c = cnCuenta(); if (!c) return;
-            const ahora = new Date(), fISO = `${cnHoy()}T${ahora.toTimeString().split(' ')[0]}`;
-            const mov = { id: Date.now(), tipo: dif > 0 ? 'Gasto' : 'Ingreso', monto: Math.abs(dif), desc: 'Adjustment', categoria: 'General', sobre: null, cuentaOrigen: c.apodo, cuentaId: c.id, fechaStr: fISO, origen: 'ajuste', excluirReporte: true };
-            aplicarMovimientoContable(mov); historialDB.push(mov);
-            c.conciliada = cnHoy();
-            document.getElementById('nueva-cuenta-saldo').value = c.saldo;   // el formulario muestra el saldo ya ajustado
-            cnResumen(c); renderizarCuentas(); kodaRefrescarVistas();
-            document.getElementById('cn-banco').value = ''; document.getElementById('cn-resultado').classList.add('hidden'); cnToggle(false);
+            cnGuardar(btn, () => {
+                c.conciliada = cnHoy(); cnResumen(c); renderizarCuentas();
+                document.getElementById('cn-banco').value = ''; document.getElementById('cn-resultado').classList.add('hidden'); cnToggle(false);
+            });
+        }
+        function cnAjustar(dif, btn) {
+            const c = cnCuenta(); if (!c) return;
+            cnGuardar(btn, () => {
+                const ahora = new Date(), fISO = `${cnHoy()}T${ahora.toTimeString().split(' ')[0]}`;
+                const mov = { id: Date.now(), tipo: dif > 0 ? 'Gasto' : 'Ingreso', monto: Math.abs(dif), desc: 'Adjustment', categoria: 'General', sobre: null, cuentaOrigen: c.apodo, cuentaId: c.id, fechaStr: fISO, origen: 'ajuste', excluirReporte: true };
+                aplicarMovimientoContable(mov); historialDB.push(mov);
+                c.conciliada = cnHoy();
+                document.getElementById('nueva-cuenta-saldo').value = c.saldo;   // el formulario muestra el saldo ya ajustado
+                cnResumen(c); renderizarCuentas(); kodaRefrescarVistas();
+                document.getElementById('cn-banco').value = ''; document.getElementById('cn-resultado').classList.add('hidden'); cnToggle(false);
+            });
         }
 
         function abrirModalEditarCuenta(id) {
