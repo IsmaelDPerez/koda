@@ -611,7 +611,7 @@
             const cont = cmpEl(dropdownId);
             if(!cont) return;
             cont.innerHTML = cuentasDB.map(c => `
-                <div onclick="kodaSeleccionarCuenta('${inputId}', '${btnId}', ${c.id}, '${cmpEsc(c.apodo)}')" class="px-4 py-2 hover:bg-white/5 text-sm text-white font-medium cursor-pointer transition-colors">
+                <div data-apodo="${cmpEsc(c.apodo)}" onclick="kodaSeleccionarCuenta('${inputId}', '${btnId}', ${c.id}, this.dataset.apodo)" class="px-4 py-2 hover:bg-white/5 text-sm text-white font-medium cursor-pointer transition-colors">
                     ${cmpEsc(c.apodo)} <span class="text-koda-steel">(${cmpMoney(c.saldo)})</span>
                 </div>
             `).join('');

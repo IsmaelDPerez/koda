@@ -346,6 +346,9 @@ function seleccionarPillMoverDestino(btn, id) {
     if (btn) btn.className = 'pill-mover-dest px-4 py-2.5 rounded-2xl text-[13.5px] font-semibold border transition-colors flex items-center gap-2.5 bg-white/10 text-white border-white/30 cursor-pointer';
 }
 
+// Escapa texto para usarlo dentro de atributos HTML (nombres con apóstrofe como Grocery's)
+function kodaAttr(t) { return String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
 function renderizarSobresParaGasto() {
     const cont = document.getElementById('contenedor-sobres-gasto');
     if (!cont) return;
@@ -356,8 +359,8 @@ function renderizarSobresParaGasto() {
 
     visibles.forEach(s => {
         cont.innerHTML += `
-            <button type="button" onclick="seleccionarSobreAqua(this, '${s.nombre}')" class="pill-sobre-gasto px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-colors bg-[#0A0D12] text-koda-steel border-white/5 hover:border-white/10 cursor-pointer">
-                ${s.nombre}
+            <button type="button" data-nombre="${kodaAttr(s.nombre)}" onclick="seleccionarSobreAqua(this, this.dataset.nombre)" class="pill-sobre-gasto px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-colors bg-[#0A0D12] text-koda-steel border-white/5 hover:border-white/10 cursor-pointer">
+                ${kodaAttr(s.nombre)}
             </button>
         `;
     });
@@ -372,8 +375,8 @@ function renderizarSobresParaGasto() {
         const contOcultos = document.getElementById('sobres-expandibles');
         ocultos.forEach(s => {
             contOcultos.innerHTML += `
-                <button type="button" onclick="seleccionarSobreAqua(this, '${s.nombre}')" class="pill-sobre-gasto px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-colors bg-[#0A0D12] text-koda-steel border-white/5 hover:border-white/10 cursor-pointer">
-                    ${s.nombre}
+                <button type="button" data-nombre="${kodaAttr(s.nombre)}" onclick="seleccionarSobreAqua(this, this.dataset.nombre)" class="pill-sobre-gasto px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-colors bg-[#0A0D12] text-koda-steel border-white/5 hover:border-white/10 cursor-pointer">
+                    ${kodaAttr(s.nombre)}
                 </button>
             `;
         });
@@ -845,6 +848,7 @@ let checkpayDB = [];
 
 // Base de datos de la Plantilla (Setup) unificada
 let checkpayTemplateDB = [];
+let checkpayLogDB = [];   // bitácora: lo que se confirmó y se envió al historial en cada quincena (se conservan 3 meses)
 
 // La interfaz y la lógica de esta página (render, modales, setup, orden) viven ahora
 // dentro de checkpay.html, igual que sobres.html y compromisos.html.
@@ -1881,7 +1885,7 @@ const KODA_NUBE_KEY = 'koda_nube';
 const KODA_TABLAS_NUBE = {
     cuentas: () => cuentasDB, sobres: () => sobresDB, compromisos: () => compromisosDB, metas: () => metasDB,
     historial: () => historialDB, prestamos: () => prestamosDB, checkpay: () => checkpayDB,
-    checkpay_plantilla: () => checkpayTemplateDB, categorias: () => categoriasDB
+    checkpay_plantilla: () => checkpayTemplateDB, checkpay_log: () => checkpayLogDB, categorias: () => categoriasDB
 };
 let kodaNubeActiva = false;      // true solo cuando los datos se cargaron bien (evita pisar la hoja con datos demo)
 let kodaNubeSnapshot = {};

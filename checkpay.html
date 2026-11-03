@@ -46,6 +46,7 @@
             </div>
 
             <div class="flex items-center gap-3">
+                <button type="button" onclick="cpLogAbrir()" class="px-5 py-2.5 rounded-full border border-white/10 hover:border-white/20 text-xs font-medium text-white transition-colors cursor-pointer outline-none bg-transparent">Log</button>
                 <button type="button" onclick="abrirModalSetupCP()" class="px-5 py-2.5 rounded-full border border-white/10 hover:border-white/20 text-xs font-medium text-white transition-colors cursor-pointer outline-none bg-transparent">Setup</button>
                 <button type="button" onclick="abrirModalItemCP('lista')" class="px-6 py-2.5 bg-koda-blue text-[#131722] font-semibold rounded-full text-xs hover:bg-[#7ab5bd] transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer outline-none">
                     <span class="material-symbols-outlined text-[18px]">add</span>
@@ -71,6 +72,10 @@
             </div>
             <div class="w-full h-1.5 bg-koda-darkBg rounded-full overflow-hidden">
                 <div id="cp-barra" class="h-full bg-koda-blue rounded-full transition-all duration-700 ease-out" style="width: 0%"></div>
+            </div>
+            <div class="flex items-center justify-between gap-4 mt-5">
+                <p class="text-xs text-koda-textMuted">When you are done, send this paycheck to the log.</p>
+                <button type="button" id="cp-btn-enviar" onclick="cpEnviarAbrir()" class="flex-shrink-0 px-5 py-2.5 rounded-full border border-koda-blue/40 hover:bg-koda-blue/10 text-xs font-semibold text-koda-blue transition-colors cursor-pointer outline-none bg-transparent">Send to log</button>
             </div>
         </div>
 
@@ -184,6 +189,57 @@
                 <button type="button" onclick="abrirModalItemCP('plantilla')" class="px-4 py-2.5 text-xs font-medium text-koda-blue hover:bg-koda-blue/10 rounded-full transition-colors cursor-pointer outline-none">Add item</button>
                 <button type="button" id="cp-setup-cargar" onclick="aplicarPlantillaCP()" class="min-w-[132px] px-8 py-3 text-xs font-semibold rounded-full bg-koda-blue text-[#131722] hover:bg-[#7ab5bd] transition-colors flex items-center justify-center cursor-pointer outline-none">Load template</button>
             </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MODAL: SEND TO LOG (confirmación)
+         ========================================== -->
+    <div id="cp-modal-enviar" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
+        <div class="relative w-full max-w-[420px] bg-[#141820] border border-white/10 rounded-[32px] p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] flex flex-col gap-4 transform scale-95 transition-all duration-300 ease-out max-h-[92vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div class="flex items-center justify-between">
+                <h3 class="text-2xl font-semibold tracking-tight text-white">Send to log</h3>
+                <button type="button" onclick="cpCerrar('cp-modal-enviar')" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-textMuted hover:text-white transition-colors cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[18px]">close</span>
+                </button>
+            </div>
+
+            <div class="bg-[#0A0D12] border border-white/5 rounded-2xl px-4 py-3 flex items-center justify-between">
+                <button type="button" onclick="cpEnviarMes(-1)" class="w-8 h-8 rounded-full hover:bg-white/5 flex items-center justify-center text-koda-textMuted hover:text-white cursor-pointer outline-none"><span class="material-symbols-outlined text-[20px]">chevron_left</span></button>
+                <span id="cp-env-mes" class="text-sm font-semibold text-white"></span>
+                <button type="button" onclick="cpEnviarMes(1)" class="w-8 h-8 rounded-full hover:bg-white/5 flex items-center justify-center text-koda-textMuted hover:text-white cursor-pointer outline-none"><span class="material-symbols-outlined text-[20px]">chevron_right</span></button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 bg-[#0A0D12] border border-white/5 rounded-2xl p-1.5">
+                <button type="button" id="cp-env-q1" onclick="cpEnviarQ(1)" class="py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer outline-none">Paycheck 1</button>
+                <button type="button" id="cp-env-q2" onclick="cpEnviarQ(2)" class="py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer outline-none">Paycheck 2</button>
+            </div>
+
+            <div id="cp-env-resumen" class="bg-[#0A0D12] border border-white/5 rounded-2xl px-4 py-2 flex flex-col"></div>
+            <p id="cp-env-nota" class="text-[11px] leading-relaxed text-koda-textMuted text-center px-2"></p>
+
+            <div class="flex items-center justify-end gap-3 pt-2 border-t border-white/5">
+                <button type="button" onclick="cpCerrar('cp-modal-enviar')" class="px-5 py-2.5 text-xs font-semibold text-koda-textMuted hover:text-white rounded-full hover:bg-white/5 transition-colors cursor-pointer outline-none">Cancel</button>
+                <button type="button" id="cp-env-confirmar" onclick="cpEnviarConfirmar()" class="px-8 py-3 text-xs font-semibold rounded-full bg-koda-blue text-[#131722] hover:bg-[#7ab5bd] transition-colors cursor-pointer outline-none">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MODAL: LOG (últimos 3 meses)
+         ========================================== -->
+    <div id="cp-modal-log" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
+        <div class="relative w-full max-w-[520px] bg-[#141820] border border-white/10 rounded-[32px] p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] flex flex-col gap-4 transform scale-95 transition-all duration-300 ease-out max-h-[92vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-2xl font-semibold tracking-tight text-white">Log</h3>
+                    <p class="text-xs text-koda-textMuted mt-0.5">Last 3 months</p>
+                </div>
+                <button type="button" onclick="cpCerrar('cp-modal-log')" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-textMuted hover:text-white transition-colors cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[18px]">close</span>
+                </button>
+            </div>
+            <div id="cp-log-lista" class="flex flex-col gap-3"></div>
         </div>
     </div>
 
@@ -322,7 +378,7 @@
         function renderizarPaginaCheckpay() {
             const cont = cpEl('cp-lista');
             if (!cont) return;
-            autoLimpiarCheckpay();
+            // (ya no se quitan solos los sobres fondeados ni las metas completas: salen cuando tú envías la quincena al log)
 
             const items = checkpayDB.slice().sort((a, b) => (a.orden ?? 9999) - (b.orden ?? 9999));
             const total = items.length;
@@ -610,6 +666,104 @@
             }
         }
 
+
+        // ==========================================
+        // BITÁCORA: al confirmar, lo pagado y lo pendiente de la quincena pasa al log y se conservan 3 meses.
+        // Nada se envía solo: tú decides cuándo. Lo pendiente se queda en la lista.
+        // ==========================================
+        const CP_MESES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        let cpSel = { y: 0, m: 0, q: 1 };   // m: 0-11
+        const cpSi = (v) => v === true || v === 'TRUE' || v === 'true';
+        const cpClaveMes = (y, m) => y * 100 + (m + 1);   // 2026-10 -> 202610 (número, para que Sheets no lo convierta en fecha)
+
+        // Propone el mes y la quincena según el día de hoy: del 1 al 5 se cierra la 2 del mes pasado; del 6 al 25 la 1; después la 2
+        function cpEnviarSugerir() {
+            const h = new Date(), d = h.getDate();
+            let y = h.getFullYear(), m = h.getMonth(), q = 1;
+            if (d <= 5) { q = 2; m -= 1; if (m < 0) { m = 11; y -= 1; } }
+            else if (d >= 26) q = 2;
+            cpSel = { y, m, q };
+        }
+        function cpEnviarPintar() {
+            cpEl('cp-env-mes').innerText = `${CP_MESES[cpSel.m]} ${cpSel.y}`;
+            [1, 2].forEach(n => { cpEl('cp-env-q' + n).className = 'py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer outline-none ' + (cpSel.q === n ? 'bg-white/10 text-white' : 'text-koda-textMuted hover:text-white'); });
+            const items = checkpayDB, pagados = items.filter(i => cpSi(i.pagado));
+            const fila = (a, b, extra) => `<div class="flex justify-between gap-3 py-2.5 border-b border-white/5 last:border-0"><span class="text-[12.5px] font-medium text-koda-textMuted">${a}</span><span class="text-[13px] font-semibold ${extra || 'text-white'}">${b}</span></div>`;
+            const pend = items.length - pagados.length;
+            cpEl('cp-env-resumen').innerHTML = fila('Paid', `${pagados.length} of ${items.length}`) + fila('Amount paid', cpMoney(pagados.reduce((s, i) => s + (Number(i.monto) || 0), 0))) + fila('Still unpaid', pend ? `${pend} · ${cpMoney(items.filter(i => !cpSi(i.pagado)).reduce((s, i) => s + (Number(i.monto) || 0), 0))}` : 'None', pend ? 'text-koda-gold' : 'text-koda-blue');
+            const ya = checkpayLogDB.some(r => r.mes === cpClaveMes(cpSel.y, cpSel.m) && Number(r.q) === cpSel.q);
+            cpEl('cp-env-nota').innerText = (ya ? `${CP_MESES[cpSel.m]} Paycheck ${cpSel.q} is already in the log. ` : '') + (pend ? 'Paid items go to the log and leave the list. Unpaid ones stay here.' : 'Everything goes to the log and the list is cleared.');
+        }
+        function cpEnviarMes(dir) { cpSel.m += dir; if (cpSel.m > 11) { cpSel.m = 0; cpSel.y++; } if (cpSel.m < 0) { cpSel.m = 11; cpSel.y--; } cpEnviarPintar(); }
+        function cpEnviarQ(n) { cpSel.q = n; cpEnviarPintar(); }
+        function cpEnviarAbrir() {
+            if (!checkpayDB.length) return cpAlerta('Nothing to send', 'The list is empty.');
+            cpEnviarSugerir(); cpEnviarPintar(); cpAbrir('cp-modal-enviar');
+        }
+        function cpLogPodar() {
+            const h = new Date();
+            // se conserva el mes actual y los 2 anteriores
+            let y = h.getFullYear(), m = h.getMonth() - 2; if (m < 0) { m += 12; y -= 1; }
+            const min = cpClaveMes(y, m);
+            const antes = checkpayLogDB.length;
+            for (let i = checkpayLogDB.length - 1; i >= 0; i--) if (Number(checkpayLogDB[i].mes) < min) checkpayLogDB.splice(i, 1);
+            return antes !== checkpayLogDB.length;
+        }
+        async function cpEnviarConfirmar() {
+            const btn = cpEl('cp-env-confirmar');
+            const items = checkpayDB.slice();
+            if (!items.length) return cpCerrar('cp-modal-enviar');
+            kodaBotonCargando(btn, true);
+            const cierre = Date.now(), mes = cpClaveMes(cpSel.y, cpSel.m), hoy = new Date();
+            const fecha = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+            items.forEach((i, n) => checkpayLogDB.push({ id: cierre + n, cierre, mes, q: cpSel.q, fecha, tipoOrigen: i.tipoOrigen, nombre: cpNombre(i), monto: Number(i.monto) || 0, pagado: cpSi(i.pagado) }));
+            cpLogPodar();
+            // lo pagado sale de la lista; lo pendiente se queda
+            for (let k = checkpayDB.length - 1; k >= 0; k--) if (cpSi(checkpayDB[k].pagado)) checkpayDB.splice(k, 1);
+            checkpayDB.forEach((c, n) => { c.orden = n; });
+            renderizarPaginaCheckpay();
+            try { await kodaEsperarGuardado(); } finally { cpCerrar('cp-modal-enviar'); setTimeout(() => kodaBotonCargando(btn, false), 350); }
+        }
+
+        function cpLogAbrir() { if (cpLogPodar()) kodaEsperarGuardado(); cpLogPintar(); cpAbrir('cp-modal-log'); }
+        function cpLogPintar() {
+            const cont = cpEl('cp-log-lista');
+            const grupos = {};
+            checkpayLogDB.forEach(r => { (grupos[r.cierre] = grupos[r.cierre] || []).push(r); });
+            const ids = Object.keys(grupos).sort((a, b) => (Number(grupos[b][0].mes) - Number(grupos[a][0].mes)) || (Number(grupos[b][0].q) - Number(grupos[a][0].q)) || (b - a));
+            if (!ids.length) { cont.innerHTML = '<div class="py-12 text-center text-sm text-koda-textMuted">Nothing in the log yet</div>'; return; }
+            cont.innerHTML = ids.map(id => {
+                const filas = grupos[id], r0 = filas[0], mes = Number(r0.mes), y = Math.floor(mes / 100), m = (mes % 100) - 1;
+                const pag = filas.filter(r => cpSi(r.pagado)), total = pag.reduce((s, r) => s + (Number(r.monto) || 0), 0);
+                const f = r0.fecha ? new Date(r0.fecha + 'T12:00:00') : null;
+                const items = filas.slice().sort((a, b) => (cpSi(b.pagado) - cpSi(a.pagado))).map(r => `
+                    <div class="flex items-center gap-3 px-4 py-2.5">
+                        <span class="material-symbols-outlined text-[16px] ${cpSi(r.pagado) ? 'text-koda-blue' : 'text-koda-gold'}">${cpSi(r.pagado) ? 'check_circle' : 'schedule'}</span>
+                        <div class="flex flex-col min-w-0 flex-1">
+                            <span class="text-[13px] font-medium truncate ${cpSi(r.pagado) ? 'text-white' : 'text-koda-textMuted'}">${cpEsc(r.nombre)}</span>
+                            <span class="text-[11px] text-koda-textMuted">${cpEsc(CP_TIPOS[r.tipoOrigen] || 'Manual')}${cpSi(r.pagado) ? '' : ' · not paid'}</span>
+                        </div>
+                        <span class="text-[13px] font-semibold ${cpSi(r.pagado) ? 'text-white' : 'text-koda-textMuted'}">${cpMoney(r.monto)}</span>
+                    </div>`).join('');
+                return `<div class="bg-[#0A0D12] border border-white/5 rounded-2xl overflow-hidden">
+                    <div class="flex items-start justify-between gap-3 px-4 pt-3.5 pb-3 border-b border-white/5">
+                        <div>
+                            <div class="text-sm font-semibold text-white">${CP_MESES[m]} ${y} · Paycheck ${r0.q}</div>
+                            <div class="text-[11px] text-koda-textMuted mt-0.5">${pag.length} of ${filas.length} paid · ${cpMoney(total)}${f ? ' · sent ' + CP_MESES[f.getMonth()] + ' ' + f.getDate() : ''}</div>
+                        </div>
+                        <button type="button" onclick="cpLogQuitar(${id})" class="w-7 h-7 rounded-full hover:bg-white/5 flex items-center justify-center text-koda-textMuted hover:text-white cursor-pointer outline-none flex-shrink-0"><span class="material-symbols-outlined text-[16px]">delete</span></button>
+                    </div>
+                    <div class="divide-y divide-white/5">${items}</div>
+                </div>`;
+            }).join('');
+        }
+        function cpLogQuitar(cierre) {
+            kodaConfirmarEliminar('this log entry', () => {
+                for (let i = checkpayLogDB.length - 1; i >= 0; i--) if (String(checkpayLogDB[i].cierre) === String(cierre)) checkpayLogDB.splice(i, 1);
+                cpLogPintar(); kodaEsperarGuardado();
+            });
+        }
+
         // ==========================================
         // 5. EVENTOS DE PÁGINA
         // ==========================================
@@ -625,6 +779,8 @@
             if (!cpEl('cp-popover-orden').classList.contains('hidden')) return cerrarPopoverOrdenCP();
             if (cpEl('cp-modal-item').classList.contains('opacity-100')) return cpCerrar('cp-modal-item');
             if (cpEl('cp-modal-setup').classList.contains('opacity-100')) return cpCerrar('cp-modal-setup');
+            if (cpEl('cp-modal-enviar').classList.contains('opacity-100')) return cpCerrar('cp-modal-enviar');
+            if (cpEl('cp-modal-log').classList.contains('opacity-100')) return cpCerrar('cp-modal-log');
         });
         window.addEventListener('DOMContentLoaded', () => { const g = kodaOrdenLeer('checkpay'); if (g) cpOrdenEtiqueta = g; renderizarPaginaCheckpay(); });
     </script>
