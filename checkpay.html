@@ -233,7 +233,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h3 class="text-2xl font-semibold tracking-tight text-white">Log</h3>
-                    <p class="text-xs text-koda-textMuted mt-0.5">Last 3 months</p>
+                    <p class="text-xs text-koda-textMuted mt-0.5">Last 12 months</p>
                 </div>
                 <button type="button" onclick="cpCerrar('cp-modal-log')" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-textMuted hover:text-white transition-colors cursor-pointer outline-none">
                     <span class="material-symbols-outlined text-[18px]">close</span>
@@ -702,8 +702,8 @@
         }
         function cpLogPodar() {
             const h = new Date();
-            // se conserva el mes actual y los 2 anteriores
-            let y = h.getFullYear(), m = h.getMonth() - 2; if (m < 0) { m += 12; y -= 1; }
+            // se conserva el mes actual y los 11 anteriores; un mes se borra solo cuando cumple 12
+            let y = h.getFullYear(), m = h.getMonth() - 11; if (m < 0) { m += 12; y -= 1; }
             const min = cpClaveMes(y, m);
             const antes = checkpayLogDB.length;
             for (let i = checkpayLogDB.length - 1; i >= 0; i--) if (Number(checkpayLogDB[i].mes) < min) checkpayLogDB.splice(i, 1);
@@ -732,7 +732,8 @@
             checkpayLogDB.forEach(r => { (grupos[r.cierre] = grupos[r.cierre] || []).push(r); });
             const ids = Object.keys(grupos).sort((a, b) => (Number(grupos[b][0].mes) - Number(grupos[a][0].mes)) || (Number(grupos[b][0].q) - Number(grupos[a][0].q)) || (b - a));
             if (!ids.length) { cont.innerHTML = '<div class="py-12 text-center text-sm text-koda-textMuted">Nothing in the log yet</div>'; return; }
-            cont.innerHTML = ids.map(id => {
+            const porMes = {};
+            const tarjeta = id => {
                 const filas = grupos[id], r0 = filas[0], mes = Number(r0.mes), y = Math.floor(mes / 100), m = (mes % 100) - 1;
                 const pag = filas.filter(r => cpSi(r.pagado)), total = pag.reduce((s, r) => s + (Number(r.monto) || 0), 0);
                 const f = r0.fecha ? new Date(r0.fecha + 'T12:00:00') : null;
@@ -755,8 +756,23 @@
                     </div>
                     <div class="divide-y divide-white/5">${items}</div>
                 </div>`;
+            };
+            ids.forEach(id => { const k = Number(grupos[id][0].mes); (porMes[k] = porMes[k] || []).push(id); });
+            cont.innerHTML = Object.keys(porMes).map(Number).sort((a, b) => b - a).map(k => {
+                const y = Math.floor(k / 100), m = (k % 100) - 1, abierto = !!cpLogAbierto[k];
+                const todas = porMes[k].reduce((a, id) => a.concat(grupos[id]), []);
+                const pagadas = todas.filter(r => cpSi(r.pagado)), tot = pagadas.reduce((x, r) => x + (Number(r.monto) || 0), 0);
+                return `<div>
+                    <button type="button" onclick="cpLogMes(${k})" class="w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-2xl bg-[#0A0D12] border border-white/5 hover:border-white/10 transition-colors cursor-pointer outline-none">
+                        <div class="text-left"><div class="text-sm font-semibold text-white">${CP_MESES[m]} ${y}</div><div class="text-[11px] text-koda-textMuted mt-0.5">${porMes[k].length} paycheck${porMes[k].length > 1 ? 's' : ''} · ${cpMoney(tot)} paid</div></div>
+                        <span class="material-symbols-outlined text-[18px] text-koda-textMuted transition-transform ${abierto ? 'rotate-180' : ''}">expand_more</span>
+                    </button>
+                    ${abierto ? `<div class="flex flex-col gap-3 mt-3">${porMes[k].map(tarjeta).join('')}</div>` : ''}
+                </div>`;
             }).join('');
         }
+        let cpLogAbierto = {};
+        function cpLogMes(k) { cpLogAbierto[k] = !cpLogAbierto[k]; cpLogPintar(); }
         function cpLogQuitar(cierre) {
             kodaConfirmarEliminar('this log entry', () => {
                 for (let i = checkpayLogDB.length - 1; i >= 0; i--) if (String(checkpayLogDB[i].cierre) === String(cierre)) checkpayLogDB.splice(i, 1);
