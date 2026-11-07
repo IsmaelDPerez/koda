@@ -271,13 +271,18 @@
 
             <div id="plan-aviso" class="hidden bg-koda-gold/10 border border-koda-gold/30 rounded-2xl px-4 py-3 text-[12px] font-medium text-koda-gold"></div>
 
+            <div id="plan-fijos-bloque" class="bg-[#0A0D12] border border-white/5 rounded-2xl px-4 py-3 flex flex-col gap-1">
+                <span class="text-[11.5px] font-semibold text-koda-steel">Fixed bills to set aside</span>
+                <div id="plan-fijos" class="flex flex-col"></div>
+            </div>
+
             <div class="bg-[#0A0D12] border border-white/5 rounded-2xl px-4 py-3 flex flex-col gap-1">
                 <span class="text-[11.5px] font-semibold text-koda-steel">Envelopes to fund</span>
                 <div id="plan-sobres" class="flex flex-col"></div>
             </div>
 
             <div id="plan-resumen" class="bg-[#0A0D12] border border-white/5 rounded-2xl px-4 py-2 flex flex-col"></div>
-            <p class="text-[11px] leading-relaxed text-koda-steel/80 text-center px-2">This only moves money into your envelopes. Register the paycheck as income and pay your bills as usual.</p>
+            <p class="text-[11px] leading-relaxed text-koda-steel/80 text-center px-2">This moves money to your envelopes and to the account where each bill is paid. Register the paycheck as income and pay your bills as usual.</p>
 
             <div class="flex items-center justify-end gap-3 pt-2 border-t border-white/5">
                 <button type="button" onclick="cerrarPlanQuincena()" class="px-5 py-2.5 text-xs font-semibold text-koda-steel hover:text-white rounded-full hover:bg-white/5 transition-colors cursor-pointer outline-none">Cancel</button>
@@ -661,19 +666,51 @@ function cargarMasTransaccionesSobre() {
                 const monto = Math.max(0, techo > 0 ? Math.min(q, techo - actual) : q);
                 return { s, incluir: monto > 0, monto: Math.round(monto * 100) / 100 };
             });
+            planFijosFilas = compromisosDB.filter(c => c.tipo === 'fijo').map(c => {
+                const monto = Math.round((Number(planQ === 1 ? c.montoQ1 : c.montoQ2) || 0) * 100) / 100;
+                return { c, incluir: monto > 0, monto };
+            });
             planPintarFilas();
+            planPintarFijos();
             planAvisoYa();
         }
+        let planFijosFilas = [];
+        function planEsc(t) { return String(t).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
+        function planPintarFijos() {
+            const cont = document.getElementById('plan-fijos'), blq = document.getElementById('plan-fijos-bloque');
+            blq.classList.toggle('hidden', !planFijosFilas.length);
+            const origenId = kodaPillsCuentaValor('plan-cuenta-pills');
+            cont.innerHTML = planFijosFilas.map((f, i) => {
+                const dest = f.c.cuentaId ? cuentasDB.find(a => a.id === f.c.cuentaId) : null;
+                const nota = !dest ? 'No account set' : (dest.id === origenId ? 'Stays in ' + dest.apodo : 'To ' + dest.apodo);
+                return `<div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+                    <button type="button" onclick="planFijoAlternar(${i})" id="plan-fchk-${i}" class="w-5 h-5 rounded-md border flex items-center justify-center shrink-0 cursor-pointer outline-none transition-colors ${f.incluir ? 'bg-koda-blue border-koda-blue' : 'border-white/20'}">
+                        <span class="material-symbols-outlined text-[14px] text-[#131722] ${f.incluir ? '' : 'hidden'}">check</span>
+                    </button>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-[13px] font-semibold text-white truncate">${planEsc(f.c.nombre)}</div>
+                        <div class="text-[11px] text-koda-steel">${planEsc(nota)}</div>
+                    </div>
+                    <div class="flex items-center bg-[#141820] border border-white/5 focus-within:border-koda-blue/40 rounded-xl px-3 py-1.5 w-[104px] transition-colors">
+                        <span class="text-xs text-koda-steel">$</span>
+                        <input type="number" value="${f.monto || ''}" oninput="planFijoEditar(${i}, this.value)" onwheel="this.blur()" class="w-full bg-transparent text-[13px] font-semibold text-white text-right border-none outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]">
+                    </div>
+                </div>`;
+            }).join('');
+        }
+        function planFijoAlternar(i) { const f = planFijosFilas[i]; f.incluir = !f.incluir; if (f.incluir && !(f.monto > 0)) f.monto = Number(planQ === 1 ? f.c.montoQ1 : f.c.montoQ2) || 0; planPintarFijos(); planCalcular(); }
+        function planFijoEditar(i, v) { const f = planFijosFilas[i], n = parseFloat(v); f.monto = n > 0 ? Math.round(n * 100) / 100 : 0; f.incluir = f.monto > 0; const chk = document.getElementById('plan-fchk-' + i); if (chk) { chk.className = 'w-5 h-5 rounded-md border flex items-center justify-center shrink-0 cursor-pointer outline-none transition-colors ' + (f.incluir ? 'bg-koda-blue border-koda-blue' : 'border-white/20'); chk.firstElementChild.classList.toggle('hidden', !f.incluir); } planCalcular(); }
+        function planFijos() { return planFijosFilas.filter(f => f.incluir && f.monto > 0).map(f => ({ c: f.c, monto: f.monto })); }
         // Movimientos "Paycheck N · ..." de este mes: avisa si esa quincena ya se fondeó
         function planYaFondeada() {
             const ahora = new Date(), pref = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}`;
-            return historialDB.filter(m => m.tipo === 'Fondeo de Sobre' && String(m.fechaStr || '').startsWith(pref) && String(m.desc || '').startsWith(`Paycheck ${planQ} ·`));
+            return historialDB.filter(m => (m.tipo === 'Fondeo de Sobre' || m.tipo === 'Transferencia') && String(m.fechaStr || '').startsWith(pref) && String(m.desc || '').startsWith(`Paycheck ${planQ} ·`));
         }
         function planAvisoYa() {
             const ya = planYaFondeada(), el = document.getElementById('plan-aviso');
             if (!el) return;
             el.classList.toggle('hidden', !ya.length);
-            if (ya.length) { const f = new Date(ya[ya.length - 1].fechaStr); el.innerText = `Paycheck ${planQ} was already funded this month (${ya.length} envelope${ya.length > 1 ? 's' : ''}, ${f.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}).`; }
+            if (ya.length) { const f = new Date(ya[ya.length - 1].fechaStr); el.innerText = `Paycheck ${planQ} was already funded this month (${ya.length} item${ya.length > 1 ? 's' : ''}, ${f.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}).`; }
         }
         function planPintarFilas() {
             const cont = document.getElementById('plan-sobres');
@@ -698,18 +735,19 @@ function cargarMasTransaccionesSobre() {
         function planSobres() { return planFilas.filter(f => f.incluir && f.monto > 0).map(f => ({ s: f.s, monto: f.monto })); }
         function planCalcular() {
             const salario = parseFloat(document.getElementById('plan-monto').value) || 0;
-            const fijos = compromisosDB.filter(c => c.tipo === 'fijo').reduce((a, c) => a + (Number(planQ === 1 ? c.montoQ1 : c.montoQ2) || 0), 0);
+            const fb = planFijos(), fijos = fb.reduce((a, x) => a + x.monto, 0);
             const deudas = compromisosDB.filter(c => c.tipo === 'deuda').reduce((a, c) => a + (Number(planQ === 1 ? c.montoQ1 : c.montoQ2) || 0), 0);
             const sob = planSobres(), totSob = sob.reduce((a, x) => a + x.monto, 0);
             const libre = salario - fijos - deudas - totSob;
             const fila = (a, b, extra) => `<div class="flex justify-between gap-3 py-2.5 border-b border-white/5 last:border-0"><span class="text-[12.5px] font-medium text-koda-steel">${a}</span><span class="text-[13px] font-semibold ${extra || 'text-white'}">${b}</span></div>`;
             document.getElementById('plan-resumen').innerHTML =
-                fila('Fixed bills', planMoney(fijos)) + (deudas > 0 ? fila('Debt payments', planMoney(deudas)) : '') +
+                fila(`Fixed bills (${fb.length})`, planMoney(fijos)) + (deudas > 0 ? fila('Debt payments', planMoney(deudas)) : '') +
                 fila(`Envelope top-ups (${sob.length})`, planMoney(totSob)) +
                 fila('Left over', planMoney(libre), salario > 0 ? (libre < 0 ? 'text-koda-gold' : 'text-koda-blue') : 'text-koda-steel');
             const btn = document.getElementById('plan-confirmar');
-            btn.disabled = !sob.length; btn.classList.toggle('opacity-40', !sob.length);
-            btn.innerText = sob.length ? `Fund ${sob.length} envelope${sob.length > 1 ? 's' : ''}` : 'Nothing to fund';
+            const n = sob.length + fb.length;
+            btn.disabled = !n; btn.classList.toggle('opacity-40', !n);
+            btn.innerText = n ? `Fund ${n} item${n > 1 ? 's' : ''}` : 'Nothing to fund';
         }
         function abrirPlanQuincena() {
             const ult = [...historialDB].filter(m => m.tipo === 'Ingreso' && !kodaSi(m.excluirReporte) && /salary/i.test(m.categoria || '')).sort((a, b) => new Date(b.fechaStr) - new Date(a.fechaStr))[0];
@@ -732,10 +770,11 @@ function cargarMasTransaccionesSobre() {
             if (ya.length) return kodaConfirmar('Already funded', `Paycheck ${planQ} was already funded this month. Fund again?`, planFondearYa, 'Fund again', 'warning');
             planFondearYa();
         }
+        document.addEventListener('click', e => { if (e.target.closest && e.target.closest('#plan-cuenta-pills')) setTimeout(() => { if (planFijosFilas.length) planPintarFijos(); }, 0); });
         async function planFondearYa() {
             const origen = cuentasDB.find(c => c.id === kodaPillsCuentaValor('plan-cuenta-pills'));
             if (!origen) return mostrarAlertaKoda('Account required', 'Choose the account the paycheck was deposited in.');
-            const lista = planSobres(); if (!lista.length) return;
+            const lista = planSobres(), listaFijos = planFijos(); if (!lista.length && !listaFijos.length) return;
             try { localStorage.setItem('koda_plan_monto', document.getElementById('plan-monto').value); localStorage.setItem('koda_plan_cuenta', String(origen.id)); } catch (e) {}
             const ahora = new Date(), fecha = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}T${ahora.toTimeString().split(' ')[0]}`;
             const btn = document.getElementById('plan-confirmar');
@@ -743,6 +782,13 @@ function cargarMasTransaccionesSobre() {
             lista.forEach((x, i) => {
                 const mov = { id: Date.now() + i, tipo: 'Fondeo de Sobre', monto: x.monto, desc: `Paycheck ${planQ} · ${x.s.nombre}`, categoria: x.s.nombre, sobre: x.s.nombre, cuentaOrigen: origen.apodo, cuentaId: origen.id, fechaStr: fecha };
                 if (x.s.cuentaId && x.s.cuentaId !== origen.id && cuentasDB.some(c => c.id === x.s.cuentaId)) mov.cuentaDestinoId = x.s.cuentaId;
+                aplicarMovimientoContable(mov); historialDB.push(mov);
+            });
+            // Facturas fijas: el dinero pasa a la cuenta donde se paga cada una (si ya está ahí, no hay nada que mover)
+            listaFijos.forEach((x, i) => {
+                const dest = x.c.cuentaId ? cuentasDB.find(c => c.id === x.c.cuentaId) : null;
+                if (!dest || dest.id === origen.id) return;
+                const mov = { id: Date.now() + 500 + i, tipo: 'Transferencia', monto: x.monto, desc: `Paycheck ${planQ} · ${x.c.nombre}`, categoria: x.c.nombre, cuentaOrigen: origen.apodo, cuentaId: origen.id, cuentaDestinoId: dest.id, compromisoId: x.c.id, fechaStr: fecha };
                 aplicarMovimientoContable(mov); historialDB.push(mov);
             });
             kodaRefrescarVistas();

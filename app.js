@@ -645,8 +645,8 @@ function renderizarWidgetComparativa(periodo = '6M') {
 
     const opcionesChart = {
         series: [
-            { name: 'Ingresos', data: dataIngresos },
-            { name: 'Gastos', data: dataGastos }
+            { name: 'Income', data: dataIngresos },
+            { name: 'Expenses', data: dataGastos }
         ],
         chart: {
             type: 'area',
@@ -1506,10 +1506,9 @@ const KODA_COMISION_TRANSF = 0.002;   // 0.20 %: lo que cobra el banco por trans
 const kodaIngresoReal = m => m.tipo === 'Ingreso' && !kodaSi(m.excluirReporte);   // los "Move" de saldos iniciales no son ingresos
 
 function kodaComisionTransf(origen, destino, monto) {
-    if (!origen || !destino || origen.id === destino.id) return 0;
-    const b = c => String(c.banco || '').trim().toLowerCase();
-    if (b(origen) === b(destino)) return 0;
-    return Math.round((Number(monto) || 0) * KODA_COMISION_TRANSF * 100) / 100;
+    // Los bancos (Popular y Banreservas) no cobran el 0.20% al mover dinero entre TUS cuentas, solo en pagos y transferencias a terceros.
+    // Todas las cuentas de KODA son tuyas, así que mover dinero entre ellas no lleva impuesto.
+    return 0;
 }
 
 // Liquidez: lo que de verdad se puede gastar el resto de la quincena.
@@ -2181,3 +2180,17 @@ async function enviarAsistente(ev, textoDirecto) {
 // ---------- Orden elegido en cada lista: KODA lo recuerda en este dispositivo ----------
 function kodaOrdenLeer(clave) { try { return JSON.parse(localStorage.getItem('koda_orden_' + clave) || 'null'); } catch (e) { return null; } }
 function kodaOrdenGuardar(clave, valor) { try { localStorage.setItem('koda_orden_' + clave, JSON.stringify(valor)); } catch (e) {} }
+
+
+// ---------- Redondeo a centavos (evita 2840.7000000000003) ----------
+function kodaRedondear() {
+    const r = (n) => Math.round((Number(n) || 0) * 100) / 100;
+    (cuentasDB || []).forEach(c => { if (typeof c.saldo === 'number') c.saldo = r(c.saldo); if (typeof c.limite === 'number') c.limite = r(c.limite); });
+    (sobresDB || []).forEach(s => { if (typeof s.monto === 'number') s.monto = r(s.monto); });
+    (metasDB || []).forEach(m => { if (typeof m.montoActual === 'number') m.montoActual = r(m.montoActual); });
+    (compromisosDB || []).forEach(d => { if (typeof d.deudaActual === 'number') d.deudaActual = r(d.deudaActual); });
+}
+const _kodaAplicarOrig = aplicarMovimientoContable;
+aplicarMovimientoContable = function (mov) { const x = _kodaAplicarOrig(mov); kodaRedondear(); return x; };
+const _kodaRevertirOrig = revertirMovimientoContable;
+revertirMovimientoContable = function (id) { const x = _kodaRevertirOrig(id); kodaRedondear(); return x; };

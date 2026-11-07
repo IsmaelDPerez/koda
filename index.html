@@ -108,7 +108,7 @@
                         </div>
                     </div>
                     <div class="w-full relative -mx-2 mt-4">
-                        <div id="chart-comparativa" class="w-full h-[220px]"></div>
+                        <div id="chart-comparativa" class="w-full h-[290px]"></div>
                     </div>
                 </div>
                 
@@ -492,7 +492,7 @@
             const mov = { id: Date.now(), tipo: dif > 0 ? 'Gasto' : 'Ingreso', monto: Math.abs(dif), desc: 'Adjustment', categoria: 'General', sobre: null, cuentaOrigen: c.apodo, cuentaId: c.id, fechaStr: fISO, origen: 'ajuste', excluirReporte: true };
             aplicarMovimientoContable(mov); historialDB.push(mov);
             c.conciliada = cnHoy();
-            document.getElementById('nueva-cuenta-saldo').value = c.saldo;   // el formulario muestra el saldo ya ajustado
+            document.getElementById('nueva-cuenta-saldo').value = Math.round((Number(c.saldo) || 0) * 100) / 100;   // el formulario muestra el saldo ya ajustado
         }
         function cnAjustar(dif, btn) {
             const c = cnCuenta(); if (!c) return;
@@ -523,7 +523,7 @@
             document.getElementById('nueva-cuenta-liquida').checked = cuenta.liquida === true;
             // En tarjetas el saldo es negativo: se edita el límite y, aparte, lo que se debe
             const esTC = cuenta.tipo === 'Tarjeta Crédito';
-            document.getElementById('nueva-cuenta-saldo').value = esTC ? (cuenta.limite || Math.abs(cuenta.saldo)) : cuenta.saldo;
+            document.getElementById('nueva-cuenta-saldo').value = esTC ? (cuenta.limite || Math.abs(cuenta.saldo)) : Math.round((Number(cuenta.saldo) || 0) * 100) / 100;
             document.getElementById('nueva-cuenta-disponible').value = esTC ? Math.max(0, (cuenta.limite || 0) + Math.min(0, cuenta.saldo || 0)) : '';
             document.getElementById('titulo-modal-cuenta').innerText = "Edit account";
             document.getElementById('btn-eliminar-cuenta').classList.remove('hidden');
