@@ -777,19 +777,6 @@
             return `<div class="p-10 text-center text-koda-steel text-xs font-semibold border border-dashed border-white/10 rounded-[1.5rem]">${texto}</div>`;
         }
 
-        // Estado del mes: "Paid" (hay un pago de la factura este mes) o "Set aside" (el Paycheck plan ya movió el dinero)
-        function cmpEstadoFijo(it) {
-            const h = new Date(), pref = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}`;
-            const dia = m => { const f = new Date(m.fechaStr); return isNaN(f) ? '' : f.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); };
-            const ult = lista => lista.sort((a, b) => String(b.fechaStr).localeCompare(String(a.fechaStr)))[0];
-            const mes = historialDB.filter(m => String(m.fechaStr || '').startsWith(pref));
-            const pago = ult(mes.filter(m => m.tipo === 'Pago de Compromiso' && m.compromisoId == it.id));
-            if (pago) return `<span class="text-[11px] font-semibold text-koda-blue bg-koda-blue/10 px-2 py-0.5 rounded-md">Paid ${dia(pago)}</span>`;
-            const ap = ult(mes.filter(m => m.tipo === 'Transferencia' && m.compromisoId == it.id && String(m.desc || '').startsWith('Paycheck')));
-            if (ap) return `<span class="text-[11px] font-semibold text-koda-steel bg-white/5 px-2 py-0.5 rounded-md">Set aside ${dia(ap)}</span>`;
-            return '';
-        }
-
         function cmpHtmlFijos(items, pctIngreso) {
             if (!items.length) return cmpVacio('No fixed bills yet. Use "Add bill" to create the first one.');
             let total = 0;
@@ -799,7 +786,7 @@
                 return `
                 <div data-id="${it.id}" onclick="abrirModalBill(${it.id})" class="fila-koda px-6 py-4 flex justify-between items-center hover:bg-white/5 transition-colors cursor-pointer">
                     <span class="text-[14.5px] font-semibold text-white truncate pr-3">${cmpEsc(it.nombre)}</span>
-                    <span class="flex items-center gap-3">${cmpEstadoFijo(it)}${it.backup && it.backup.monto > 0 ? `<span class="text-[11px] font-semibold text-koda-steel bg-white/5 px-2 py-0.5 rounded-md">Backup ${cmpMoney2(it.backup.monto)}</span>` : ''}<span class="text-[15px] font-semibold text-white">${cmpMoney(cuota)}</span></span>
+                    <span class="flex items-center gap-3">${it.backup && it.backup.monto > 0 ? `<span class="text-[11px] font-semibold text-koda-steel bg-white/5 px-2 py-0.5 rounded-md">Backup ${cmpMoney2(it.backup.monto)}</span>` : ''}<span class="text-[15px] font-semibold text-white">${cmpMoney(cuota)}</span></span>
                 </div>`;
             }).join('');
             return `
