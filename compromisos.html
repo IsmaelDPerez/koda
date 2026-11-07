@@ -777,25 +777,45 @@
             return `<div class="p-10 text-center text-koda-steel text-xs font-semibold border border-dashed border-white/10 rounded-[1.5rem]">${texto}</div>`;
         }
 
-        // Estado del mes: "Paid" (hay un pago de la factura este mes) o "Set aside" (el Paycheck plan ya movió el dinero)
-        function cmpEstadoFijo(it) {
-            const h = new Date(), pref = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}`;
-            const dia = m => { const f = new Date(m.fechaStr); return isNaN(f) ? '' : f.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); };
+        // Estado del mes de cada factura fija: Paid / Set aside / pendiente.
+        // Paid = la marcaste tú, o hay un pago de la factura este mes, o un gasto con el nombre de la factura (ej. el correo del banco).
+        function cmpMesActual() { const h = new Date(); return `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}`; }
+        function cmpFechaCorta(txt) { const f = new Date(txt); return isNaN(f) ? '' : f.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
+        function cmpEstadoFijoDatos(it) {
+            const pref = cmpMesActual();
             const ult = lista => lista.sort((a, b) => String(b.fechaStr).localeCompare(String(a.fechaStr)))[0];
             const mes = historialDB.filter(m => String(m.fechaStr || '').startsWith(pref));
-            const pago = ult(mes.filter(m => m.tipo === 'Pago de Compromiso' && m.compromisoId == it.id));
-            if (pago) return `<span class="text-[11px] font-semibold text-koda-blue bg-koda-blue/10 px-2 py-0.5 rounded-md">Paid ${dia(pago)}</span>`;
+            if (it.pagadoMes === pref) return { pagado: true, manual: true, fecha: cmpFechaCorta(it.pagadoFecha) };
+            const nombre = String(it.nombre || '').trim().toLowerCase();
+            const pago = ult(mes.filter(m => (m.tipo === 'Pago de Compromiso' && m.compromisoId == it.id) || (m.tipo === 'Gasto' && nombre.length > 2 && String(m.desc || '').toLowerCase().includes(nombre))));
+            if (pago) return { pagado: true, manual: false, fecha: cmpFechaCorta(pago.fechaStr) };
             const ap = ult(mes.filter(m => m.tipo === 'Transferencia' && m.compromisoId == it.id && String(m.desc || '').startsWith('Paycheck')));
-            if (ap) return `<span class="text-[11px] font-semibold text-koda-steel bg-white/5 px-2 py-0.5 rounded-md">Set aside ${dia(ap)}</span>`;
-            return '';
+            return { pagado: false, apartado: ap ? cmpFechaCorta(ap.fechaStr) : '' };
+        }
+        function cmpEstadoFijo(it) {
+            const e = cmpEstadoFijoDatos(it);
+            if (e.pagado) return `<button type="button" onclick="cmpTogglePagado(${it.id}, event)" class="text-[11px] font-semibold text-koda-blue bg-koda-blue/10 px-2 py-0.5 rounded-md cursor-pointer outline-none">Paid ${e.fecha}</button>`;
+            const dia = it.diaPago ? `<span class="text-[11px] font-medium text-koda-steel">Due ${it.diaPago}${['th','st','nd','rd'][(it.diaPago % 100 > 10 && it.diaPago % 100 < 14) ? 0 : (it.diaPago % 10 < 4 ? it.diaPago % 10 : 0)]}</span>` : '';
+            const ap = e.apartado ? `<span class="text-[11px] font-semibold text-koda-steel bg-white/5 px-2 py-0.5 rounded-md">Set aside ${e.apartado}</span>` : '';
+            return `${dia}${ap}<button type="button" onclick="cmpTogglePagado(${it.id}, event)" class="text-[11px] font-semibold text-white border border-white/15 hover:border-koda-blue/50 hover:text-koda-blue px-2 py-0.5 rounded-md cursor-pointer outline-none transition-colors">Mark paid</button>`;
+        }
+        function cmpTogglePagado(id, ev) {
+            if (ev) ev.stopPropagation();
+            const it = compromisosDB.find(c => c.id === id); if (!it) return;
+            const e = cmpEstadoFijoDatos(it);
+            if (e.pagado && !e.manual) return cmpAlerta('Already paid', 'KODA found a payment for this bill this month, so it is already marked as paid.');
+            if (e.pagado) { delete it.pagadoMes; delete it.pagadoFecha; }
+            else { const h = new Date(); it.pagadoMes = cmpMesActual(); it.pagadoFecha = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}`; }
+            renderizarPaginaCompromisos();
         }
 
         function cmpHtmlFijos(items, pctIngreso) {
             if (!items.length) return cmpVacio('No fixed bills yet. Use "Add bill" to create the first one.');
-            let total = 0;
+            let total = 0, faltan = 0, faltanMonto = 0;
             const filas = items.map(it => {
                 const q1 = it.montoQ1 || 0, q2 = it.montoQ2 || 0, cuota = q1 + q2;
                 total += cuota;
+                if (!cmpEstadoFijoDatos(it).pagado) { faltan++; faltanMonto += cuota; }
                 return `
                 <div data-id="${it.id}" onclick="abrirModalBill(${it.id})" class="fila-koda px-6 py-4 flex justify-between items-center hover:bg-white/5 transition-colors cursor-pointer">
                     <span class="text-[14.5px] font-semibold text-white truncate pr-3">${cmpEsc(it.nombre)}</span>
@@ -805,6 +825,10 @@
             return `
             <div class="bg-koda-darkCard border border-koda-darkBorder rounded-[1.5rem] shadow-sm overflow-hidden">
                 <div id="cmp-lista-fijos" class="divide-y divide-white/5">${filas}</div>
+                <div class="px-6 py-4 bg-[#141820] flex justify-between items-center border-t border-white/5">
+                    <span class="text-[11.5px] font-semibold text-koda-steel">Left to pay this month (${faltan} of ${items.length})</span>
+                    <span class="text-base font-semibold text-white">${cmpMoney(faltanMonto)}</span>
+                </div>
                 <div class="px-6 py-4 bg-[#141820] flex justify-between items-center border-t border-white/5">
                     <span class="text-[11.5px] font-semibold text-koda-steel">Total (${pctIngreso}% of income)</span>
                     <span class="text-base font-semibold text-koda-blue">${cmpMoney(total)}</span>
