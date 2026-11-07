@@ -40,7 +40,7 @@ function kodaTipoLabel(tipo) {
     const mapa = {
         'Gasto': 'Expense', 'Ingreso': 'Income', 'Transferencia': 'Transfer',
         'Aporte a Meta': 'Goal contribution', 'Pago de Deuda': 'Debt payment',
-        'Pago de Compromiso': 'Bill payment', 'Fondeo de Sobre': 'Envelope funding', 'Préstamo': 'Loan'
+        'Pago de Compromiso': 'Bill payment', 'Fondeo de Sobre': 'Envelope funding', 'Ajuste de Sobre': 'Envelope adjustment', 'Préstamo': 'Loan'
     };
     return mapa[tipo] || tipo;
 }
@@ -1539,6 +1539,11 @@ function aplicarMovimientoContable(mov) {
     if (!cuenta) return;
     const monto = mov.monto;
 
+    if (mov.tipo === 'Ajuste de Sobre') {  // solo cambia el saldo del sobre; ninguna cuenta se mueve
+        const sobA = sobresDB.find(s => s.nombre === mov.sobre);
+        if (sobA) sobA.monto += mov.signo === '-' ? -monto : monto;
+        return;
+    }
     if (mov.tipo === 'Ingreso') {
         cuenta.saldo += monto;
         return;
@@ -1584,6 +1589,11 @@ function revertirMovimientoContable(idMovimiento) {
     if (!cuenta) return;
     const monto = mov.monto;
 
+    if (mov.tipo === 'Ajuste de Sobre') {
+        const sobA = sobresDB.find(s => s.nombre === mov.sobre);
+        if (sobA) sobA.monto -= mov.signo === '-' ? -monto : monto;
+        return;
+    }
     if (mov.tipo === 'Ingreso') { cuenta.saldo -= monto; return; }
     if (mov.tipo === 'Fondeo de Sobre') {
         const sobF = sobresDB.find(s => s.nombre === mov.sobre);

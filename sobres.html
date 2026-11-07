@@ -178,6 +178,9 @@
             </div>
 
             <div class="flex items-center gap-3 pt-2 border-t border-white/5">
+                <button type="button" onclick="abrirAjusteSobre()" class="flex-1 py-3 bg-white/10 hover:bg-white/15 text-white text-xs font-semibold rounded-full transition-colors cursor-pointer outline-none">
+                    Adjust balance
+                </button>
                 <button type="button" onclick="editarSobreDesdeDetalle()" class="flex-1 py-3 bg-white/10 hover:bg-white/15 text-white text-xs font-semibold rounded-full transition-colors cursor-pointer outline-none">
                     Edit envelope
                 </button>
@@ -245,6 +248,38 @@
     </div>
 
     <!-- [SOB-07] PAYCHECK PLAN -->
+    <!-- AJUSTAR SALDO DE UN SOBRE (no mueve dinero de ninguna cuenta) -->
+    <div id="modal-ajuste-sobre" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
+        <div id="card-ajuste-sobre" class="relative w-full max-w-[400px] bg-[#141820] border border-white/10 rounded-[32px] p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] flex flex-col gap-4 transform scale-95 transition-all duration-300 ease-out">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-2xl font-semibold tracking-tight text-white">Adjust balance</h3>
+                    <p class="text-[11.5px] text-koda-steel mt-0.5" id="aj-sobre-nombre"></p>
+                </div>
+                <button type="button" onclick="cerrarAjusteSobre()" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
+                    <span class="material-symbols-outlined text-[18px]">close</span>
+                </button>
+            </div>
+            <div class="bg-[#0A0D12] border border-white/5 rounded-2xl px-4 py-3 flex items-center justify-between">
+                <span class="text-[11.5px] font-semibold text-koda-steel">Current balance</span>
+                <span class="text-sm font-semibold text-white" id="aj-sobre-actual"></span>
+            </div>
+            <div class="bg-[#0A0D12] border border-white/5 focus-within:border-koda-blue/40 rounded-2xl px-4 py-3 transition-colors">
+                <span class="text-[11.5px] font-semibold text-koda-steel">New balance</span>
+                <div class="flex items-center gap-1 mt-1">
+                    <span class="text-xl text-koda-steel">$</span>
+                    <input type="number" id="aj-sobre-nuevo" oninput="ajusteSobreCalcular()" onwheel="this.blur()" class="w-full bg-transparent text-2xl font-semibold text-white border-none outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]">
+                </div>
+            </div>
+            <p class="text-[11.5px] text-koda-steel px-1" id="aj-sobre-dif">Type the balance the envelope should have.</p>
+            <p class="text-[11px] text-koda-steel px-1">This only changes the envelope. No account balance moves.</p>
+            <div class="flex items-center gap-3">
+                <button type="button" onclick="cerrarAjusteSobre()" class="flex-1 py-3 bg-white/10 hover:bg-white/15 text-white text-xs font-semibold rounded-full transition-colors cursor-pointer outline-none">Cancel</button>
+                <button type="button" id="aj-sobre-ok" onclick="confirmarAjusteSobre()" class="flex-1 py-3 bg-koda-blue hover:brightness-110 text-[#131722] text-xs font-semibold rounded-full transition-all cursor-pointer outline-none">Confirm</button>
+            </div>
+        </div>
+    </div>
+
     <div id="modal-plan" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
         <div id="card-plan" class="relative w-full max-w-[460px] bg-[#141820] border border-white/10 rounded-[32px] p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] flex flex-col gap-4 transform scale-95 transition-all duration-300 ease-out max-h-[92vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             <div class="flex items-center justify-between">
@@ -589,7 +624,7 @@ function abrirDetalleSobre(id, resetLimite = true) {
         const visibles = histFiltrado.slice(0, limiteHistorialSobre);
 
         visibles.forEach(m => {
-            const esIngreso = m.tipo === 'Ingreso' || m.tipo === 'Fondeo de Sobre';
+            const esIngreso = m.tipo === 'Ingreso' || m.tipo === 'Fondeo de Sobre' || (m.tipo === 'Ajuste de Sobre' && m.signo !== '-');
             listHist.innerHTML += `
             <div onclick="abrirEdicionMovimientoDesdeSobre(${m.id})" class="flex justify-between items-center p-3 bg-[#0A0D12] hover:bg-white/5 rounded-2xl border border-white/5 transition-colors cursor-pointer group">
                 <div class="flex flex-col min-w-0 pr-2">
@@ -645,6 +680,48 @@ function cargarMasTransaccionesSobre() {
             abrirModalEditarSobre(sobreAbiertoId);
         }
 
+
+        // ==========================================
+        // AJUSTAR SALDO DE UN SOBRE: deja el sobre en el saldo que dices, sin tocar ninguna cuenta
+        // ==========================================
+        function abrirAjusteSobre() {
+            const s = sobresDB.find(x => x.id === sobreAbiertoId); if (!s) return;
+            cerrarDetalleSobre();
+            document.getElementById('aj-sobre-nombre').innerText = s.nombre;
+            document.getElementById('aj-sobre-actual').innerText = planMoney(s.monto);
+            document.getElementById('aj-sobre-nuevo').value = '';
+            document.getElementById('aj-sobre-dif').innerText = 'Type the balance the envelope should have.';
+            const m = document.getElementById('modal-ajuste-sobre'), c = document.getElementById('card-ajuste-sobre');
+            m.classList.remove('opacity-0', 'pointer-events-none'); m.classList.add('opacity-100', 'pointer-events-auto');
+            c.classList.remove('scale-95'); c.classList.add('scale-100');
+            setTimeout(() => document.getElementById('aj-sobre-nuevo').focus(), 150);
+        }
+        function cerrarAjusteSobre() {
+            const m = document.getElementById('modal-ajuste-sobre'), c = document.getElementById('card-ajuste-sobre');
+            m.classList.remove('opacity-100', 'pointer-events-auto'); m.classList.add('opacity-0', 'pointer-events-none');
+            c.classList.remove('scale-100'); c.classList.add('scale-95');
+        }
+        function ajusteSobreCalcular() {
+            const s = sobresDB.find(x => x.id === sobreAbiertoId), v = document.getElementById('aj-sobre-nuevo').value, el = document.getElementById('aj-sobre-dif');
+            if (!s || v === '') { el.innerText = 'Type the balance the envelope should have.'; return null; }
+            const dif = Math.round((parseFloat(v) - s.monto) * 100) / 100;
+            el.innerText = dif === 0 ? 'Already at that balance.' : (dif < 0 ? 'Lowers the envelope by ' : 'Raises the envelope by ') + planMoney(Math.abs(dif));
+            return dif;
+        }
+        async function confirmarAjusteSobre() {
+            const s = sobresDB.find(x => x.id === sobreAbiertoId), dif = ajusteSobreCalcular();
+            if (!s || dif === null) return;
+            if (dif === 0) return cerrarAjusteSobre();
+            const cuenta = cuentasDB.find(c => c.id === s.cuentaId) || cuentasDB[0];
+            if (!cuenta) return;
+            const ahora = new Date(), fecha = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}T${ahora.toTimeString().split(' ')[0]}`;
+            const btn = document.getElementById('aj-sobre-ok');
+            kodaBotonCargando(btn, true);
+            const mov = { id: Date.now(), tipo: 'Ajuste de Sobre', monto: Math.abs(dif), signo: dif < 0 ? '-' : '+', desc: 'Envelope adjustment', categoria: s.nombre, sobre: s.nombre, cuentaOrigen: cuenta.apodo, cuentaId: cuenta.id, fechaStr: fecha, origen: 'ajuste', excluirReporte: true };
+            aplicarMovimientoContable(mov); historialDB.push(mov);
+            kodaRefrescarVistas();
+            try { await kodaEsperarGuardado(); } finally { cerrarAjusteSobre(); setTimeout(() => kodaBotonCargando(btn, false), 350); }
+        }
 
         // ==========================================
         // PAYCHECK PLAN: cuánto va a fijos, a sobres y cuánto queda libre; fondea los sobres de una vez
