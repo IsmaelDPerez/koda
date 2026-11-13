@@ -2218,3 +2218,19 @@ revertirMovimientoContable = function (id) { const x = _kodaRevertirOrig(id); ko
         return _orig.apply(this, arguments);
     };
 })();
+
+
+// ---------- Campos de monto aceptan centavos (antes solo enteros: "499.74" daba error) ----------
+(function () {
+    function arreglar(root) {
+        if (!root || !root.querySelectorAll) return;
+        root.querySelectorAll('input[type="number"]').forEach(function (i) {
+            if (/mes/i.test(i.id || '')) return;                         // los meses siguen siendo enteros
+            var st = i.getAttribute('step');
+            if (st === null || st === '1') { i.setAttribute('step', 'any'); i.setAttribute('inputmode', 'decimal'); }
+        });
+    }
+    arreglar(document);
+    document.addEventListener('DOMContentLoaded', function () { arreglar(document); });
+    try { new MutationObserver(function () { arreglar(document); }).observe(document.documentElement, { childList: true, subtree: true }); } catch (e) {}
+})();
