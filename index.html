@@ -129,16 +129,18 @@
                         <h3 class="text-xl font-semibold cursor-pointer select-none inline-flex items-center gap-2" onclick="navegarA('historial')">
                             Spending breakdown
                         </h3>
-                        <div class="flex gap-1 bg-[#151A21] p-1 rounded-lg"><button data-periodo="1M" onclick="cambiarPeriodoDistribucion('1M')" class="btn-periodo-dist px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer outline-none text-koda-steel hover:text-white">1M</button><button data-periodo="3M" onclick="cambiarPeriodoDistribucion('3M')" class="btn-periodo-dist px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer outline-none text-koda-steel hover:text-white">3M</button><button data-periodo="6M" onclick="cambiarPeriodoDistribucion('6M')" class="btn-periodo-dist px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer outline-none text-koda-steel hover:text-white">6M</button><button data-periodo="1A" onclick="cambiarPeriodoDistribucion('1A')" class="btn-periodo-dist px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer outline-none text-koda-steel hover:text-white">1Y</button></div>
                         <button onclick="navegarA('historial')" class="text-[11.5px] font-semibold text-koda-blue cursor-pointer select-none relative inline-flex items-center gap-1 overflow-visible after:absolute after:-bottom-1 after:left-0 after:h-[1.5px] after:w-full after:origin-bottom-right after:scale-x-0 after:bg-current after:transition-transform after:duration-300 after:ease-out hover:after:origin-bottom-left hover:after:scale-x-100">
                             View details <span class="material-symbols-outlined text-[14px]">chevron_right</span>
                         </button>
                     </div>
-                    <div class="bg-white dark:bg-koda-darkCard border border-gray-100 dark:border-koda-darkBorder rounded-[1.5rem] p-8 shadow-sm flex flex-col md:flex-row items-center justify-center gap-12 flex-1">
+                    <div class="bg-white dark:bg-koda-darkCard border border-gray-100 dark:border-koda-darkBorder rounded-[1.5rem] p-8 shadow-sm flex flex-col flex-1">
+                        <div class="flex justify-end mb-4"><div class="flex gap-5"><button data-periodo="1M" onclick="cambiarPeriodoDistribucion('1M')" class="btn-periodo-dist pb-1 text-xs font-semibold border-b-2 border-transparent transition-all cursor-pointer outline-none text-koda-steel hover:text-white">1M</button><button data-periodo="3M" onclick="cambiarPeriodoDistribucion('3M')" class="btn-periodo-dist pb-1 text-xs font-semibold border-b-2 border-transparent transition-all cursor-pointer outline-none text-koda-steel hover:text-white">3M</button><button data-periodo="6M" onclick="cambiarPeriodoDistribucion('6M')" class="btn-periodo-dist pb-1 text-xs font-semibold border-b-2 border-transparent transition-all cursor-pointer outline-none text-koda-steel hover:text-white">6M</button><button data-periodo="1A" onclick="cambiarPeriodoDistribucion('1A')" class="btn-periodo-dist pb-1 text-xs font-semibold border-b-2 border-transparent transition-all cursor-pointer outline-none text-koda-steel hover:text-white">1Y</button></div></div>
+                        <div class="flex flex-col md:flex-row items-center justify-center gap-12 flex-1">
                         <div class="w-full md:w-[50%] flex justify-center relative">
                             <div id="chart-distribucion" class="w-full flex justify-center"></div>
                         </div>
                         <div id="leyenda-distribucion" class="w-full md:w-[50%] grid grid-cols-2 gap-y-8 gap-x-6"></div>
+                        </div>
                     </div>
                 </div>
 

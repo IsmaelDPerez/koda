@@ -716,8 +716,8 @@ function renderizarWidgetDistribucion() {
 
     // Botones de período (1M = mes actual, 3M/6M/1Y = meses completos hasta hoy)
     document.querySelectorAll('.btn-periodo-dist').forEach(b => {
-        b.className = 'btn-periodo-dist px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer outline-none ' +
-            (b.getAttribute('data-periodo') === periodoDistribucion ? 'bg-white/10 text-white shadow-sm' : 'text-koda-steel hover:text-white');
+        b.className = 'btn-periodo-dist pb-1 text-xs font-semibold border-b-2 transition-all cursor-pointer outline-none ' +
+            (b.getAttribute('data-periodo') === periodoDistribucion ? 'border-[#66A5AD] text-white' : 'border-transparent text-koda-steel hover:text-white');
     });
     const _n = periodoDistribucion === '3M' ? 3 : periodoDistribucion === '6M' ? 6 : periodoDistribucion === '1A' ? 12 : 1;
     const _hoy = new Date();
