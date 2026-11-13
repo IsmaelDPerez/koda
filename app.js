@@ -707,12 +707,28 @@ function renderizarWidgetComparativa(periodo = '6M') {
 // ==========================================
 let chartDistribucionInstancia = null;
 
+let periodoDistribucion = '1M';
+function cambiarPeriodoDistribucion(p) { periodoDistribucion = p; renderizarWidgetDistribucion(); }
+
 function renderizarWidgetDistribucion() {
     const contLeyenda = document.getElementById('leyenda-distribucion');
     if(!contLeyenda) return;
 
+    // Botones de período (1M = mes actual, 3M/6M/1Y = meses completos hasta hoy)
+    document.querySelectorAll('.btn-periodo-dist').forEach(b => {
+        b.className = 'btn-periodo-dist px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer outline-none ' +
+            (b.getAttribute('data-periodo') === periodoDistribucion ? 'bg-white/10 text-white shadow-sm' : 'text-koda-steel hover:text-white');
+    });
+    const _n = periodoDistribucion === '3M' ? 3 : periodoDistribucion === '6M' ? 6 : periodoDistribucion === '1A' ? 12 : 1;
+    const _hoy = new Date();
+    const _ini = new Date(_hoy.getFullYear(), _hoy.getMonth() - (_n - 1), 1);
+
     // 1. Filtrar y agrupar gastos
-    let gastos = historialDB.filter(m => m.tipo === 'Gasto' && !kodaSi(m.excluirReporte));
+    let gastos = historialDB.filter(m => {
+        if (m.tipo !== 'Gasto' || kodaSi(m.excluirReporte)) return false;
+        const f = new Date((m.fechaStr || '').split('T')[0] + 'T00:00:00');
+        return !isNaN(f) && f >= _ini;
+    });
     let totalGastos = 0;
     let agrupados = {};
 
@@ -736,7 +752,9 @@ function renderizarWidgetDistribucion() {
     contLeyenda.innerHTML = '';
 
     if (arrGastos.length === 0) {
-        contLeyenda.innerHTML = `<p class="text-xs text-gray-500 col-span-2">No expenses to show.</p>`;
+        contLeyenda.innerHTML = `<p class="text-xs text-gray-500 col-span-2">No expenses in this period.</p>`;
+        if (chartDistribucionInstancia) { chartDistribucionInstancia.destroy(); chartDistribucionInstancia = null; }
+        const _c = document.querySelector("#chart-distribucion"); if (_c) _c.innerHTML = '';
         return;
     }
 
