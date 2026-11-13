@@ -650,7 +650,7 @@ function notificar(titulo, mensaje, o = {}) {
     guardarNotifs(); pintarNotifs();
 }
 function calcularDerivadas(cu, so, me) {
-    const L = [], f = n => '$' + Math.abs(Number(n) || 0).toLocaleString('en-US');
+    const L = [], f = n => money(Math.abs(Number(n) || 0));
     so.forEach(s => { if ((Number(s.monto) || 0) < 0) L.push({ clave: 'sobre-neg-' + s.id, tipo: 'warning', titulo: 'Envelope overdrawn', mensaje: `${s.nombre} is over by ${f(s.monto)}.` }); });
     cu.forEach(c => {
         const sal = Number(c.saldo) || 0, lim = Number(c.limite) || 0;

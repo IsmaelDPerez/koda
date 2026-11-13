@@ -2204,3 +2204,17 @@ const _kodaAplicarOrig = aplicarMovimientoContable;
 aplicarMovimientoContable = function (mov) { const x = _kodaAplicarOrig(mov); kodaRedondear(); return x; };
 const _kodaRevertirOrig = revertirMovimientoContable;
 revertirMovimientoContable = function (id) { const x = _kodaRevertirOrig(id); kodaRedondear(); return x; };
+
+
+// ---------- Montos con centavos: 1,809.30 (los enteros se ven sin .00) ----------
+(function () {
+    const _orig = Number.prototype.toLocaleString;
+    Number.prototype.toLocaleString = function (loc, opts) {
+        if ((loc === undefined || loc === 'en-US') && opts === undefined && isFinite(this)) {
+            const v = Math.round(Number(this) * 100) / 100;
+            const ent = Number.isInteger(v);
+            return _orig.call(v, 'en-US', { minimumFractionDigits: ent ? 0 : 2, maximumFractionDigits: 2 });
+        }
+        return _orig.apply(this, arguments);
+    };
+})();
