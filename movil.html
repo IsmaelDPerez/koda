@@ -506,6 +506,27 @@ function movsDet(arr) {
     }).join('');
     return `<div class="det-sec">Recent activity</div>${l}`;
 }
+function composicionCuenta(c, P) {
+    const sv = v => v === true || v === 'TRUE' || v === 'true', fm = n => (n < 0 ? '-' : '') + money(Math.abs(n));
+    const co = D.compromisos || [], ck = D.checkpay || [], saldo = Number(c.saldo) || 0;
+    const sob = (P.so || []).filter(x => String(x.cuentaId) === String(c.id));
+    const con = sob.filter(x => (Number(x.monto) || 0) > 0).sort((a, b) => b.monto - a.monto), exc = sob.filter(x => (Number(x.monto) || 0) < 0);
+    const bk = co.filter(k => String(k.cuentaId) === String(c.id) && k.backup && (Number(k.backup.monto) || 0) > 0);
+    const pend = ck.filter(i => !sv(i.pagado) && (i.tipoOrigen === 'fijo' || i.tipoOrigen === 'deuda')).filter(i => {
+        const k = co.find(x => x.id == i.refId && x.tipo === i.tipoOrigen);
+        return k && String(k.cuentaId) === String(c.id) && !(k.afectaDisponible === false || k.afectaDisponible === 'FALSE' || k.afectaDisponible === 'false');
+    });
+    const sP = pend.reduce((a, i) => a + (Number(i.monto) || 0), 0);
+    const libre = saldo - con.reduce((a, x) => a + x.monto, 0) - bk.reduce((a, k) => a + k.backup.monto, 0) - sP;
+    let h = `<div class="det-sec">What's in this account</div>`;
+    con.forEach(x => { h += filaDet(x.nombre, fm(x.monto)); });
+    bk.forEach(k => { const m = Number(k.backup.meses) || 0; h += filaDet(`${k.nombre} backup` + (m ? ` · ${m} ${m === 1 ? 'month' : 'months'}` : ''), fm(k.backup.monto)); });
+    if (sP > 0) h += filaDet('Left to pay', fm(sP));
+    if (!con.length && !bk.length && !sP) h += `<div class="det-n">Nothing is set aside in this account.</div>`;
+    h += filaDet(libre < 0 ? 'Short by' : 'Free to use', `<b>${fm(Math.abs(libre))}</b>`);
+    exc.forEach(x => { h += filaDet(`${x.nombre} is over`, fm(Math.abs(x.monto))); });
+    return h;
+}
 function abrirDet(k, id) {
     const P = conPendientes(), hi = P.hi;
     const q = arr => (arr || []).find(x => String(x.id) === String(id));
@@ -513,7 +534,7 @@ function abrirDet(k, id) {
     if (k === 'cuenta') {
         const c = q(P.cu); if (!c) return;
         h = `<div class="det-h">${esc(c.apodo)}</div><div class="det-big">${money(c.saldo)}</div>` + filaDet('Bank', esc(c.banco || '-')) + filaDet('Type', esc(c.tipo || 'Account')) + (esTarjeta(c) && c.limite ? filaDet('Credit limit', money(c.limite)) + filaDet('Available', money(Number(c.limite) + (Number(c.saldo) || 0))) : '') +
-            movsDet(hi.filter(m => m.cuentaOrigen === c.apodo));
+            (esTarjeta(c) ? '' : composicionCuenta(c, P)) + movsDet(hi.filter(m => m.cuentaOrigen === c.apodo));
     } else if (k === 'sobre') {
         const s = q(P.so); if (!s) return;
         const m = Number(s.monto) || 0, g = Number(s.meta) || 0;

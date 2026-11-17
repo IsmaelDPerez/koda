@@ -230,7 +230,7 @@
                     : `<span class="text-[14px] font-semibold">${c.sigla}</span>`;
 
                 contDash.innerHTML += `
-        <div onclick="if(typeof abrirModalEditarCuenta === 'function') abrirModalEditarCuenta(${c.id})" class="flex justify-between items-center p-3 mb-1 rounded-xl cursor-pointer hover:bg-koda-darkBorder/50 transition-colors duration-200 group">
+        <div onclick="abrirDetalleCuenta(${c.id})" class="flex justify-between items-center p-3 mb-1 rounded-xl cursor-pointer hover:bg-koda-darkBorder/50 transition-colors duration-200 group">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden ${CUENTA_COLOR}">${iconoHtml}</div>
                 <div>
@@ -387,6 +387,94 @@
             document.getElementById('cuenta-saldo-label').innerText = esBanco ? 'Balance' : 'Credit limit';
             document.getElementById('cuenta-deuda-caja').classList.toggle('hidden', esBanco);
         }
+
+
+        // ==========================================
+        // DETALLE DE CUENTA (de qué se compone el saldo)
+        // ==========================================
+        function abrirDetalleCuenta(id) {
+            const c = cuentasDB.find(x => x.id == id);
+            if (!c) return;
+            const fm = n => (n < 0 ? '-$' : '$') + Math.abs(Math.round((Number(n) || 0) * 100) / 100).toLocaleString();
+            const esTC = c.tipo === 'Tarjeta Crédito';
+            const cuentaCuenta = i => { if (!i) return true; const k = cuentasDB.find(z => String(z.id) === String(i)); return !k || kodaSi(k.liquida); };
+            const fila = (punto, a, b, opts = {}) => `<div class="flex items-center justify-between gap-3 py-2.5 ${opts.borde ? 'border-t border-white/5 mt-1 pt-3' : ''}">
+                <span class="flex items-center gap-2 min-w-0">${punto ? `<span class="material-symbols-outlined text-[16px] ${opts.colorIcono || 'text-koda-steel'}">${punto}</span>` : ''}<span class="text-[12.5px] font-semibold ${opts.fuerte ? 'text-white' : 'text-koda-textMuted'} truncate">${a}</span></span>
+                <span class="text-[13px] font-semibold ${opts.rojo ? 'text-koda-red' : 'text-white'} shrink-0">${b}</span></div>`;
+
+            document.getElementById('dc-nombre').innerText = c.apodo;
+            document.getElementById('dc-sub').innerText = `${c.banco} · ${esTC ? 'Credit card' : 'Bank account'}${kodaSi(c.liquida) ? ' · Spending' : ''}`;
+            document.getElementById('dc-icono').innerHTML = c.logo ? `<img src="${c.logo}" class="w-full h-full object-cover">` : `<span class="text-[14px] font-semibold">${c.sigla}</span>`;
+            document.getElementById('dc-ajustes').onclick = () => { cerrarDetalleCuenta(); setTimeout(() => abrirModalEditarCuenta(c.id), 150); };
+
+            let comp = '';
+            if (esTC) {
+                const limite = Number(c.limite) || 0, debe = Math.abs(Math.min(0, Number(c.saldo) || 0)), disp = limite - debe;
+                document.getElementById('dc-saldo-label').innerText = 'Available credit';
+                document.getElementById('dc-saldo').innerText = fm(disp);
+                document.getElementById('dc-saldo-nota').innerText = limite ? `${Math.round((debe / limite) * 100)}% of your limit used` : '';
+                document.getElementById('dc-comp-titulo').innerText = 'Card summary';
+                comp = fila('credit_card', 'Credit limit', fm(limite))
+                     + fila('trending_down', 'You owe', fm(-debe), { rojo: debe > 0 })
+                     + fila('', 'Available credit', fm(disp), { fuerte: true, borde: true });
+            } else {
+                const saldo = Number(c.saldo) || 0;
+                const sobres = sobresDB.filter(s => String(s.cuentaId) === String(c.id));
+                const conDinero = sobres.filter(s => (Number(s.monto) || 0) > 0).sort((a, b) => b.monto - a.monto);
+                const excedidos = sobres.filter(s => (Number(s.monto) || 0) < 0);
+                const backups = compromisosDB.filter(k => String(k.cuentaId) === String(c.id) && k.backup && (Number(k.backup.monto) || 0) > 0);
+                const pend = checkpayDB.filter(i => !kodaSi(i.pagado) && (i.tipoOrigen === 'fijo' || i.tipoOrigen === 'deuda')).filter(i => {
+                    const k = compromisosDB.find(x => x.id == i.refId && x.tipo === i.tipoOrigen);
+                    return k && String(k.cuentaId) === String(c.id) && !(k.afectaDisponible === false || k.afectaDisponible === 'FALSE' || k.afectaDisponible === 'false');
+                });
+                const sumSobres = conDinero.reduce((a, s) => a + s.monto, 0);
+                const sumBackups = backups.reduce((a, k) => a + k.backup.monto, 0);
+                const sumPend = pend.reduce((a, i) => a + (Number(i.monto) || 0), 0);
+                const libre = saldo - sumSobres - sumBackups - sumPend;
+
+                document.getElementById('dc-saldo-label').innerText = 'Balance';
+                document.getElementById('dc-saldo').innerText = fm(saldo);
+                document.getElementById('dc-saldo-nota').innerText = '';
+                document.getElementById('dc-comp-titulo').innerText = "What's in this account";
+                conDinero.forEach(s => { comp += fila('mail', s.nombre, fm(s.monto)); });
+                backups.forEach(k => { const m = Number(k.backup.meses) || 0; comp += fila('savings', `${k.nombre} backup` + (m ? ` · ${m} ${m === 1 ? 'month' : 'months'}` : ''), fm(k.backup.monto)); });
+                if (sumPend > 0) comp += fila('event_upcoming', 'Left to pay', fm(sumPend));
+                if (!conDinero.length && !sumBackups && !sumPend) comp += `<p class="text-[12px] text-koda-textMuted py-3">Nothing is set aside in this account.</p>`;
+                comp += fila('', libre < 0 ? 'Short by' : 'Free to use', fm(Math.abs(libre)), { fuerte: true, borde: true, rojo: libre < 0 });
+                excedidos.forEach(s => { comp += fila('warning', `${s.nombre} is over`, fm(Math.abs(s.monto)), { rojo: true, colorIcono: 'text-koda-red' }); });
+            }
+            document.getElementById('dc-composicion').innerHTML = comp;
+
+            // Últimos movimientos de esta cuenta
+            const mueve = [];
+            historialDB.forEach(m => {
+                let v = null;
+                if (m.cuentaId == c.id) {
+                    if (m.tipo === 'Ingreso') v = m.monto;
+                    else if (m.tipo === 'Gasto' || m.tipo === 'Transferencia' || m.tipo === 'Aporte a Meta') v = -m.monto;
+                    else if (m.tipo === 'Fondeo de Sobre' && m.cuentaDestinoId && m.cuentaDestinoId != c.id) v = -m.monto;
+                } else if (m.cuentaDestinoId == c.id && (m.tipo === 'Transferencia' || m.tipo === 'Fondeo de Sobre')) v = m.monto;
+                if (v !== null) mueve.push({ m, v });
+            });
+            mueve.sort((a, b) => String(b.m.fechaStr).localeCompare(String(a.m.fechaStr)));
+            const meses = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            document.getElementById('dc-actividad').innerHTML = mueve.length ? mueve.slice(0, 5).map(({ m, v }) => {
+                const f = new Date(String(m.fechaStr).split('T')[0] + 'T00:00:00');
+                return `<div class="flex items-center justify-between gap-3 py-2.5 border-b border-white/5 last:border-0">
+                    <div class="min-w-0"><p class="text-[12.5px] font-semibold text-white truncate">${(m.desc || m.tipo)}</p><p class="text-[11px] text-koda-textMuted">${isNaN(f) ? '' : meses[f.getMonth()] + ' ' + f.getDate()}</p></div>
+                    <span class="text-[13px] font-semibold ${v < 0 ? 'text-white' : 'text-koda-blue'} shrink-0">${v < 0 ? '-' : '+'}${fm(Math.abs(v))}</span></div>`;
+            }).join('') : `<p class="text-[12px] text-koda-textMuted py-3">No movements yet.</p>`;
+
+            const m = document.getElementById('modal-detalle-cuenta'), card = document.getElementById('card-detalle-cuenta');
+            m.classList.remove('opacity-0', 'pointer-events-none'); m.classList.add('opacity-100', 'pointer-events-auto');
+            card.classList.remove('scale-95'); card.classList.add('scale-100');
+        }
+        function cerrarDetalleCuenta() {
+            const m = document.getElementById('modal-detalle-cuenta'), card = document.getElementById('card-detalle-cuenta');
+            m.classList.remove('opacity-100', 'pointer-events-auto'); m.classList.add('opacity-0', 'pointer-events-none');
+            card.classList.remove('scale-100'); card.classList.add('scale-95');
+        }
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarDetalleCuenta(); });
 
         function mostrarModalCuenta() {
             const m = document.getElementById('modal-crear-cuenta'), c = document.getElementById('card-crear-cuenta');
@@ -603,6 +691,46 @@
             await kodaConfirmarYCerrar('modal-crear-cuenta', cerrarModalCrearCuenta);
         }
     </script>
+
+
+    <!-- [IDX-05] ACCOUNT DETAIL MODAL -->
+    <div id="modal-detalle-cuenta" onclick="if(event.target===this)cerrarDetalleCuenta()" class="fixed inset-0 z-[79] flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
+        <div id="card-detalle-cuenta" class="relative w-full max-w-[460px] bg-[#141820] border border-white/10 rounded-[32px] p-6 sm:p-7 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] flex flex-col gap-5 transform scale-95 transition-all duration-300 ease-out max-h-[90vh] overflow-y-auto no-scrollbar">
+            <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div id="dc-icono" class="w-11 h-11 rounded-full flex items-center justify-center overflow-hidden shrink-0 bg-koda-blue/10 text-koda-blue"></div>
+                    <div class="min-w-0">
+                        <h3 id="dc-nombre" class="text-xl font-semibold tracking-tight text-white leading-tight truncate"></h3>
+                        <p id="dc-sub" class="text-[11.5px] text-koda-textMuted leading-tight mt-0.5"></p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button type="button" id="dc-ajustes" title="Account settings" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
+                        <span class="material-symbols-outlined text-[18px]">settings</span>
+                    </button>
+                    <button type="button" onclick="cerrarDetalleCuenta()" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-koda-steel hover:text-white transition-colors cursor-pointer outline-none">
+                        <span class="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-[#0A0D12] border border-white/5 rounded-2xl px-5 py-5 text-center">
+                <p id="dc-saldo-label" class="text-[11.5px] font-semibold text-koda-steel mb-1"></p>
+                <p id="dc-saldo" class="text-4xl font-semibold text-white tracking-tight"></p>
+                <p id="dc-saldo-nota" class="text-[11.5px] font-semibold text-koda-textMuted mt-2"></p>
+            </div>
+
+            <div>
+                <p id="dc-comp-titulo" class="text-[11.5px] font-semibold text-koda-steel mb-2">What's in this account</p>
+                <div id="dc-composicion" class="bg-[#0A0D12] border border-white/5 rounded-2xl px-4 py-2 flex flex-col"></div>
+            </div>
+
+            <div>
+                <p class="text-[11.5px] font-semibold text-koda-steel mb-2">Recent activity</p>
+                <div id="dc-actividad" class="bg-[#0A0D12] border border-white/5 rounded-2xl px-4 py-1 flex flex-col"></div>
+            </div>
+        </div>
+    </div>
 
     <!-- [IDX-04] ACCOUNT MODAL -->
     <div id="modal-crear-cuenta" class="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-[#0D1117]/80 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300 ease-out">
