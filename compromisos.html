@@ -1478,7 +1478,7 @@
             if (p && !p.classList.contains('hidden') && !p.contains(e.target) && !t.contains(e.target)) cerrarPopoverOrdenComp();
             
             // Cierra popovers KODA personalizados (Cuentas, Calendario)
-            if(!e.target.closest('.koda-dropdown') && !e.target.closest('button[id^="btn-"]')) {
+            if(!e.target.closest('.koda-dropdown') && !e.target.closest('button[id^="btn-"]') && !e.target.closest('button[id$="-btn"]')) {
                 kodaCerrarDropdowns();
             }
         });

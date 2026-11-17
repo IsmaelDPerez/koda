@@ -1791,6 +1791,7 @@ async function kodaProcesarBandeja() {
         const revisar = items.filter(i => i.estado === 'revisar');
         const duplicados = items.filter(i => i.estado === 'duplicado');
         const registrados = [];
+        const fallidos = [];
 
         const resumen = listos.length > 3;   // muchos de golpe: una sola notificación
         for (let n = 0; n < listos.length; n++) {
@@ -1801,8 +1802,10 @@ async function kodaProcesarBandeja() {
                 tipo: it.tipo, categoria: it.categoria, sobre: it.sobre, fechaStr: it.fechaStr, origen: 'email',
                 id: Date.now() + n, notificar: !resumen, refCorreo: it.id
             });
-            if (mov) registrados.push(it.id);
+            if (mov) registrados.push(it.id); else fallidos.push(it.id);
         }
+        // Lo que no se pudo registrar se avisa una sola vez y se marca, para no repetir el intento (y el aviso) cada minuto
+        if (fallidos.length) await kodaNubeLlamar('marcarBandeja', { ids: fallidos, estado: 'avisado' });
         if (resumen && registrados.length) kodaNotificar('Automatic entries registered', `${registrados.length} entries from your bank emails.`, { tipo: 'auto', link: 'historial.html' });
 
         if (registrados.length) {
